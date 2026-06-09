@@ -19,7 +19,6 @@ func NewTaskHandler(e *echo.Echo, tu *usecase.TaskUsecase) {
 		taskUsecase: tu,
 	}
 	e.GET("/api/groups/:id/tasks", h.ListTasks)
-	e.POST("/api/tasks/ai", h.CreateTaskFromAI)
 	e.POST("/api/tasks/manual", h.CreateManualTask)
 }
 
@@ -31,25 +30,6 @@ func (h *TaskHandler) ListTasks(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 	return c.JSON(http.StatusOK, tasks)
-}
-
-// CreateTaskFromAI は AI 解析を用いた課題登録を受け付ける．
-func (h *TaskHandler) CreateTaskFromAI(c echo.Context) error {
-	// リクエストボディの構造体定義
-	var req struct {
-		UserID  string `json:"user_id"`
-		GroupID string `json:"group_id"`
-		Text    string `json:"text"`
-	}
-	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "リクエスト形式が不正である"})
-	}
-
-	task, err := h.taskUsecase.RegisterTaskFromAI(c.Request().Context(), req.UserID, req.GroupID, req.Text)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
-	}
-	return c.JSON(http.StatusCreated, task)
 }
 
 // CreateManualTask は UI からの直接入力を受け付ける．

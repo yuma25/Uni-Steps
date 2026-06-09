@@ -95,6 +95,18 @@ API キーを使用して認証するためのオプションを返す．`genai.
 
 ---
 
+## 9. JSON のエンコード・デコード (json)
+**Package**: `encoding/json`  
+**Reference**: [pkg.go.dev/encoding/json](https://pkg.go.dev/encoding/json)
+
+### `func Unmarshal(data []byte, v any) error`
+JSON 形式のバイト配列を解析し，構造体やマップにデータを流し込む．AI からの JSON レスポンスをパースするのに必須である．
+
+### `func Marshal(v any) ([]byte, error)`
+構造体やマップを JSON 形式のバイト配列に変換する．API のレスポンス作成などに使用する．
+
+---
+
 ## 7. Google Classroom API (Candidate)
 **Package**: `google.golang.org/api/classroom/v1`  
 **Reference**: [pkg.go.dev/google.golang.org/api/classroom/v1](https://pkg.go.dev/google.golang.org/api/classroom/v1)

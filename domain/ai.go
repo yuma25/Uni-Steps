@@ -2,12 +2,11 @@ package domain
 
 import "context"
 
-// AIService は自然言語解析を行う AI エンジンに関するインターフェースである．
-// クリーンアーキテクチャでは，具体的な AI（Gemini等）の実装は infrastructure レイヤーで行い，
-// ドメインレイヤーではその「能力」だけを定義する．
+// AIService は AI エンジンによる文章生成等に関するインターフェースである．
+// 本システムでは，ユーザーへの効果的なリマインド文の作成等に AI を活用する．
 type AIService interface {
-	// AnalyzeTask はユーザーの入力テキストを解析し，タスク構造体に変換する．
-	AnalyzeTask(ctx context.Context, text string) (*Task, error)
 	// GenerateRemindMessage はタスクの内容に基づいてリマインド文を生成する．
+	// task: リマインド対象の課題情報
+	// style: 生成する文章のトーン（例：「熱血」「厳しい」「優しく」等）
 	GenerateRemindMessage(ctx context.Context, task *Task, style string) (string, error)
 }
