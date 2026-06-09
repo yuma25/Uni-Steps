@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/yuma25/Uni-Steps/domain"
 	"gorm.io/gorm"
@@ -52,6 +53,19 @@ func (r *taskRepository) FindByGroupID(ctx context.Context, groupID string) ([]*
 	var tasks []*domain.Task
 	// Find メソッドで複数件を取得する．
 	err := r.db.WithContext(ctx).Where("group_id = ?", groupID).Find(&tasks).Error
+	if err != nil {
+		return nil, err
+	}
+	return tasks, nil
+}
+
+// FindApproachingDeadlines は指定された日時までに期限を迎える，未完了のタスクを取得する．
+func (r *taskRepository) FindApproachingDeadlines(ctx context.Context, until time.Time) ([]*domain.Task, error) {
+	var tasks []*domain.Task
+	// "deadline <= ?" で期限が until より前，かつ "is_completed = false" のものを検索する．
+	err := r.db.WithContext(ctx).
+		Where("deadline <= ? AND is_completed = ?", until, false).
+		Find(&tasks).Error
 	if err != nil {
 		return nil, err
 	}

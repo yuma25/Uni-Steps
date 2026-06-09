@@ -53,10 +53,10 @@ func main() {
 	// TODO: LMS サービス（Google Classroom等）の初期化もここで行う．
 
 	// ユースケース（現場監督）の初期化
-	// ※現在 AIService と LMSService は nil を渡している（後ほど本実装と差し替える）
+	// ※現在 AIService と LMSService, NotificationService は nil を渡している（後ほど本実装と差し替える）
 	taskUsecase := usecase.NewTaskUsecase(taskRepo, nil)
 	syncUsecase := usecase.NewSyncUsecase(taskRepo, nil)
-	monitorUsecase := usecase.NewMonitorUsecase(taskRepo, nil)
+	monitorUsecase := usecase.NewMonitorUsecase(taskRepo, nil, nil)
 
 	// 3.5 監視プロセス（Goroutine）の起動
 	// メインの HTTP サーバーの邪魔をしないように，`go` キーワードをつけて裏側（並行）で走らせる．
