@@ -8,6 +8,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/yuma25/Uni-Steps/domain"
 	"github.com/yuma25/Uni-Steps/infrastructure/db"
 	"github.com/yuma25/Uni-Steps/interfaces/handler"
 	"github.com/yuma25/Uni-Steps/usecase"
@@ -29,6 +30,19 @@ func main() {
 	if err != nil {
 		log.Fatalf("データベースの接続に失敗した: %v", err)
 	}
+
+	// 2.5 データベースの自動マイグレーション
+	// Go の構造体（Domain）を元に，必要なテーブルを自動で作成・更新する．
+	log.Println("データベースのマイグレーションを実行中...")
+	err = gormDB.AutoMigrate(
+		&domain.User{},
+		&domain.Group{},
+		&domain.Task{},
+	)
+	if err != nil {
+		log.Fatalf("マイグレーションに失敗した: %v", err)
+	}
+	log.Println("マイグレーションが完了した．")
 
 	// 3. 依存性の注入（DI: Dependency Injection）
 	// インフラ -> ユースケース -> ハンドラー の順に組み立てる．
