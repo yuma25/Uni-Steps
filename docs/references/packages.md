@@ -177,3 +177,23 @@ HTTP リクエストを表す構造体である．
 
 ### 🏷️ エラー定数
 *   `ErrRecordNotFound`: データベース検索時（`First` 等）にレコードが見つからなかった場合に返される標準エラーである．
+
+---
+
+## 12. LINE Messaging API
+**Package**: `github.com/line/line-bot-sdk-go/v8/linebot/messaging_api`  
+**Reference**: [pkg.go.dev/github.com/line/line-bot-sdk-go/v8/linebot/messaging_api](https://pkg.go.dev/github.com/line/line-bot-sdk-go/v8/linebot/messaging_api)
+
+### 📦 `type MessagingApiAPI struct`
+LINE Messaging API と通信するためのメインクライアントである．
+*   ⚙️ `func NewMessagingApiAPI(channelToken string) (*MessagingApiAPI, error)`: チャンネルアクセストークンを用いてクライアントを生成する．
+*   🔧 `func (client *MessagingApiAPI) PushMessage(pushMessageRequest *PushMessageRequest, xLineRetryKey string) (*PushMessageResponse, error)`: 指定した宛先に対してメッセージを送信する．第二引数は重複実行防止用のキー（任意）である．
+
+### 📦 `type PushMessageRequest struct`
+Push メッセージ送信時のリクエストボディを表す構造体である．
+*   🏷️ `To string`: 送信先の ID（ユーザーID，グループIDなど）である．
+*   🏷️ `Messages []MessageInterface`: 送信するメッセージオブジェクトの配列である（最大 5 件まで）．
+
+### 📦 `type TextMessage struct`
+テキストメッセージを表す構造体である．（`MessageInterface` を満たす）
+*   🏷️ `Text string`: 送信するテキスト内容である．
