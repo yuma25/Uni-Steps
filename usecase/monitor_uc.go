@@ -11,8 +11,8 @@ import (
 
 // MonitorUsecase は定期的にデータベースを監視し，リマインドや生存確認を行うロジックである．
 type MonitorUsecase struct {
-	taskRepo  domain.TaskRepository
-	aiService domain.AIService
+	taskRepo  domain.TaskRepository // 課題データを検索・更新するためのリポジトリである．
+	aiService domain.AIService      // リマインド時の「煽り」や「励まし」のメッセージを生成するための AI サービスである．
 }
 
 // NewMonitorUsecase は MonitorUsecase の新しいインスタンスを生成する．
