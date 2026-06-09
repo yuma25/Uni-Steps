@@ -1,34 +1,64 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"os"
 
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/yuma25/Uni-Steps/infrastructure/db"
+	"github.com/yuma25/Uni-Steps/interfaces/handler"
+	"github.com/yuma25/Uni-Steps/usecase"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 func main() {
-	// Load .env file
+	// 1. 環境変数の読み込み
 	_ = godotenv.Load()
 
-	// Initialize Echo
+	// 2. データベース接続の確立
+	dbURL := os.Getenv("DATABASE_URL")
+	if dbURL == "" {
+		log.Fatal("DATABASE_URL が設定されていない．.env ファイルを確認すること．")
+	}
+
+	gormDB, err := gorm.Open(postgres.Open(dbURL), &gorm.Config{})
+	if err != nil {
+		log.Fatalf("データベースの接続に失敗した: %v", err)
+	}
+
+	// 3. 依存性の注入（DI: Dependency Injection）
+	// インフラ -> ユースケース -> ハンドラー の順に組み立てる．
+
+	// インフラストラクチャ（道具）の初期化
+	taskRepo := db.NewTaskRepository(gormDB)
+	// TODO: LMS サービス（Google Classroom等）の初期化もここで行う．
+
+	// ユースケース（現場監督）の初期化
+	// ※現在 AIService と LMSService は nil を渡している（後ほど本実装と差し替える）
+	taskUsecase := usecase.NewTaskUsecase(taskRepo, nil)
+	syncUsecase := usecase.NewSyncUsecase(taskRepo, nil)
+
+	// Echo サーバーの初期化
 	e := echo.New()
 
-	// Middleware
+	// ミドルウェアの設定
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORS())
 
-	// Health Check
+	// ヘルスチェック
 	e.GET("/health", func(c echo.Context) error {
 		return c.String(http.StatusOK, "Uni-Steps API is running")
 	})
 
-	// TODO: Initialize Repositories, Usecases, and Handlers
+	// ハンドラー（窓口）の初期化とルーティング登録
+	handler.NewTaskHandler(e, taskUsecase, syncUsecase)
 
-	// Start Server
+	// 4. サーバーの起動
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
