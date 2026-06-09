@@ -102,5 +102,19 @@ API キーを使用して認証するためのオプションを返す．`genai.
 ### `func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error)`
 Google Classroom と通信するためのサービスを生成する．
 
-### `type CoursesService`
-コース一覧の取得や，コース内の課題（CourseWork）の取得に使用する．
+---
+
+## 8. HTTP クライアント・サーバー (net/http)
+**Package**: `net/http`  
+**Reference**: [pkg.go.dev/net/http](https://pkg.go.dev/net/http)
+
+### 定数 (Status Codes)
+HTTP レスポンスの状態を表す定数である．
+*   `StatusOK (200)`: リクエストが成功したことを示す．
+*   `StatusCreated (201)`: リクエストが成功し，新しいリソース（タスク等）が作成されたことを示す．
+*   `StatusBadRequest (400)`: クライアントのリクエストが不正（JSON 形式の誤り等）であることを示す．
+*   `StatusInternalServerError (500)`: サーバー側で予期せぬエラーが発生したことを示す．
+
+### `type Request struct`
+サーバーが受信する，またはクライアントが送信する HTTP リクエストを表す．
+*   `func (r *Request) Context() context.Context`: リクエストのコンテキストを返す．タイムアウトやキャンセルの制御に使用する．
