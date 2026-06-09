@@ -168,6 +168,7 @@ HTTP リクエストを表す構造体である．
 
 ### 📦 `type DB struct`
 データベースとの接続や操作（クエリの構築，実行）を管理するメインの構造体である．
+*   🔧 `func (db *DB) AutoMigrate(dst ...interface{}) error`: 指定された構造体（モデル）に基づいてデータベースのテーブルを自動的に作成・更新する．
 *   🔧 `func (db *DB) WithContext(ctx context.Context) *DB`: リクエストのキャンセルやタイムアウトを制御するためのコンテキストを設定した新しい DB インスタンスを返す．
 *   🔧 `func (db *DB) Save(value interface{}) *DB`: オブジェクトを保存する．主キー（ID）が存在する場合は UPDATE，存在しない場合は INSERT を実行する．
 *   🔧 `func (db *DB) Where(query interface{}, args ...interface{}) *DB`: SQL の WHERE 句に相当する条件を指定する．
