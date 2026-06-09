@@ -65,8 +65,30 @@ API キーを使用して認証するためのオプションを返す．`genai.
 
 ---
 
-## 5. 標準ライブラリ
-### `package context`
-API リクエストの期限（Timeout）やキャンセルを制御するために全ての API 呼び出しで使用する．
-*   `func Background() Context`: 空のコンテキストを生成する．
-*   `func WithTimeout(parent Context, timeout time.Duration) (Context, CancelFunc)`: 指定時間で打ち切るコンテキストを生成する．
+## 5. 標準ライブラリ (context)
+**Package**: `context`  
+**Reference**: [pkg.go.dev/context](https://pkg.go.dev/context)
+
+### `type Context interface`
+デッドライン，キャンセル信号，その他のリクエストスコープの値を API の境界を越えて運ぶためのインターフェースである．
+
+### `func Background() Context`
+空の Context を返す．通常，main 関数，初期化，テスト，およびトップレベルのリクエストの Context として使用される．
+
+### `func WithTimeout(parent Context, timeout time.Duration) (Context, CancelFunc)`
+親 Context のコピーを返すが，timeout が経過するとその Context はキャンセルされる．API リクエストのタイムアウト管理に必須である．
+
+### `func WithCancel(parent Context) (ctx Context, cancel CancelFunc)`
+親 Context のコピーを返し，cancel 関数が呼ばれると，返された Context の Done チャネルが閉じられる．
+
+---
+
+## 6. 文字列操作・フォーマット (fmt)
+**Package**: `fmt`  
+**Reference**: [pkg.go.dev/fmt](https://pkg.go.dev/fmt)
+
+### `func Errorf(format string, a ...any) error`
+フォーマットに従った文字列を持つエラーを生成する．`%w` を使用することで，元のエラーをラップ（包み込む）し，エラーの追跡（スタックトレースのようなもの）を可能にする．
+
+### `func Printf(format string, a ...any) (n int, err error)`
+フォーマットに従って標準出力に文字列を表示する．開発中のデバッグやログ出力に使用する．
