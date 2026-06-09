@@ -6,13 +6,17 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/google/generative-ai-go/genai"
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/yuma25/Uni-Steps/domain"
+	"github.com/yuma25/Uni-Steps/infrastructure/ai"
 	"github.com/yuma25/Uni-Steps/infrastructure/db"
+	"github.com/yuma25/Uni-Steps/infrastructure/line"
 	"github.com/yuma25/Uni-Steps/interfaces/handler"
 	"github.com/yuma25/Uni-Steps/usecase"
+	"google.golang.org/api/option"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -33,7 +37,6 @@ func main() {
 	}
 
 	// 2.5 データベースの自動マイグレーション
-	// Go の構造体（Domain）を元に，必要なテーブルを自動で作成・更新する．
 	log.Println("データベースのマイグレーションを実行中...")
 	err = gormDB.AutoMigrate(
 		&domain.User{},
@@ -46,17 +49,31 @@ func main() {
 	log.Println("マイグレーションが完了した．")
 
 	// 3. 依存性の注入（DI: Dependency Injection）
-	// インフラ -> ユースケース -> ハンドラー の順に組み立てる．
 
-	// インフラストラクチャ（道具）の初期化
+	// --- インフラストラクチャ（道具）の初期化 ---
 	taskRepo := db.NewTaskRepository(gormDB)
+
+	// AI サービスの初期化
+	geminiAPIKey := os.Getenv("GEMINI_API_KEY")
+	genaiClient, err := genai.NewClient(context.Background(), option.WithAPIKey(geminiAPIKey))
+	if err != nil {
+		log.Fatalf("Gemini クライアントの作成に失敗した: %v", err)
+	}
+	defer genaiClient.Close()
+	aiService := ai.NewGeminiService(genaiClient, "gemini-2.0-flash")
+
+	// LINE サービスの初期化
+	lineToken := os.Getenv("LINE_CHANNEL_TOKEN")
+	lineService, err := line.NewLineService(lineToken)
+	if err != nil {
+		log.Fatalf("LINE サービスの作成に失敗した: %v", err)
+	}
 	// TODO: LMS サービス（Google Classroom等）の初期化もここで行う．
 
-	// ユースケース（現場監督）の初期化
-	// ※現在 AIService と LMSService, NotificationService は nil を渡している（後ほど本実装と差し替える）
-	taskUsecase := usecase.NewTaskUsecase(taskRepo, nil)
-	syncUsecase := usecase.NewSyncUsecase(taskRepo, nil)
-	monitorUsecase := usecase.NewMonitorUsecase(taskRepo, nil, nil)
+	// --- ユースケース（現場監督）の初期化 ---
+	taskUsecase := usecase.NewTaskUsecase(taskRepo, aiService)
+	syncUsecase := usecase.NewSyncUsecase(taskRepo, nil) // LMS 実装待ちのため nil
+	monitorUsecase := usecase.NewMonitorUsecase(taskRepo, aiService, lineService)
 
 	// 3.5 監視プロセス（Goroutine）の起動
 	// メインの HTTP サーバーの邪魔をしないように，`go` キーワードをつけて裏側（並行）で走らせる．
