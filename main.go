@@ -19,6 +19,8 @@ import (
 	"github.com/yuma25/Uni-Steps/infrastructure/webpush"
 	"github.com/yuma25/Uni-Steps/interfaces/handler"
 	"github.com/yuma25/Uni-Steps/usecase"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -83,12 +85,20 @@ func main() {
 	compositeNotifService := notification.NewCompositeNotificationService(lineService, webPushService)
 
 	// LMS サービス（Google Classroom）の初期化
-	// ※本格運用時は OAuth 2.0 が推奨されるが，プロトタイプとして API キーで初期化する．
-	classroomAPIKey := os.Getenv("GOOGLE_CLASSROOM_API_KEY")
-	lmsService, err := lms.NewGoogleClassroomService(context.Background(), classroomAPIKey)
-	if err != nil {
-		log.Fatalf("Google Classroom サービスの作成に失敗した: %v", err)
+	// 環境変数から OAuth 2.0 クライアント ID とシークレットを取得して設定する．
+	googleClientID := os.Getenv("GOOGLE_CLIENT_ID")
+	googleClientSecret := os.Getenv("GOOGLE_CLIENT_SECRET")
+	googleRedirectURL := os.Getenv("GOOGLE_REDIRECT_URL")
+
+	// Classroom API の読み取り権限スコープを要求する．
+	oauthCfg := &oauth2.Config{
+		ClientID:     googleClientID,
+		ClientSecret: googleClientSecret,
+		RedirectURL:  googleRedirectURL,
+		Scopes:       []string{"https://www.googleapis.com/auth/classroom.coursework.me.readonly"},
+		Endpoint:     google.Endpoint,
 	}
+	lmsService := lms.NewGoogleClassroomService(userRepo, oauthCfg)
 
 	// --- ユースケース（現場監督）の初期化 ---
 	taskUsecase := usecase.NewTaskUsecase(taskRepo, aiService)

@@ -22,9 +22,10 @@ func NewSyncUsecase(tr domain.TaskRepository, lms domain.LMSService) *SyncUsecas
 }
 
 // SyncTasks は指定されたグループに対して，外部 LMS から最新の課題を取得し保存する．
-func (uc *SyncUsecase) SyncTasks(ctx context.Context, groupID string) ([]*domain.Task, error) {
+// 取得はリクエストを行ったユーザー（userID）の権限（OAuth トークン等）を用いて実行される．
+func (uc *SyncUsecase) SyncTasks(ctx context.Context, userID string, groupID string) ([]*domain.Task, error) {
 	// 1．外部 LMS から課題の一覧を取得する．
-	tasks, err := uc.lmsService.FetchTasks(ctx, groupID)
+	tasks, err := uc.lmsService.FetchTasks(ctx, userID, groupID)
 	if err != nil {
 		return nil, fmt.Errorf("LMS からの課題取得に失敗した： %w", err)
 	}

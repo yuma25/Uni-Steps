@@ -53,17 +53,18 @@ func (h *TaskHandler) CreateManualTask(c echo.Context) error {
 func (h *TaskHandler) SyncTasks(c echo.Context) error {
 	// リクエストボディの構造体定義
 	var req struct {
+		UserID  string `json:"user_id"`  // 同期を実行するユーザーの ID である（認証トークン取得用）．
 		GroupID string `json:"group_id"` // 同期対象のグループ（コース）IDである．
 	}
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "リクエスト形式が不正である"})
 	}
 
-	if req.GroupID == "" {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "group_id は必須である"})
+	if req.UserID == "" || req.GroupID == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "user_id と group_id は必須である"})
 	}
 
-	syncedTasks, err := h.syncUsecase.SyncTasks(c.Request().Context(), req.GroupID)
+	syncedTasks, err := h.syncUsecase.SyncTasks(c.Request().Context(), req.UserID, req.GroupID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}

@@ -6,7 +6,8 @@ import "context"
 // Google Classroom や Web Class などの差異をこのレイヤーで吸収する．
 type LMSService interface {
 	// FetchTasks は外部システムから最新の課題一覧を取得する．
-	FetchTasks(ctx context.Context, groupID string) ([]*Task, error)
+	// userID を使ってデータベースから OAuth トークンを取得し，そのユーザーの権限で通信を行う．
+	FetchTasks(ctx context.Context, userID string, groupID string) ([]*Task, error)
 	// GetProviderName は連携先の名前（"google_classroom" 等）を返す．
 	GetProviderName() string
 }
