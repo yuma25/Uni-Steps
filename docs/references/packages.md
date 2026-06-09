@@ -194,6 +194,24 @@ Push メッセージ送信時のリクエストボディを表す構造体であ
 *   🏷️ `To string`: 送信先の ID（ユーザーID，グループIDなど）である．
 *   🏷️ `Messages []MessageInterface`: 送信するメッセージオブジェクトの配列である（最大 5 件まで）．
 
-### 📦 `type TextMessage struct`
-テキストメッセージを表す構造体である．（`MessageInterface` を満たす）
-*   🏷️ `Text string`: 送信するテキスト内容である．
+---
+
+## 13. Web Push 通知 (webpush-go)
+**Package**: `github.com/SherClockHolmes/webpush-go`  
+**Reference**: [pkg.go.dev/github.com/SherClockHolmes/webpush-go](https://pkg.go.dev/github.com/SherClockHolmes/webpush-go)
+
+### ⚙️ `func GenerateVAPIDKeys() (privateKey, publicKey string, err error)`
+Web Push に必要な VAPID キーペア（秘密鍵と公開鍵）を生成する．
+
+### ⚙️ `func SendNotification(message []byte, s *Subscription, options *Options) (*http.Response, error)`
+指定された購読情報（Subscription）に対して Web Push 通知を送信する．
+
+### 📦 `type Subscription struct`
+ブラウザから提供される Web Push の購読情報（エンドポイント URL や暗号化キー）を保持する構造体である．JSON からデコードして使用する．
+
+### 📦 `type Options struct`
+通知送信時のオプション設定である．
+*   🏷️ `Subscriber string`: 送信者の連絡先（通常は `mailto:メールアドレス`）である．
+*   🏷️ `VAPIDPublicKey string`: VAPID 公開鍵である．
+*   🏷️ `VAPIDPrivateKey string`: VAPID 秘密鍵である．
+*   🏷️ `TTL int`: 通知の有効期限（秒）である．デバイスがオフラインの場合，この期間を過ぎると破棄される．

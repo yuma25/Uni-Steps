@@ -14,6 +14,8 @@ import (
 	"github.com/yuma25/Uni-Steps/infrastructure/ai"
 	"github.com/yuma25/Uni-Steps/infrastructure/db"
 	"github.com/yuma25/Uni-Steps/infrastructure/line"
+	"github.com/yuma25/Uni-Steps/infrastructure/notification"
+	"github.com/yuma25/Uni-Steps/infrastructure/webpush"
 	"github.com/yuma25/Uni-Steps/interfaces/handler"
 	"github.com/yuma25/Uni-Steps/usecase"
 	"google.golang.org/api/option"
@@ -52,6 +54,7 @@ func main() {
 
 	// --- インフラストラクチャ（道具）の初期化 ---
 	taskRepo := db.NewTaskRepository(gormDB)
+	userRepo := db.NewUserRepository(gormDB)
 
 	// AI サービスの初期化
 	geminiAPIKey := os.Getenv("GEMINI_API_KEY")
@@ -68,12 +71,22 @@ func main() {
 	if err != nil {
 		log.Fatalf("LINE サービスの作成に失敗した: %v", err)
 	}
+
+	// Web Push サービスの初期化
+	vapidPub := os.Getenv("VAPID_PUBLIC_KEY")
+	vapidPriv := os.Getenv("VAPID_PRIVATE_KEY")
+	vapidContact := os.Getenv("VAPID_CONTACT") // 例: "mailto:admin@example.com"
+	webPushService := webpush.NewWebPushService(userRepo, vapidPub, vapidPriv, vapidContact)
+
+	// 通知サービス（LINE + Web Push の複合）の初期化
+	compositeNotifService := notification.NewCompositeNotificationService(lineService, webPushService)
+
 	// TODO: LMS サービス（Google Classroom等）の初期化もここで行う．
 
 	// --- ユースケース（現場監督）の初期化 ---
 	taskUsecase := usecase.NewTaskUsecase(taskRepo, aiService)
 	syncUsecase := usecase.NewSyncUsecase(taskRepo, nil) // LMS 実装待ちのため nil
-	monitorUsecase := usecase.NewMonitorUsecase(taskRepo, aiService, lineService)
+	monitorUsecase := usecase.NewMonitorUsecase(taskRepo, aiService, compositeNotifService)
 
 	// 3.5 監視プロセス（Goroutine）の起動
 	// メインの HTTP サーバーの邪魔をしないように，`go` キーワードをつけて裏側（並行）で走らせる．
@@ -94,6 +107,7 @@ func main() {
 
 	// ハンドラー（窓口）の初期化とルーティング登録
 	handler.NewTaskHandler(e, taskUsecase, syncUsecase)
+	handler.NewNotificationHandler(e, userRepo)
 
 	// 4. サーバーの起動
 	port := os.Getenv("PORT")
