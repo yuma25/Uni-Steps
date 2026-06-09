@@ -162,6 +162,17 @@ HTTP リクエストを表す構造体である．
 *   🔧 `func (t Time) Format(layout string) string`: 日時を指定したレイアウト文字列（例：`time.RFC3339`）でフォーマットする．
 *   ⚙️ `func Now() Time`: 現在のローカル時間を返す．
 
-### 🏷️ 定数
-*   `UTC *Location`: 協定世界時のロケーションを表す．
-*   `RFC3339`: 日時フォーマットの標準レイアウト（例：`2006-01-02T15:04:05Z07:00`）である．
+## 11. データベース ORM (gorm)
+**Package**: `gorm.io/gorm`  
+**Reference**: [pkg.go.dev/gorm.io/gorm](https://pkg.go.dev/gorm.io/gorm)
+
+### 📦 `type DB struct`
+データベースとの接続や操作（クエリの構築，実行）を管理するメインの構造体である．
+*   🔧 `func (db *DB) WithContext(ctx context.Context) *DB`: リクエストのキャンセルやタイムアウトを制御するためのコンテキストを設定した新しい DB インスタンスを返す．
+*   🔧 `func (db *DB) Save(value interface{}) *DB`: オブジェクトを保存する．主キー（ID）が存在する場合は UPDATE，存在しない場合は INSERT を実行する．
+*   🔧 `func (db *DB) Where(query interface{}, args ...interface{}) *DB`: SQL の WHERE 句に相当する条件を指定する．
+*   🔧 `func (db *DB) First(dest interface{}, conds ...interface{}) *DB`: 条件に一致する最初の1件を取得し，`dest` に格納する．見つからない場合は `gorm.ErrRecordNotFound` を返す．
+*   🔧 `func (db *DB) Find(dest interface{}, conds ...interface{}) *DB`: 条件に一致する複数件を取得し，スライス `dest` に格納する．
+
+### 🏷️ エラー定数
+*   `ErrRecordNotFound`: データベース検索時（`First` 等）にレコードが見つからなかった場合に返される標準エラーである．
