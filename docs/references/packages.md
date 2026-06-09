@@ -4,9 +4,15 @@
 
 ## 📜 記述ルール
 1.  **詳細な仕様**: 使用しているインターフェース，構造体，およびそのメソッドまで詳細に記述する．
-2.  **既存内容の維持**: 既存の記述を削除せず，常に追記・更新を行う．
-3.  **記述スタイル**: 「である」調を使用し，句読点は「．」「，」に統一する．
-4.  **リンクの明示**: パッケージ名および公式リファレンスへの URL を必ず記載する．
+2.  **種別の明記**: 以下のアイコンとタグを用いて，要素の種類が一目で判別できるように表記する．
+    *   🔹 **[Interface]**: インターフェース
+    *   📦 **[Struct]**: 構造体
+    *   ⚙️ **[Function]**: 関数（構造体に紐づかないもの）
+    *   🔧 **[Method]**: メソッド（構造体やインターフェースに紐づくもの）
+    *   🏷️ **[Constant / Field]**: 定数や構造体のフィールド変数
+3.  **既存内容の維持**: 既存の記述を削除せず，常に追記・更新を行う．
+4.  **記述スタイル**: 「である」調を使用し，句読点は「．」「，」に統一する．
+5.  **リンクの明示**: パッケージ名および公式リファレンスへの URL を必ず記載する．
 
 ---
 
@@ -14,20 +20,20 @@
 **Package**: `github.com/labstack/echo/v4`  
 **Reference**: [pkg.go.dev/github.com/labstack/echo/v4](https://pkg.go.dev/github.com/labstack/echo/v4)
 
-### `type Echo struct`
+### 📦 `type Echo struct`
 Echo フレームワークのメインとなる構造体である．
-*   `func New() *Echo`: 新しい Echo インスタンスを生成し，ポインタを返す．
-*   `func (e *Echo) Start(address string) error`: 指定されたアドレスで HTTP サーバーを起動する．
-*   `func (e *Echo) GET(path string, h HandlerFunc, m ...MiddlewareFunc) *Route`: GET リクエストのパスを登録する．
-*   `func (e *Echo) POST(path string, h HandlerFunc, m ...MiddlewareFunc) *Route`: POST リクエストのパスを登録する．
-*   `func (e *Echo) Use(middleware ...MiddlewareFunc)`: ミドルウェアを登録する．
+*   ⚙️ `func New() *Echo`: 新しい Echo インスタンスを生成し，ポインタを返す．
+*   🔧 `func (e *Echo) Start(address string) error`: 指定されたアドレスで HTTP サーバーを起動する．
+*   🔧 `func (e *Echo) GET(path string, h HandlerFunc, m ...MiddlewareFunc) *Route`: GET リクエストのパスを登録する．
+*   🔧 `func (e *Echo) POST(path string, h HandlerFunc, m ...MiddlewareFunc) *Route`: POST リクエストのパスを登録する．
+*   🔧 `func (e *Echo) Use(middleware ...MiddlewareFunc)`: ミドルウェアを登録する．
 
-### `type Context interface`
+### 🔹 `type Context interface`
 各リクエストの情報を保持するインターフェースである．
-*   `func (c Context) Param(name string) string`: URL 内のパラメータ（`:id` 等）を取得する．
-*   `func (c Context) Bind(i interface{}) error`: リクエストボディ（JSON 等）を構造体にバインドする．
-*   `func (c Context) JSON(code int, i interface{}) error`: 構造体を JSON 変換してレスポンスとして送信する．
-*   `func (c Context) Request() *http.Request`: 現在の HTTP リクエストオブジェクトを返す．
+*   🔧 `func (c Context) Param(name string) string`: URL 内のパラメータ（`:id` 等）を取得する．
+*   🔧 `func (c Context) Bind(i interface{}) error`: リクエストボディ（JSON 等）を構造体にバインドする．
+*   🔧 `func (c Context) JSON(code int, i interface{}) error`: 構造体を JSON 変換してレスポンスとして送信する．
+*   🔧 `func (c Context) Request() *http.Request`: 現在の HTTP リクエストオブジェクトを返す．
 
 ---
 
@@ -35,24 +41,24 @@ Echo フレームワークのメインとなる構造体である．
 **Package**: `github.com/google/generative-ai-go/genai`  
 **Reference**: [pkg.go.dev/github.com/google/generative-ai-go/genai](https://pkg.go.dev/github.com/google/generative-ai-go/genai)
 
-### `type Client struct`
+### 📦 `type Client struct`
 Gemini API クライアントである．
-*   `func NewClient(ctx context.Context, opts ...option.ClientOption) (*Client, error)`: クライアントを生成する．
-*   `func (c *Client) GenerativeModel(name string) *GenerativeModel`: モデルを指定して取得する．
-*   `func (c *Client) Close() error`: クライアントとの接続を閉じる．
+*   ⚙️ `func NewClient(ctx context.Context, opts ...option.ClientOption) (*Client, error)`: クライアントを生成する．
+*   🔧 `func (c *Client) GenerativeModel(name string) *GenerativeModel`: モデルを指定して取得する．
+*   🔧 `func (c *Client) Close() error`: クライアントとの接続を閉じる．
 
-### `type GenerativeModel struct`
+### 📦 `type GenerativeModel struct`
 AI によるコンテンツ生成を行うモデルである．
-*   `func (m *GenerativeModel) GenerateContent(ctx context.Context, parts ...Part) (*GenerateContentResponse, error)`: AI にコンテンツ生成を依頼する．
-*   `func (m *GenerativeModel) CountTokens(ctx context.Context, parts ...Part) (*CountTokensResponse, error)`: 指定したテキストのトークン数を計算する．
+*   🔧 `func (m *GenerativeModel) GenerateContent(ctx context.Context, parts ...Part) (*GenerateContentResponse, error)`: AI にコンテンツ生成を依頼する．
+*   🔧 `func (m *GenerativeModel) CountTokens(ctx context.Context, parts ...Part) (*CountTokensResponse, error)`: 指定したテキストのトークン数を計算する．
 
-### `type GenerateContentResponse struct`
+### 📦 `type GenerateContentResponse struct`
 生成結果を保持する構造体である．
-*   `Candidates []*Candidate`: 生成された候補のリストである．
+*   🏷️ `Candidates []*Candidate`: 生成された候補のリストである．
 
-### `type Candidate struct`
+### 📦 `type Candidate struct`
 生成結果の候補である．
-*   `Content *Content`: 生成された内容である．
+*   🏷️ `Content *Content`: 生成された内容である．
 
 ---
 
@@ -60,7 +66,7 @@ AI によるコンテンツ生成を行うモデルである．
 **Package**: `github.com/joho/godotenv`  
 **Reference**: [pkg.go.dev/github.com/joho/godotenv](https://pkg.go.dev/github.com/joho/godotenv)
 
-### `func Load(filenames ...string) (err error)`
+### ⚙️ `func Load(filenames ...string) (err error)`
 `.env` ファイルを読み込み，環境変数としてロードする．
 *   **注意**: 既存の環境変数は上書きしない．
 
@@ -70,7 +76,7 @@ AI によるコンテンツ生成を行うモデルである．
 **Package**: `google.golang.org/api/option`  
 **Reference**: [pkg.go.dev/google.golang.org/api/option](https://pkg.go.dev/google.golang.org/api/option)
 
-### `func WithAPIKey(apiKey string) ClientOption`
+### ⚙️ `func WithAPIKey(apiKey string) ClientOption`
 API キーによる認証オプションを生成する．
 
 ---
@@ -79,10 +85,10 @@ API キーによる認証オプションを生成する．
 **Package**: `context`  
 **Reference**: [pkg.go.dev/context](https://pkg.go.dev/context)
 
-### `type Context interface`
+### 🔹 `type Context interface`
 デッドラインやキャンセル信号を運ぶインターフェースである．
-*   `func Background() Context`: 空の Context を返す．
-*   `func WithTimeout(parent Context, timeout time.Duration) (Context, CancelFunc)`: タイムアウト付き Context を生成する．
+*   ⚙️ `func Background() Context`: 空の Context を返す．
+*   ⚙️ `func WithTimeout(parent Context, timeout time.Duration) (Context, CancelFunc)`: タイムアウト付き Context を生成する．
 
 ---
 
@@ -90,10 +96,10 @@ API キーによる認証オプションを生成する．
 **Package**: `fmt`  
 **Reference**: [pkg.go.dev/fmt](https://pkg.go.dev/fmt)
 
-### `func Errorf(format string, a ...any) error`
+### ⚙️ `func Errorf(format string, a ...any) error`
 エラーを生成する．`%w` でエラーのラップが可能である．
 
-### `func Printf(format string, a ...any) (n int, err error)`
+### ⚙️ `func Printf(format string, a ...any) (n int, err error)`
 標準出力にフォーマット済み文字列を表示する．
 
 ---
@@ -102,10 +108,10 @@ API キーによる認証オプションを生成する．
 **Package**: `encoding/json`  
 **Reference**: [pkg.go.dev/encoding/json](https://pkg.go.dev/encoding/json)
 
-### `func Unmarshal(data []byte, v any) error`
+### ⚙️ `func Unmarshal(data []byte, v any) error`
 JSON データを構造体に変換する．
 
-### `func Marshal(v any) ([]byte, error)`
+### ⚙️ `func Marshal(v any) ([]byte, error)`
 構造体を JSON データに変換する．
 
 ---
@@ -114,18 +120,19 @@ JSON データを構造体に変換する．
 **Package**: `google.golang.org/api/classroom/v1`  
 **Reference**: [pkg.go.dev/google.golang.org/api/classroom/v1](https://pkg.go.dev/google.golang.org/api/classroom/v1)
 
-### `type Service struct`
+### 📦 `type Service struct`
 Google Classroom と通信するためのメインサービスである．
-*   `func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error)`: サービスを生成する．
+*   ⚙️ `func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error)`: サービスを生成する．
 
-### `type CoursesService`
-コース関連の操作を提供する．
-*   `CourseWork *CoursesCourseWorkService`: コース内の課題（コースワーク）を操作するサービスへアクセスする．
+### 📦 `type CoursesService struct`
+コース関連の操作を提供する構造体である．
+*   🏷️ `CourseWork *CoursesCourseWorkService`: コース内の課題（コースワーク）を操作するサービスへアクセスする．
 
-### `type CoursesCourseWorkService`
-*   `func (r *CoursesCourseWorkService) List(courseId string) *CoursesCourseWorkListCall`: 指定したコースの課題一覧を取得するための呼び出しを作成する．
-*   `func (c *CoursesCourseWorkListCall) Context(ctx context.Context) *CoursesCourseWorkListCall`: コンテキストを設定する．
-*   `func (c *CoursesCourseWorkListCall) Do(opts ...googleapi.CallOption) (*ListCourseWorkResponse, error)`: 実際の API リクエストを実行し，課題一覧（`CourseWork`）を取得する．
+### 📦 `type CoursesCourseWorkService struct`
+課題（コースワーク）に対する具体的な操作を提供する構造体である．
+*   🔧 `func (r *CoursesCourseWorkService) List(courseId string) *CoursesCourseWorkListCall`: 指定したコースの課題一覧を取得するための呼び出しを作成する．
+*   🔧 `func (c *CoursesCourseWorkListCall) Context(ctx context.Context) *CoursesCourseWorkListCall`: コンテキストを設定する．
+*   🔧 `func (c *CoursesCourseWorkListCall) Do(opts ...googleapi.CallOption) (*ListCourseWorkResponse, error)`: 実際の API リクエストを実行し，課題一覧（`CourseWork`）を取得する．
 
 ---
 
@@ -133,15 +140,15 @@ Google Classroom と通信するためのメインサービスである．
 **Package**: `net/http`  
 **Reference**: [pkg.go.dev/net/http](https://pkg.go.dev/net/http)
 
-### 定数 (Status Codes)
+### 🏷️ 定数 (Status Codes)
 *   `StatusOK (200)`
 *   `StatusCreated (201)`
 *   `StatusBadRequest (400)`
 *   `StatusInternalServerError (500)`
 
-### `type Request struct`
-HTTP リクエストを表す．
-*   `func (r *Request) Context() context.Context`: リクエストのコンテキストを返す．
+### 📦 `type Request struct`
+HTTP リクエストを表す構造体である．
+*   🔧 `func (r *Request) Context() context.Context`: リクエストのコンテキストを返す．
 
 ---
 
@@ -149,12 +156,12 @@ HTTP リクエストを表す．
 **Package**: `time`  
 **Reference**: [pkg.go.dev/time](https://pkg.go.dev/time)
 
-### `type Time struct`
+### 📦 `type Time struct`
 日時を表現する構造体である．
-*   `func Date(year int, month Month, day, hour, min, sec, nsec int, loc *Location) Time`: 指定した日時要素から Time 構造体を生成する．
-*   `func (t Time) Format(layout string) string`: 日時を指定したレイアウト文字列（例：`time.RFC3339`）でフォーマットする．
-*   `func Now() Time`: 現在のローカル時間を返す．
+*   ⚙️ `func Date(year int, month Month, day, hour, min, sec, nsec int, loc *Location) Time`: 指定した日時要素から Time 構造体を生成する．
+*   🔧 `func (t Time) Format(layout string) string`: 日時を指定したレイアウト文字列（例：`time.RFC3339`）でフォーマットする．
+*   ⚙️ `func Now() Time`: 現在のローカル時間を返す．
 
-### 定数
+### 🏷️ 定数
 *   `UTC *Location`: 協定世界時のロケーションを表す．
 *   `RFC3339`: 日時フォーマットの標準レイアウト（例：`2006-01-02T15:04:05Z07:00`）である．
