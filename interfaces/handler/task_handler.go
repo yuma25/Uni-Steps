@@ -5,52 +5,63 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/yuma25/Uni-Steps/domain"
+	"github.com/yuma25/Uni-Steps/usecase"
 )
 
 // TaskHandler は Echo を使った HTTP リクエストの窓口である．
 type TaskHandler struct {
-	// ここに Usecase（ビジネスロジック）を注入するが，
-	// 今回は Echo の説明のために一旦構造体だけ定義する．
+	taskUsecase *usecase.TaskUsecase // 課題管理のビジネスロジックを保持する．
 }
 
-func NewTaskHandler(e *echo.Echo) {
-	h := &TaskHandler{}
-	// Echo のルーティング設定
-	e.GET("/tasks/:id", h.GetTask)
-	e.POST("/tasks", h.CreateTask)
+// NewTaskHandler はハンドラーを初期化し，ルーティングを登録する．
+func NewTaskHandler(e *echo.Echo, tu *usecase.TaskUsecase) {
+	h := &TaskHandler{
+		taskUsecase: tu,
+	}
+	e.GET("/api/groups/:id/tasks", h.ListTasks)
+	e.POST("/api/tasks/ai", h.CreateTaskFromAI)
+	e.POST("/api/tasks/manual", h.CreateManualTask)
 }
 
-// GetTask: 指定したIDの課題を取得する
-// --- Echo と net/http の違い解説 ---
-//  1. 引数: net/http は (w http.ResponseWriter, r *http.Request) の2つが必要であるが，
-//     Echo は `echo.Context` 1つに集約されている．
-//  2. パラメータ取得: net/http では URL パラメータの取得が面倒であるが，
-//     Echo では `c.Param("id")` で一発で取得できる．
-func (h *TaskHandler) GetTask(c echo.Context) error {
-	id := c.Param("id") // URLの :id の部分を抽出
+// ListTasks はグループ内の課題一覧を返す．
+func (h *TaskHandler) ListTasks(c echo.Context) error {
+	groupID := c.Param("id")
+	tasks, err := h.taskUsecase.ListGroupTasks(c.Request().Context(), groupID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+	return c.JSON(http.StatusOK, tasks)
+}
 
-	// 本来はここで Usecase を呼び出すが，デモ用にダミーデータを返す．
-	dummyTask := domain.Task{
-		ID:    id,
-		Title: "Echo の勉強をする",
+// CreateTaskFromAI は AI 解析を用いた課題登録を受け付ける．
+func (h *TaskHandler) CreateTaskFromAI(c echo.Context) error {
+	// リクエストボディの構造体定義
+	var req struct {
+		UserID  string `json:"user_id"`
+		GroupID string `json:"group_id"`
+		Text    string `json:"text"`
+	}
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "リクエスト形式が不正である"})
 	}
 
-	// 3. レスポンス: net/http では JSON の変換（Marshal）と Header の設定を手動で行うが，
-	//    Echo では `c.JSON` メソッドだけで「ステータスコード設定 + JSON変換 + 送信」を完遂できる．
-	return c.JSON(http.StatusOK, dummyTask)
-}
-
-// CreateTask: 新しい課題を登録する
-func (h *TaskHandler) CreateTask(c echo.Context) error {
-	task := new(domain.Task)
-
-	// 4. バインド: net/http ではリクエストボディの読み込みと JSON デコードを自前で書くが，
-	//    Echo は `c.Bind(task)` を使うだけで，JSON データを構造体に自動で流し込んでくれる．
-	if err := c.Bind(task); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request"})
+	task, err := h.taskUsecase.RegisterTaskFromAI(c.Request().Context(), req.UserID, req.GroupID, req.Text)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
-
-	// 5. エラーハンドリング: net/http は関数の戻り値がないが，
-	//    Echo のハンドラーは `error` を返す．これにより Echo のミドルウェアで一括してエラー処理が可能である．
 	return c.JSON(http.StatusCreated, task)
+}
+
+// CreateManualTask は UI からの直接入力を受け付ける．
+func (h *TaskHandler) CreateManualTask(c echo.Context) error {
+	task := new(domain.Task)
+	if err := c.Bind(task); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "リクエスト形式が不正である"})
+	}
+
+	createdTask, err := h.taskUsecase.RegisterManualTask(c.Request().Context(), task)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+	return c.JSON(http.StatusCreated, createdTask)
 }

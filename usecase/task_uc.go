@@ -21,24 +21,42 @@ func NewTaskUsecase(tr domain.TaskRepository, ai domain.AIService) *TaskUsecase 
 	}
 }
 
-// RegisterTask はユーザーの生テキストを受け取り，AI 解析を経て課題を登録するユースケースである．
-func (uc *TaskUsecase) RegisterTask(ctx context.Context, userID string, groupID string, rawText string) (*domain.Task, error) {
-	// 1. AI を呼び出してテキストを解析する．
-	// ここで「何をするか」というロジックに集中し，「どう解析するか（Geminiの呼び出し方等）」は AI Service に任せる．
+// RegisterTaskFromAI はユーザーの生テキストを AI で解析し，課題として登録するユースケースである．
+func (uc *TaskUsecase) RegisterTaskFromAI(ctx context.Context, userID string, groupID string, rawText string) (*domain.Task, error) {
+	// 1．AI を呼び出してテキストを解析する．
 	task, err := uc.aiService.AnalyzeTask(ctx, rawText)
 	if err != nil {
 		return nil, fmt.Errorf("AI 解析に失敗した： %w", err)
 	}
 
-	// 2. 解析結果にユーザーIDとグループIDを紐付ける．
+	// 2．解析結果にメタデータを紐付ける．
 	task.UserID = userID
 	task.GroupID = groupID
 	task.RawText = rawText
+	task.Source = domain.SourceAI
+	task.Recurrence = domain.RecurrenceNone // AI 解析時は一旦繰り返しなしとする．
 
-	// 3. データベースに保存する．
-	// 「どう保存するか（SQL等）」は Repository に任せる．
+	// 3．データベースに保存する．
 	if err := uc.taskRepo.Save(ctx, task); err != nil {
 		return nil, fmt.Errorf("タスクの保存に失敗した： %w", err)
+	}
+
+	return task, nil
+}
+
+// RegisterManualTask は UI から直接入力された情報に基づいて課題を登録するユースケースである．
+func (uc *TaskUsecase) RegisterManualTask(ctx context.Context, task *domain.Task) (*domain.Task, error) {
+	// 1．入力元のソースを手動に設定する．
+	task.Source = domain.SourceManual
+
+	// 2．必要最低限のバリデーションを行う（タイトルが空でないか等）．
+	if task.Title == "" {
+		return nil, fmt.Errorf("タイトルは必須である")
+	}
+
+	// 3．データベースに保存する．
+	if err := uc.taskRepo.Save(ctx, task); err != nil {
+		return nil, fmt.Errorf("手動タスクの保存に失敗した： %w", err)
 	}
 
 	return task, nil
