@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
@@ -55,6 +56,11 @@ func main() {
 	// ※現在 AIService と LMSService は nil を渡している（後ほど本実装と差し替える）
 	taskUsecase := usecase.NewTaskUsecase(taskRepo, nil)
 	syncUsecase := usecase.NewSyncUsecase(taskRepo, nil)
+	monitorUsecase := usecase.NewMonitorUsecase(taskRepo, nil)
+
+	// 3.5 監視プロセス（Goroutine）の起動
+	// メインの HTTP サーバーの邪魔をしないように，`go` キーワードをつけて裏側（並行）で走らせる．
+	go monitorUsecase.StartMonitoring(context.Background())
 
 	// Echo サーバーの初期化
 	e := echo.New()
