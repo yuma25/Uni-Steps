@@ -92,3 +92,15 @@ API キーを使用して認証するためのオプションを返す．`genai.
 
 ### `func Printf(format string, a ...any) (n int, err error)`
 フォーマットに従って標準出力に文字列を表示する．開発中のデバッグやログ出力に使用する．
+
+---
+
+## 7. Google Classroom API (Candidate)
+**Package**: `google.golang.org/api/classroom/v1`  
+**Reference**: [pkg.go.dev/google.golang.org/api/classroom/v1](https://pkg.go.dev/google.golang.org/api/classroom/v1)
+
+### `func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error)`
+Google Classroom と通信するためのサービスを生成する．
+
+### `type CoursesService`
+コース一覧の取得や，コース内の課題（CourseWork）の取得に使用する．
