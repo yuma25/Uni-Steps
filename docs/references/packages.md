@@ -213,5 +213,29 @@ Web Push に必要な VAPID キーペア（秘密鍵と公開鍵）を生成す�
 通知送信時のオプション設定である．
 *   🏷️ `Subscriber string`: 送信者の連絡先（通常は `mailto:メールアドレス`）である．
 *   🏷️ `VAPIDPublicKey string`: VAPID 公開鍵である．
-*   🏷️ `VAPIDPrivateKey string`: VAPID 秘密鍵である．
-*   🏷️ `TTL int`: 通知の有効期限（秒）である．デバイスがオフラインの場合，この期間を過ぎると破棄される．
+*   ---
+
+## 14. OAuth 2.0 認証 (oauth2)
+**Package**: `golang.org/x/oauth2`  
+**Reference**: [pkg.go.dev/golang.org/x/oauth2](https://pkg.go.dev/golang.org/x/oauth2)
+
+### 📦 `type Config struct`
+OAuth 2.0 の設定（クライアント ID，シークレット，エンドポイント等）を保持する構造体である．
+*   🔧 `func (c *Config) AuthCodeURL(state string, opts ...AuthCodeOption) string`: ユーザーを認証画面へ送るための URL を生成する．
+*   🔧 `func (c *Config) Exchange(ctx context.Context, code string, opts ...AuthCodeOption) (*Token, error) `: 認可コードをアクセストークンと交換する．
+*   🔧 `func (c *Config) Client(ctx context.Context, t *Token) *http.Client`: トークンを用いて自動的に認証を行う HTTP クライアントを生成する．
+
+### 📦 `type Token struct`
+OAuth 2.0 のアクセストークンやリフレッシュトークンを保持する構造体である．
+*   🏷️ `AccessToken string`: リソースへのアクセスに使用するトークンである．
+*   🏷️ `RefreshToken string`: アクセストークンを更新するために使用するトークンである．
+*   🏷️ `Expiry time.Time`: アクセストークンの有効期限である．
+
+---
+
+## 15. Google OAuth 2.0 エンドポイント (oauth2/google)
+**Package**: `golang.org/x/oauth2/google`  
+**Reference**: [pkg.go.dev/golang.org/x/oauth2/google](https://pkg.go.dev/golang.org/x/oauth2/google)
+
+### 🏷️ 定数
+*   `Endpoint`: Google の OAuth 2.0 認証エンドポイント（認可 URL とトークン URL）の定義である．

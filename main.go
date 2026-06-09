@@ -125,6 +125,7 @@ func main() {
 	// ハンドラー（窓口）の初期化とルーティング登録
 	handler.NewTaskHandler(e, taskUsecase, syncUsecase)
 	handler.NewNotificationHandler(e, userRepo)
+	handler.NewAuthHandler(e, userRepo, oauthCfg)
 
 	// 4. サーバーの起動
 	port := os.Getenv("PORT")
