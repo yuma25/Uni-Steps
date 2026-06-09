@@ -98,7 +98,7 @@ API キーによる認証オプションを生成する．
 
 ---
 
-## 9. JSON のエンコード・デコード (json)
+## 7. JSON のエンコード・デコード (encoding/json)
 **Package**: `encoding/json`  
 **Reference**: [pkg.go.dev/encoding/json](https://pkg.go.dev/encoding/json)
 
@@ -110,7 +110,7 @@ JSON データを構造体に変換する．
 
 ---
 
-## 7. Google Classroom API
+## 8. Google Classroom API
 **Package**: `google.golang.org/api/classroom/v1`  
 **Reference**: [pkg.go.dev/google.golang.org/api/classroom/v1](https://pkg.go.dev/google.golang.org/api/classroom/v1)
 
@@ -129,7 +129,7 @@ Google Classroom と通信するためのメインサービスである．
 
 ---
 
-## 8. HTTP クライアント・サーバー (net/http)
+## 9. HTTP クライアント・サーバー (net/http)
 **Package**: `net/http`  
 **Reference**: [pkg.go.dev/net/http](https://pkg.go.dev/net/http)
 
@@ -142,3 +142,19 @@ Google Classroom と通信するためのメインサービスである．
 ### `type Request struct`
 HTTP リクエストを表す．
 *   `func (r *Request) Context() context.Context`: リクエストのコンテキストを返す．
+
+---
+
+## 10. 時間操作 (time)
+**Package**: `time`  
+**Reference**: [pkg.go.dev/time](https://pkg.go.dev/time)
+
+### `type Time struct`
+日時を表現する構造体である．
+*   `func Date(year int, month Month, day, hour, min, sec, nsec int, loc *Location) Time`: 指定した日時要素から Time 構造体を生成する．
+*   `func (t Time) Format(layout string) string`: 日時を指定したレイアウト文字列（例：`time.RFC3339`）でフォーマットする．
+*   `func Now() Time`: 現在のローカル時間を返す．
+
+### 定数
+*   `UTC *Location`: 協定世界時のロケーションを表す．
+*   `RFC3339`: 日時フォーマットの標準レイアウト（例：`2006-01-02T15:04:05Z07:00`）である．
