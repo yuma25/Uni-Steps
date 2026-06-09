@@ -14,6 +14,7 @@ import (
 	"github.com/yuma25/Uni-Steps/infrastructure/ai"
 	"github.com/yuma25/Uni-Steps/infrastructure/db"
 	"github.com/yuma25/Uni-Steps/infrastructure/line"
+	"github.com/yuma25/Uni-Steps/infrastructure/lms"
 	"github.com/yuma25/Uni-Steps/infrastructure/notification"
 	"github.com/yuma25/Uni-Steps/infrastructure/webpush"
 	"github.com/yuma25/Uni-Steps/interfaces/handler"
@@ -81,11 +82,17 @@ func main() {
 	// 通知サービス（LINE + Web Push の複合）の初期化
 	compositeNotifService := notification.NewCompositeNotificationService(lineService, webPushService)
 
-	// TODO: LMS サービス（Google Classroom等）の初期化もここで行う．
+	// LMS サービス（Google Classroom）の初期化
+	// ※本格運用時は OAuth 2.0 が推奨されるが，プロトタイプとして API キーで初期化する．
+	classroomAPIKey := os.Getenv("GOOGLE_CLASSROOM_API_KEY")
+	lmsService, err := lms.NewGoogleClassroomService(context.Background(), classroomAPIKey)
+	if err != nil {
+		log.Fatalf("Google Classroom サービスの作成に失敗した: %v", err)
+	}
 
 	// --- ユースケース（現場監督）の初期化 ---
 	taskUsecase := usecase.NewTaskUsecase(taskRepo, aiService)
-	syncUsecase := usecase.NewSyncUsecase(taskRepo, nil) // LMS 実装待ちのため nil
+	syncUsecase := usecase.NewSyncUsecase(taskRepo, lmsService) // 初期化した lmsService を注入
 	monitorUsecase := usecase.NewMonitorUsecase(taskRepo, aiService, compositeNotifService)
 
 	// 3.5 監視プロセス（Goroutine）の起動
