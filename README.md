@@ -28,7 +28,12 @@ AIと仲間が支える課題管理プラットフォームである．
 *   `handler/notification_handler.go`: Web Push 購読情報の登録ハンドラーである．
 *   `handler/task_handler.go`: 課題の登録（手動）・同期・取得のハンドラーである．
 
-### 4. `infrastructure/` (インフラレイヤー)
+### 4. `frontend/` (フロントエンド)
+Vite + React + TypeScript を使用したユーザーインターフェースである．
+*   `pnpm` をパッケージマネージャーとして採用している．
+*   `axios` による API 通信，`react-router-dom` によるルーティングを実装している．
+
+### 5. `infrastructure/` (インフラレイヤー)
 データベースや外部 API との具体的な通信処理である．
 *   `ai/gemini_service.go`: Google Gemini API を用いたリマインド文生成の実装である．
 *   `db/`: GORM を用いた PostgreSQL (Supabase) への各リポジトリ実装である．
@@ -37,10 +42,10 @@ AIと仲間が支える課題管理プラットフォームである．
 *   `notification/composite_service.go`: LINE と Web Push を統合した通知サービスの実装である．
 *   `webpush/webpush_service.go`: Web Push プロトコルによる個人宛通知の実装である．
 
-### 5. `cmd/` (コマンド)
+### 6. `cmd/` (コマンド)
 *   `vapid/main.go`: Web Push に必要な VAPID キーペアを生成するユーティリティである．
 
-### 6. `docs/` (ドキュメント)
+### 7. `docs/` (ドキュメント)
 *   `overview.md`: アプリのコンセプトと機能概要である．
 *   `architecture/design.md`: クリーンアーキテクチャと処理フローの図解である．
 *   `infrastructure/`: 各種外部サービス（LINE, Google Classroom）の設定ガイドである．

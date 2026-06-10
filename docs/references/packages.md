@@ -292,3 +292,35 @@ OAuth 2.0 のアクセストークンやリフレッシュトークンを保持�
 
 ### ⚙️ `func New(text string) error`
 指定されたメッセージを持つ新しいエラーを生成する．
+---
+
+## 19. フロントエンド構築ツール (Vite)
+**Reference**: [vite.dev](https://vite.dev/)
+
+### 🛠️ Vite
+高速なビルドと HMR (Hot Module Replacement) を提供するビルドツールである．
+
+---
+
+## 20. API クライアント (Axios)
+**Reference**: [axios-http.com](https://axios-http.com/)
+
+### 📚 Axios
+ブラウザおよび Node.js で動作する Promise ベースの HTTP クライアントである．バックエンド API との通信に使用する．
+
+---
+
+## 21. アイコンライブラリ (Lucide React)
+**Reference**: [lucide.dev](https://lucide.dev/)
+
+### 📚 Lucide React
+React 用の軽量で美しいアイコンセットである．UI の視覚的補助に使用する．
+
+---
+
+## 22. ルーティング (React Router)
+**Reference**: [reactrouter.com](https://reactrouter.com/)
+
+### 📚 React Router
+React アプリケーションでページ遷移や URL 管理を行うための標準的なライブラリである．
+
