@@ -42,4 +42,21 @@ export const groupApi = {
     const resp = await client.post<Group[]>(`/api/users/${userId}/groups/sync`);
     return resp.data;
   },
+
+  /**
+   * 外部 LMS から利用可能な（アーカイブされていない）コース一覧を取得する．
+   */
+  fetchAvailableLMSCourses: async (userId: string): Promise<Group[]> => {
+    const resp = await client.get<Group[]>(`/api/users/${userId}/lms/courses`);
+    return resp.data;
+  },
+
+  /**
+   * 特定の部屋に LMS コースを紐付ける．
+   */
+  linkLMSCourse: async (groupId: string, lmsCourseId: string): Promise<void> => {
+    await client.patch(`/api/groups/${groupId}/link-lms`, {
+      lms_course_id: lmsCourseId,
+    });
+  },
 };

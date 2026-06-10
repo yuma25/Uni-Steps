@@ -2,12 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { groupApi } from '../api/groups';
 import type { Group } from '../types';
-import { Plus, Layout, RefreshCw } from 'lucide-react';
+import { Plus, Layout, RefreshCw, UserPlus } from 'lucide-react';
 
 /**
  * グループ（部屋）選択画面のコンポーネントである．
- * ログイン直後に表示され，既存の部屋に入るか，新しい部屋を作成するかを選択する．
- * Google Classroom からの自動インポート機能も備えている．
+ * ログイン直後に表示され，友達と共有する「Uni-Steps 部屋」を作成するか，参加するかを選択する．
  */
 const GroupSelectionPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -16,6 +15,7 @@ const GroupSelectionPage: React.FC = () => {
 
   const [groups, setGroups] = useState<Group[]>([]);
   const [newGroupName, setNewGroupName] = useState('');
+  const [showCreateForm, setShowCreateForm] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,25 +29,10 @@ const GroupSelectionPage: React.FC = () => {
   const fetchGroups = async () => {
     try {
       setLoading(true);
-      // バックエンドの DB に保存されている参加済みグループを取得する．
       const data = await groupApi.listMyGroups(userId);
       setGroups(data);
     } catch (err) {
       console.error("グループ一覧の取得に失敗した：", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSyncLMS = async () => {
-    try {
-      setLoading(true);
-      const data = await groupApi.syncLMSGroups(userId);
-      setGroups(data);
-      alert("Google Classroom から授業一覧を取得した．");
-    } catch (err) {
-      console.error("LMS 同期に失敗した：", err);
-      alert("同期に失敗した．");
     } finally {
       setLoading(false);
     }
@@ -62,6 +47,7 @@ const GroupSelectionPage: React.FC = () => {
       const newGroup = await groupApi.createGroup(newGroupName, userId);
       setGroups([...groups, newGroup]);
       setNewGroupName('');
+      setShowCreateForm(false);
       alert("新しい部屋を作成した．");
     } catch (err) {
       alert("部屋の作成に失敗した．");
@@ -77,51 +63,52 @@ const GroupSelectionPage: React.FC = () => {
 
   return (
     <div className="selection-container">
-      <div className="header-with-action">
-        <h1>部屋を選択する</h1>
-        <button onClick={handleSyncLMS} disabled={loading} className="icon-button">
-          <RefreshCw className={loading ? "animate-spin" : ""} size={16} />
-          LMS同期
+      <h1>Uni-Steps へようこそ</h1>
+      <p className="subtitle">友達と一緒に課題を管理するための「部屋」を選んでほしい．</p>
+      
+      <div className="main-actions">
+        <button onClick={() => setShowCreateForm(!showCreateForm)} className="action-card create">
+          <Plus size={40} />
+          <span>部屋を作成する</span>
+        </button>
+        <button onClick={() => alert("参加機能は準備中である．招待コードを入力する予定である．")} className="action-card join">
+          <UserPlus size={40} />
+          <span>部屋に参加する</span>
         </button>
       </div>
-      
+
+      {showCreateForm && (
+        <form onSubmit={handleCreateGroup} className="create-group-inline-form">
+          <input 
+            type="text" 
+            placeholder="新しい部屋の名前（例：サークル用）" 
+            value={newGroupName}
+            onChange={(e) => setNewGroupName(e.target.value)}
+            autoFocus
+          />
+          <button type="submit" disabled={loading || !newGroupName.trim()}>作成</button>
+        </form>
+      )}
+
       <section className="group-list-section">
         <h2>参加中の部屋</h2>
         {loading ? (
           <p>読み込み中...</p>
         ) : groups.length === 0 ? (
           <div className="empty-state">
-            <p>所属している部屋はない．上の「LMS同期」から Google Classroom の授業を取り込むか，新しい部屋を作ってほしい．</p>
+            <p>まだ所属している部屋はない．左のボタンから最初の部屋を作ってみてほしい．</p>
           </div>
         ) : (
           <div className="group-grid">
             {groups.map(group => (
               <button key={group.id} onClick={() => selectGroup(group.id)} className="group-card">
                 <Layout size={32} />
-                <span>{group.name}</span>
+                <span className="group-name">{group.name}</span>
+                {group.owner_id === userId && <span className="owner-badge">Owner</span>}
               </button>
             ))}
           </div>
         )}
-      </section>
-
-      <hr />
-
-      <section className="create-group-section">
-        <h2>新しく部屋を作る</h2>
-        <form onSubmit={handleCreateGroup} className="create-group-form">
-          <input 
-            type="text" 
-            placeholder="部屋の名前（例：大学のゼミ）" 
-            value={newGroupName}
-            onChange={(e) => setNewGroupName(e.target.value)}
-            disabled={loading}
-          />
-          <button type="submit" disabled={loading || !newGroupName.trim()} className="icon-button primary">
-            <Plus size={20} />
-            作成
-          </button>
-        </form>
       </section>
     </div>
   );

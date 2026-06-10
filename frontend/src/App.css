@@ -234,6 +234,72 @@ h1 {
   color: #666;
 }
 
+.lms-badge {
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 0.5rem;
+}
+
+.lms-badge.linked {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #c8e6c9;
+}
+
+.link-action {
+  color: #1976d2;
+  font-size: 0.8rem;
+  margin-left: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.text-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.course-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.course-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  transition: background 0.2s;
+  text-align: left;
+}
+
+.course-item:hover {
+  background-color: #f5f5f5;
+}
+
+.source-tag.google_classroom {
+  background-color: #fff9c4;
+  color: #f57f17;
+}
+
+.source-tag.manual {
+  background-color: #e0e0e0;
+  color: #424242;
+}
+
 .title-group {
   display: flex;
   flex-direction: column;
@@ -303,8 +369,75 @@ h1 {
   border-radius: 6px;
 }
 
-hr {
-  margin: 2rem 0;
-  border: 0;
-  border-top: 1px solid #eee;
+.subtitle {
+  color: #666;
+  margin-bottom: 2rem;
+}
+
+.main-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.action-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2.5rem 1rem;
+  border-radius: 16px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+
+.action-card.create {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.action-card.create:hover {
+  background-color: #c8e6c9;
+  transform: translateY(-4px);
+}
+
+.action-card.join {
+  background-color: #e3f2fd;
+  color: #1565c0;
+}
+
+.action-card.join:hover {
+  background-color: #bbdefb;
+  transform: translateY(-4px);
+}
+
+.create-group-inline-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.owner-badge {
+  font-size: 0.7rem;
+  background-color: #ffc107;
+  color: #000;
+  padding: 1px 6px;
+  border-radius: 10px;
+  margin-top: 0.2rem;
+}
+
+.group-name {
+  font-weight: bold;
+  font-size: 1rem;
 }

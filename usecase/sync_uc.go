@@ -36,17 +36,21 @@ func (uc *SyncUsecase) SyncTasks(ctx context.Context, userID string, groupID str
 		return nil, fmt.Errorf("指定されたグループが見つからない")
 	}
 
+	// 外部 LMS との紐付けがあるか確認する．
+	if group.LMSCourseID == "" {
+		return nil, fmt.Errorf("このグループには LMS コースが紐付けられていない")
+	}
+
 	// 前回の同期実行から 5 分経過しているか確認する．
 	if time.Since(group.LastSyncedAt) < 5*time.Minute {
 		return nil, fmt.Errorf("前回の同期から時間が経過していない（5分間は再試行不可）")
 	}
 
-	// 2．外部 LMS から課題の一覧を取得する．
-	tasks, err := uc.lmsService.FetchTasks(ctx, userID, groupID)
+	// 2．外部 LMS から課題の一覧を取得する（紐付けられた LMSCourseID を使用する）．
+	tasks, err := uc.lmsService.FetchTasks(ctx, userID, group.LMSCourseID)
 	if err != nil {
 		return nil, fmt.Errorf("LMS からの課題取得に失敗した： %w", err)
 	}
-
 	// 3．差分検知：取得した課題の中で最新の更新時刻を確認する．
 	var maxLMSUpdate time.Time
 	for _, t := range tasks {

@@ -106,8 +106,8 @@ func (s *GoogleClassroomService) FetchCourses(ctx context.Context, userID string
 		return nil, fmt.Errorf("Classroom サービスの作成に失敗した： %w", err)
 	}
 
-	// 3．コース一覧を取得する．
-	resp, err := srv.Courses.List().Context(ctx).Do()
+	// 3．アクティブなコース一覧を取得する（アーカイブ済みを除外）．
+	resp, err := srv.Courses.List().CourseStates("ACTIVE").Context(ctx).Do()
 	if err != nil {
 		return nil, fmt.Errorf("コース一覧の取得に失敗した： %w", err)
 	}
