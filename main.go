@@ -170,7 +170,7 @@ func main() {
 	handler.NewTaskHandler(e, taskUsecase, syncUsecase)
 	handler.NewNotificationHandler(e, userRepo)
 	handler.NewAuthHandler(e, userRepo, oauthCfg)
-	handler.NewGroupHandler(e, groupUsecase)
+	handler.NewGroupHandler(e, groupUsecase, lmsService) // lmsService を追加
 
 	log.Println("全てのコンポーネントの初期化が完了した．サーバーを起動する．")
 

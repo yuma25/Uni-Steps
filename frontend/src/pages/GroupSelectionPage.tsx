@@ -2,11 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { groupApi } from '../api/groups';
 import type { Group } from '../types';
-import { Plus, Layout } from 'lucide-react';
+import { Plus, Layout, RefreshCw } from 'lucide-react';
 
 /**
  * グループ（部屋）選択画面のコンポーネントである．
  * ログイン直後に表示され，既存の部屋に入るか，新しい部屋を作成するかを選択する．
+ * Google Classroom からの自動インポート機能も備えている．
  */
 const GroupSelectionPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -28,12 +29,25 @@ const GroupSelectionPage: React.FC = () => {
   const fetchGroups = async () => {
     try {
       setLoading(true);
+      // バックエンドの DB に保存されている参加済みグループを取得する．
       const data = await groupApi.listMyGroups(userId);
       setGroups(data);
     } catch (err) {
       console.error("グループ一覧の取得に失敗した：", err);
-      // プロトタイプ用のモックデータ
-      setGroups([{ id: 'default-group-id', name: 'デフォルトグループ', owner_id: 'system' }]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSyncLMS = async () => {
+    try {
+      setLoading(true);
+      const data = await groupApi.syncLMSGroups(userId);
+      setGroups(data);
+      alert("Google Classroom から授業一覧を取得した．");
+    } catch (err) {
+      console.error("LMS 同期に失敗した：", err);
+      alert("同期に失敗した．");
     } finally {
       setLoading(false);
     }
@@ -63,14 +77,22 @@ const GroupSelectionPage: React.FC = () => {
 
   return (
     <div className="selection-container">
-      <h1>部屋を選択する</h1>
+      <div className="header-with-action">
+        <h1>部屋を選択する</h1>
+        <button onClick={handleSyncLMS} disabled={loading} className="icon-button">
+          <RefreshCw className={loading ? "animate-spin" : ""} size={16} />
+          LMS同期
+        </button>
+      </div>
       
       <section className="group-list-section">
         <h2>参加中の部屋</h2>
         {loading ? (
           <p>読み込み中...</p>
         ) : groups.length === 0 ? (
-          <p>所属している部屋はない．</p>
+          <div className="empty-state">
+            <p>所属している部屋はない．上の「LMS同期」から Google Classroom の授業を取り込むか，新しい部屋を作ってほしい．</p>
+          </div>
         ) : (
           <div className="group-grid">
             {groups.map(group => (

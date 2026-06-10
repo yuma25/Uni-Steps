@@ -49,6 +49,25 @@ func (uc *GroupUsecase) CreateGroup(ctx context.Context, name string, ownerID st
 	return group, nil
 }
 
+// SyncLMSGroups は外部 LMS（Google Classroom 等）からコース一覧を取得し，
+// 必要に応じてデータベースに保存するユースケースである．
+func (uc *GroupUsecase) SyncLMSGroups(ctx context.Context, userID string, lmsService domain.LMSService) ([]*domain.Group, error) {
+	// 1．外部 LMS からコース一覧を取得する．
+	groups, err := lmsService.FetchCourses(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("LMS からのコース取得に失敗した： %w", err)
+	}
+
+	// 2．取得したコースをデータベースに保存し，現在の所属関係を記録する（本来は要詳細設計）．
+	// プロトタイプとして，ここでは取得した一覧をそのまま返す．
+	for _, g := range groups {
+		// すでに存在するか等のチェックを本来は行う．
+		_ = uc.groupRepo.Save(ctx, g)
+	}
+
+	return groups, nil
+}
+
 // ListUserGroups は指定されたユーザーが所属しているグループの一覧を取得する．
 func (uc *GroupUsecase) ListUserGroups(ctx context.Context, userID string) ([]*domain.Group, error) {
 	// 本来は中間テーブル user_groups をクエリして，そのユーザーが所属する全グループを返す．

@@ -83,6 +83,47 @@ func (s *GoogleClassroomService) FetchTasks(ctx context.Context, userID string, 
 	return tasks, nil
 }
 
+// FetchCourses は Google Classroom からユーザーが所属しているコース一覧を取得する．
+func (s *GoogleClassroomService) FetchCourses(ctx context.Context, userID string) ([]*domain.Group, error) {
+	// 1．データベースからユーザー情報を取得する（トークン取得のため）．
+	user, err := s.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("ユーザー情報の取得に失敗した： %w", err)
+	}
+	if user == nil || user.GoogleAccessToken == "" {
+		return nil, fmt.Errorf("Google 連携が行われていない")
+	}
+
+	// 2．トークンを用いて Classroom サービスを生成する．
+	token := &oauth2.Token{
+		AccessToken:  user.GoogleAccessToken,
+		RefreshToken: user.GoogleRefreshToken,
+		TokenType:    "Bearer",
+	}
+	client := s.oauthCfg.Client(ctx, token)
+	srv, err := classroom.NewService(ctx, option.WithHTTPClient(client))
+	if err != nil {
+		return nil, fmt.Errorf("Classroom サービスの作成に失敗した： %w", err)
+	}
+
+	// 3．コース一覧を取得する．
+	resp, err := srv.Courses.List().Context(ctx).Do()
+	if err != nil {
+		return nil, fmt.Errorf("コース一覧の取得に失敗した： %w", err)
+	}
+
+	var groups []*domain.Group
+	for _, c := range resp.Courses {
+		groups = append(groups, &domain.Group{
+			ID:      c.Id,
+			Name:    c.Name,
+			OwnerID: userID, // 現在のユーザーがインポートした形とする
+		})
+	}
+
+	return groups, nil
+}
+
 // GetProviderName はこのサービスが Google Classroom であることを返す．
 func (s *GoogleClassroomService) GetProviderName() string {
 	return domain.SourceGoogleClassroom

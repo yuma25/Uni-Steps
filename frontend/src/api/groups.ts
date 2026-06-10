@@ -34,4 +34,12 @@ export const groupApi = {
       user_id: userId,
     });
   },
+
+  /**
+   * 外部 LMS (Google Classroom 等) からコース一覧を同期・取得する．
+   */
+  syncLMSGroups: async (userId: string): Promise<Group[]> => {
+    const resp = await client.post<Group[]>(`/api/users/${userId}/groups/sync`);
+    return resp.data;
+  },
 };
