@@ -10,6 +10,7 @@ import (
 type TaskRepository interface {
 	Save(ctx context.Context, task *Task) error
 	FindByID(ctx context.Context, id string) (*Task, error)
+	FindByExternalID(ctx context.Context, externalID string) (*Task, error) // 外部 LMS の ID で検索する．
 	FindByGroupID(ctx context.Context, groupID string) ([]*Task, error)
 	// FindApproachingDeadlines は指定された日時までに期限を迎える，未完了のタスクを取得する．
 	FindApproachingDeadlines(ctx context.Context, until time.Time) ([]*Task, error)
@@ -26,4 +27,5 @@ type UserRepository interface {
 type GroupRepository interface {
 	Save(ctx context.Context, group *Group) error
 	FindByID(ctx context.Context, id string) (*Group, error)
+	FindByUserID(ctx context.Context, userID string) ([]*Group, error) // ユーザー ID に紐づくグループ一覧を取得する．
 }

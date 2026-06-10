@@ -127,6 +127,14 @@ AI による文章生成を行う構造体である．
 *   🔧 `func (r *CoursesService) List() *CoursesListCall`: コース一覧取得を作成する．
 *   🔧 `func (c *CoursesListCall) CourseStates(states ...string) *CoursesListCall`: 状態（`ACTIVE` 等）で絞り込む．
 
+### 📦 `type CourseWorkService struct`
+*   🔧 `func (r *CourseWorkService) List(courseId string) *CourseWorkListCall`: 指定したコース内の課題一覧を取得する．
+
+### 📦 `type StudentSubmissionsService struct`
+*   🔧 `func (r *StudentSubmissionsService) List(courseId string, courseWorkId string) *StudentSubmissionsListCall`: 指定した課題に対するユーザーの提出状況を取得する．
+*   🔧 `func (c *StudentSubmissionsListCall) Context(ctx context.Context) *StudentSubmissionsListCall`: コンテキストを適用する．
+*   🔧 `func (c *StudentSubmissionsListCall) Do(opts ...googleapi.CallOption) (*ListStudentSubmissionsResponse, error)`: API 呼び出しを実行する．
+
 ---
 
 ## 8. 標準ライブラリ (Standard Libraries)
@@ -138,12 +146,19 @@ AI による文章生成を行う構造体である．
 
 ### ⚙️ `package time`
 *   ⚙️ `func Now() Time`: 現在時刻を取得する．
+*   ⚙️ `func LoadLocation(name string) (*Location, error)`: 指定した名前のタイムゾーン情報を取得する．
 *   ⚙️ `func Parse(layout, value string) (Time, error)`: 文字列から時刻へ変換する．
 *   🔧 `func (t Time) Format(layout string) string`: 時刻から文字列へ変換する．
 *   🔧 `func (t Time) After(u Time) bool`: 時刻の前後を比較する．
+*   🔧 `func (t Time) Local() Time`: ローカルタイム（`time.Local`）に変換する．
+*   🔧 `func (t Time) IsZero() bool`: 時刻がゼロ値（`0001-01-01`）であるか判定する．
 *   ⚙️ `func Since(t Time) Duration`: 経過時間を計測する．
 *   ⚙️ `func NewTicker(d Duration) *Ticker`: 定期実行タイマーを生成する．
+*   🏷️ `Local *Location`: Go プロセス全体のデフォルトタイムゾーンを保持する変数である．
 *   🏷️ `RFC3339 string`: 標準的な日時フォーマットのレイアウト定数である．
+
+### ⚙️ `package strings`
+*   ⚙️ `func Contains(s, substr string) bool`: 文字列 `s` 内に `substr` が含まれているか判定する．
 
 ### ⚙️ `package fmt`
 *   ⚙️ `func Errorf(format string, a ...any) error`: 元のエラーを `%w` でラップして新しいエラーを生成する．
@@ -166,36 +181,40 @@ AI による文章生成を行う構造体である．
 ### ⚙️ `func New().String() string`
 ランダムな一意の ID 文字列を生成する．
 
----
+### 🔧 `func (uc *TaskUsecase) UpdateTask(ctx context.Context, taskID string, input *domain.Task) (*domain.Task, error)`
+課題の基本情報（タイトル，期限等）および該当者リストを更新する手順である．既存の進捗状況を維持しつつ，新しく追加されたメンバーのレコードを生成する．
 
-## 10. フロントエンド：React & TypeScript
-**Reference**: [react.dev](https://react.dev/), [typescriptlang.org](https://www.typescriptlang.org/)
-
-### ⚛️ `React.FC<P>`
-関数のコンポーネントであることを定義する型である．
-
-### 🎣 `useState<T>(initialValue: T)`
-コンポーネントの状態（State）を管理するための Hook である．
-
-### 🎣 `useEffect(effect, deps)`
-描画時や特定の変数が変わった時に実行する副作用（API 呼び出し等）を定義する Hook である．
-
-### 📜 `interface`
-TypeScript でオブジェクトの構造を定義する構文である．
-
-### ⚙️ `import type { ... }`
-型定義のみを読み込むことを明示し，実行時の JS ファイルを軽量化・エラー防止する．
+### 🔧 `func (uc *TaskUsecase) ToggleUserCompletion(ctx context.Context, taskID, userID string) error`
+特定のユーザーの完了状態を反転させる手順である．進捗レコードが存在しない場合は自動的に生成する．
 
 ---
 
-## 11. フロントエンド：Axios & Routing
-**Reference**: [axios-http.com](https://axios-http.com/), [reactrouter.com](https://reactrouter.com/)
+## 11. フロントエンド：デザインシステム & レスポンシブ
+本プロジェクトでは，独自のデザインシステムを CSS 変数を用いて定義し，レスポンシブな UI を実現している．
 
-### 📦 `axios.create(config)`
-ベース URL 等をあらかじめ設定した共通クライアントを作成する．
+### 🎨 CSS 変数 (CSS Variables)
+*   🏷️ `--primary`: メインのアクション色（Clear Blue）である．
+*   🏷️ `--radius`: 要素の角丸（標準 10px）を定義する．
+*   🏷️ `--shadow-hover`: 浮き出し効果を演出するシャドウ設定である．
 
-### 🎣 `useNavigate()`
-JavaScript のコードから強制的にページを遷移させるための Hook である．
+### ⚛️ `DashboardPage` コンポーネント
+課題の一覧表示，同期，および編集を統合管理する主要な画面である．
+*   🎣 `useSearchParams`: URL から `user_id` と `group_id` を抽出するために使用する．
+*   ⚙️ `renderTaskCard`: 課題の状態に応じたカードを描画する内部関数である．
 
-### 🎣 `useSearchParams()`
-URL の後ろにある `?id=...` といったパラメータを取得・操作するための Hook である．
+### 📱 モバイル対応 (Responsive Design)
+*   Media Queries (`@media (max-width: 650px)`) を用い，スマホ画面ではヘッダーやカードのレイアウトを縦方向に最適化している．
+*   タッチターゲットの確保と，情報の優先順位に基づいた余白（White Space）の動的調整を行っている．
+
+---
+
+## 12. アイコンライブラリ (Lucide React)
+**Package**: `lucide-react`  
+**Reference**: [lucide.dev](https://lucide.dev/guide/packages/lucide-react)
+
+### ⚛️ アイコンコンポーネント
+SVG ベースの軽量なアイコン群である．
+*   🏷️ `<Calendar />`: 期限表示に使用する．
+*   🏷️ `<Users />`: メンバーリスト表示に使用する．
+*   🏷️ `<ChevronDown />`: アーカイブの開閉（アコーディオン）に使用する．
+*   🏷️ `<ArrowLeft />`: ホームへの戻るボタンに使用する．

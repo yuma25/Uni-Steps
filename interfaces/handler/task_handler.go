@@ -23,6 +23,40 @@ func NewTaskHandler(e *echo.Echo, tu *usecase.TaskUsecase, su *usecase.SyncUseca
 	e.GET("/api/groups/:id/tasks", h.ListTasks)
 	e.POST("/api/tasks/manual", h.CreateManualTask)
 	e.POST("/api/tasks/sync", h.SyncTasks)
+	e.PATCH("/api/tasks/:id/toggle-completion", h.ToggleTaskCompletion)
+	e.PUT("/api/tasks/:id", h.UpdateTask)
+}
+
+// UpdateTask は課題の情報を更新する．
+func (h *TaskHandler) UpdateTask(c echo.Context) error {
+	taskID := c.Param("id")
+	task := new(domain.Task)
+	if err := c.Bind(task); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "リクエスト形式が不正である"})
+	}
+
+	updatedTask, err := h.taskUsecase.UpdateTask(c.Request().Context(), taskID, task)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+	return c.JSON(http.StatusOK, updatedTask)
+}
+
+// ToggleTaskCompletion はユーザーが手動で課題の完了状態を切り替える．
+func (h *TaskHandler) ToggleTaskCompletion(c echo.Context) error {
+	taskID := c.Param("id")
+	var req struct {
+		UserID string `json:"user_id"`
+	}
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "リクエスト形式が不正である"})
+	}
+
+	err := h.taskUsecase.ToggleUserCompletion(c.Request().Context(), taskID, req.UserID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+	return c.JSON(http.StatusOK, map[string]string{"message": "完了状態を更新した"})
 }
 
 // ListTasks はグループ内の課題一覧を返す．

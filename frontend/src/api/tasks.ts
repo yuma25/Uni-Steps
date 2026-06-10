@@ -31,4 +31,20 @@ export const taskApi = {
     });
     return resp.data;
   },
+
+  /**
+   * 課題の完了状態を切り替える．
+   */
+  toggleTaskCompletion: async (taskId: string, userId: string): Promise<void> => {
+    await client.patch(`/api/tasks/${taskId}/toggle-completion`, {
+      user_id: userId,
+    });
+  },
+  /**
+   * 課題の情報を更新する．
+   */
+  updateTask: async (taskId: string, task: Partial<Task>): Promise<Task> => {
+    const resp = await client.put<Task>(`/api/tasks/${taskId}`, task);
+    return resp.data;
+  },
 };

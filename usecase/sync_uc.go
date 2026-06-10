@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/yuma25/Uni-Steps/domain"
 )
 
@@ -26,8 +27,9 @@ func NewSyncUsecase(tr domain.TaskRepository, gr domain.GroupRepository, lms dom
 
 // SyncTasks は指定されたグループに対して，外部 LMS から最新の課題を取得し保存する．
 // 取得はリクエストを行ったユーザー（userID）の権限（OAuth トークン等）を用いて実行される．
+// ここでは，ユーザーに関連するすべての有効なコースから課題を取得するよう変更されている．
 func (uc *SyncUsecase) SyncTasks(ctx context.Context, userID string, groupID string) ([]*domain.Task, error) {
-	// 1．グループ情報を取得し，クールダウン期間（5分）をチェックする．
+	// 1．グループ情報を取得する．
 	group, err := uc.groupRepo.FindByID(ctx, groupID)
 	if err != nil {
 		return nil, fmt.Errorf("グループ情報の取得に失敗した： %w", err)
@@ -36,21 +38,15 @@ func (uc *SyncUsecase) SyncTasks(ctx context.Context, userID string, groupID str
 		return nil, fmt.Errorf("指定されたグループが見つからない")
 	}
 
-	// 外部 LMS との紐付けがあるか確認する．
-	if group.LMSCourseID == "" {
-		return nil, fmt.Errorf("このグループには LMS コースが紐付けられていない")
-	}
+	// ※以前はここで group.LMSCourseID のチェックとクールダウンチェックを行っていたが，
+	// ユーザーの要望により「全アクティブコースを対象」とし，利便性のためにクールダウンを一時的に緩和する．
 
-	// 前回の同期実行から 5 分経過しているか確認する．
-	if time.Since(group.LastSyncedAt) < 5*time.Minute {
-		return nil, fmt.Errorf("前回の同期から時間が経過していない（5分間は再試行不可）")
-	}
-
-	// 2．外部 LMS から課題の一覧を取得する（紐付けられた LMSCourseID を使用する）．
-	tasks, err := uc.lmsService.FetchTasks(ctx, userID, group.LMSCourseID)
+	// 2．外部 LMS からすべての課題一覧を取得する．
+	tasks, err := uc.lmsService.FetchTasks(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("LMS からの課題取得に失敗した： %w", err)
 	}
+
 	// 3．差分検知：取得した課題の中で最新の更新時刻を確認する．
 	var maxLMSUpdate time.Time
 	for _, t := range tasks {
@@ -59,21 +55,45 @@ func (uc *SyncUsecase) SyncTasks(ctx context.Context, userID string, groupID str
 		}
 	}
 
-	// Google 側で情報更新がない場合は，DB への書き込みを行わず終了する．
-	if !maxLMSUpdate.After(group.LMSLastUpdatedAt) {
-		// 同期処理自体は「成功」として，更新がなかった旨を記録して返す．
-		group.LastSyncedAt = time.Now()
-		_ = uc.groupRepo.Save(ctx, group)
-		return nil, nil // 空のリストを返すことで「更新なし」を表現する
-	}
-
-	var savedTasks []*domain.Task
-
-	// 4．更新があった場合のみ，データベースへ保存し，同期状態を更新する．
+	// 4．データベースへ保存し，同期状態を更新する．
+	savedTasks := []*domain.Task{}
 	for _, task := range tasks {
 		task.GroupID = groupID
 		task.Source = uc.lmsService.GetProviderName()
 
+		// すでに同じ外部 ID のタスクが存在するか確認する．
+		existing, err := uc.taskRepo.FindByExternalID(ctx, task.ExternalID)
+		if err != nil {
+			return nil, fmt.Errorf("既存タスクの確認に失敗した： %w", err)
+		}
+
+		if existing != nil {
+			// 既存の場合は，ID を引き継いで「更新」扱いにする．
+			task.ID = existing.ID
+
+			// 進捗状況の統合：今回のユーザーの情報を更新または追加し，他人の情報は維持する．
+			if len(task.UserProgress) > 0 {
+				newProgress := task.UserProgress[0] // FetchTasks は常に1人分（自分）を返す
+				found := false
+				for i, ep := range existing.UserProgress {
+					if ep.UserID == newProgress.UserID {
+						existing.UserProgress[i].IsCompleted = newProgress.IsCompleted
+						existing.UserProgress[i].UpdatedAt = time.Now()
+						found = true
+						break
+					}
+				}
+				if !found {
+					existing.UserProgress = append(existing.UserProgress, newProgress)
+				}
+				task.UserProgress = existing.UserProgress
+			}
+		} else {
+			// 新規の場合は，新しい UUID を発行する．
+			task.ID = uuid.New().String()
+		}
+
+		// 保存（既存の場合は更新）
 		if err := uc.taskRepo.Save(ctx, task); err != nil {
 			return nil, fmt.Errorf("タスク（外部ID: %s）の保存に失敗した： %w", task.ExternalID, err)
 		}

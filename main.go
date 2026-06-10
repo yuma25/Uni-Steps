@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/google/generative-ai-go/genai"
@@ -28,6 +29,15 @@ import (
 )
 
 func main() {
+	// 0. タイムゾーンを日本時間 (JST) に設定する．
+	// これにより time.Now() などがデフォルトで日本時間を返すようになる．
+	loc, err := time.LoadLocation("Asia/Tokyo")
+	if err != nil {
+		log.Printf("タイムゾーンの読み込みに失敗した（デフォルトを使用する）： %v\n", err)
+	} else {
+		time.Local = loc
+	}
+
 	// 1. 環境変数の読み込み
 	_ = godotenv.Load()
 
@@ -35,6 +45,16 @@ func main() {
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
 		log.Fatal("DATABASE_URL が設定されていない．.env ファイルを確認すること．")
+	}
+
+	// 接続文字列にタイムゾーン設定を追加する（PostgreSQL 用）．
+	// すでにクエリパラメータがある場合を考慮しつつ追加する．
+	if !strings.Contains(dbURL, "TimeZone=") {
+		if strings.Contains(dbURL, "?") {
+			dbURL += "&TimeZone=Asia/Tokyo"
+		} else {
+			dbURL += "?TimeZone=Asia/Tokyo"
+		}
 	}
 
 	log.Println("データベースへの接続を開始中（最大5秒待機）...")
@@ -69,6 +89,7 @@ func main() {
 		&domain.User{},
 		&domain.Group{},
 		&domain.Task{},
+		&domain.TaskUserProgress{},
 		&domain.WakeupCheck{},
 	)
 	if err != nil {

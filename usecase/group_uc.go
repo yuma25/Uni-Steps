@@ -121,9 +121,9 @@ func (uc *GroupUsecase) LinkLMSCourse(ctx context.Context, groupId string, lmsCo
 
 // ListUserGroups は指定されたユーザーが所属しているグループの一覧を取得する．
 func (uc *GroupUsecase) ListUserGroups(ctx context.Context, userID string) ([]*domain.Group, error) {
-	// 本来は中間テーブル user_groups をクエリして，そのユーザーが所属する全グループを返す．
-	// 現時点ではプロトタイプ用として，将来的にリポジトリに FindByUserID を追加して実装する．
-	// 暫定的に，全てのグループを返す（要修正）．
-	// TODO: repository.go に FindByUserID(userID string) ([]*Group, error) を追加すること．
-	return nil, fmt.Errorf("ListUserGroups は未実装である")
+	groups, err := uc.groupRepo.FindByUserID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("所属グループ一覧の取得に失敗した： %w", err)
+	}
+	return groups, nil
 }

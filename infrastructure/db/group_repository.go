@@ -31,7 +31,7 @@ func (r *groupRepository) Save(ctx context.Context, group *domain.Group) error {
 // FindByID は指定された ID のグループ情報を取得する．
 func (r *groupRepository) FindByID(ctx context.Context, id string) (*domain.Group, error) {
 	var group domain.Group
-	err := r.db.WithContext(ctx).Where("id = ?", id).First(&group).Error
+	err := r.db.WithContext(ctx).Preload("Users").Where("id = ?", id).First(&group).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
@@ -39,4 +39,20 @@ func (r *groupRepository) FindByID(ctx context.Context, id string) (*domain.Grou
 		return nil, err
 	}
 	return &group, nil
+}
+
+// FindByUserID は指定されたユーザー ID が所属しているグループ一覧を取得する．
+func (r *groupRepository) FindByUserID(ctx context.Context, userID string) ([]*domain.Group, error) {
+	groups := []*domain.Group{}
+	// 中間テーブル user_groups を結合して，特定のユーザー ID に紐づくグループを検索する．
+	// Preload("Users") を追加してメンバー情報を取得する．
+	err := r.db.WithContext(ctx).
+		Preload("Users").
+		Joins("JOIN user_groups ON user_groups.group_id = groups.id").
+		Where("user_groups.user_id = ?", userID).
+		Find(&groups).Error
+	if err != nil {
+		return nil, err
+	}
+	return groups, nil
 }

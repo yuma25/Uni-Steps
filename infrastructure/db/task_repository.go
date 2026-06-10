@@ -25,10 +25,16 @@ func NewTaskRepository(db *gorm.DB) domain.TaskRepository {
 
 // Save はタスクをデータベースに保存（新規作成または更新）する．
 func (r *taskRepository) Save(ctx context.Context, task *domain.Task) error {
-	// GORM の Save メソッドは，ID が存在すれば UPDATE，存在しなければ INSERT を行う．
-	// WithContext でコンテキストを渡し，タイムアウト等に対応する．
 	if err := r.db.WithContext(ctx).Save(task).Error; err != nil {
 		return err
+	}
+	// UserProgress もあれば保存する．
+	if len(task.UserProgress) > 0 {
+		for _, up := range task.UserProgress {
+			if err := r.db.WithContext(ctx).Save(up).Error; err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }
@@ -36,12 +42,23 @@ func (r *taskRepository) Save(ctx context.Context, task *domain.Task) error {
 // FindByID は指定された ID のタスクをデータベースから取得する．
 func (r *taskRepository) FindByID(ctx context.Context, id string) (*domain.Task, error) {
 	var task domain.Task
-	// First メソッドで 1 件だけ取得する．
-	err := r.db.WithContext(ctx).Where("id = ?", id).First(&task).Error
+	err := r.db.WithContext(ctx).Preload("UserProgress").Where("id = ?", id).First(&task).Error
 	if err != nil {
-		// 見つからなかった場合は GORM 固有のエラーを返す．
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil // 見つからない場合はエラーではなく nil を返す設計とする場合もある（要検討）
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &task, nil
+}
+
+// FindByExternalID は外部 LMS の ID をキーにしてタスクを取得する．
+func (r *taskRepository) FindByExternalID(ctx context.Context, externalID string) (*domain.Task, error) {
+	var task domain.Task
+	err := r.db.WithContext(ctx).Preload("UserProgress").Where("external_id = ?", externalID).First(&task).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
 		}
 		return nil, err
 	}
@@ -50,9 +67,13 @@ func (r *taskRepository) FindByID(ctx context.Context, id string) (*domain.Task,
 
 // FindByGroupID は指定されたグループ ID に紐づくタスク一覧を取得する．
 func (r *taskRepository) FindByGroupID(ctx context.Context, groupID string) ([]*domain.Task, error) {
-	var tasks []*domain.Task
-	// Find メソッドで複数件を取得する．
-	err := r.db.WithContext(ctx).Where("group_id = ?", groupID).Find(&tasks).Error
+	tasks := []*domain.Task{}
+	// Preload で進捗状況も取得し，期限順に並べる．
+	err := r.db.WithContext(ctx).
+		Preload("UserProgress").
+		Where("group_id = ?", groupID).
+		Order("deadline ASC").
+		Find(&tasks).Error
 	if err != nil {
 		return nil, err
 	}
@@ -61,10 +82,12 @@ func (r *taskRepository) FindByGroupID(ctx context.Context, groupID string) ([]*
 
 // FindApproachingDeadlines は指定された日時までに期限を迎える，未完了のタスクを取得する．
 func (r *taskRepository) FindApproachingDeadlines(ctx context.Context, until time.Time) ([]*domain.Task, error) {
-	var tasks []*domain.Task
-	// "deadline <= ?" で期限が until より前，かつ "is_completed = false" のものを検索する．
+	tasks := []*domain.Task{}
+	// 全員の完了状態ではなく，個別の通知ロジックが必要になるため，ここでは Preload しつつ取得する．
 	err := r.db.WithContext(ctx).
-		Where("deadline <= ? AND is_completed = ?", until, false).
+		Preload("UserProgress").
+		Where("deadline <= ?", until).
+		Order("deadline ASC").
 		Find(&tasks).Error
 	if err != nil {
 		return nil, err

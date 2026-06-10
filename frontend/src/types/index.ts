@@ -1,15 +1,23 @@
 // Uni-Steps フロントエンド型定義ファイルである．
 
+export interface TaskUserProgress {
+  task_id: string;
+  user_id: string;
+  user_name: string;
+  is_completed: boolean;
+  updated_at: string;
+}
+
 export interface Task {
   id: string;              // 課題の一意識別子である．
   group_id: string;        // 所属するグループの ID である．
-  user_id: string;         // 担当するユーザーの ID である．
   source: string;          // 課題の入力元（manual, google_classroom 等）である．
-  external_id: string;     // 外部 LMS における課題の ID である．
+  external_id: string;     // 外部 LMS における課題의 ID である．
   title: string;           // 課題のタイトルである．
   deadline: string;        // 課題の期限である（ISO8601 形式）．
-  is_completed: boolean;   // 完了したかどうかのフラグである．
   is_critical: boolean;    // 起床確認が必要な重要課題かどうかのフラグである．
+  recurrence: string;      // 繰り返しの設定である．
+  user_progress: TaskUserProgress[]; // 各ユーザーの完了状態
 }
 
 export interface User {
@@ -24,4 +32,7 @@ export interface Group {
   owner_id: string;            // オーナーのユーザー ID である．
   line_channel_token?: string; // BYOT 用の LINE トークンである．
   line_group_id?: string;      // 通知先の LINE グループ ID である．
+  lms_course_id?: string;      // 紐付けられた LMS コースの ID である．
+  last_synced_at?: string;     // 最終同期時刻である．
+  lms_last_updated_at?: string; // LMS 側の最終更新時刻である．
 }
