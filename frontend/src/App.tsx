@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
+import DashboardPage from './pages/DashboardPage';
 import './App.css';
 
 // アプリケーションのメインコンポーネントである．
@@ -12,7 +13,7 @@ function App() {
           <Routes>
             <Route path="/" element={<LoginPage />} />
             <Route path="/login" element={<LoginPage />} />
-            {/* 今後ここに Dashboard 等のルートを追加していく */}
+            <Route path="/dashboard" element={<DashboardPage />} />
           </Routes>
         </main>
       </div>
