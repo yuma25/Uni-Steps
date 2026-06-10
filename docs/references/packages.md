@@ -194,6 +194,10 @@ HTTP リクエストを表す構造体である．
 *   🔧 `func (db *DB) AutoMigrate(dst ...interface{}) error`: 指定された構造体（モデル）に基づいてデータベースのテーブルを自動的に作成・更新する．
 *   🔧 `func (db *DB) WithContext(ctx context.Context) *DB`: リクエストのキャンセルやタイムアウトを制御するためのコンテキストを設定した新しい DB インスタンスを返す．
 *   🔧 `func (db *DB) Save(value interface{}) *DB`: オブジェクトを保存する．主キー（ID）が存在する場合は UPDATE，存在しない場合は INSERT を実行する．
+
+### 💡 GORM のシリアライザ (Serializers)
+Go のスライス（配列）やマップなどの複雑な構造を，1つのデータベース列に保存するための機能である．
+*   🏷️ `gorm:"serializer:json"`: フィールドにこのタグを付与することで，Go のデータを自動的に JSON 文字列に変換して保存し，読み込み時に元の型へ復元する．本プロジェクトでは `CustomDeadlines`（時刻の配列）の保存に使用している．
 *   🔧 `func (db *DB) Where(query interface{}, args ...interface{}) *DB`: SQL の WHERE 句に相当する条件を指定する．
 *   🔧 `func (db *DB) First(dest interface{}, conds ...interface{}) *DB`: 条件に一致する最初の1件を取得し，`dest` に格納する．見つからない場合は `gorm.ErrRecordNotFound` を返す．
 *   🔧 `func (db *DB) Find(dest interface{}, conds ...interface{}) *DB`: 条件に一致する複数件を取得し，スライス `dest` に格納する．
