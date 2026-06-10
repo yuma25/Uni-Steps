@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { groupApi } from '../api/groups';
 import type { Group } from '../types';
-import { Plus, Layout, RefreshCw, UserPlus } from 'lucide-react';
+import { Plus, Layout,  UserPlus } from 'lucide-react';
 
 /**
  * グループ（部屋）選択画面のコンポーネントである．
@@ -49,9 +49,10 @@ const GroupSelectionPage: React.FC = () => {
       setNewGroupName('');
       setShowCreateForm(false);
       alert("新しい部屋を作成した．");
-    } catch (err) {
-      alert("部屋の作成に失敗した．");
-      console.error(err);
+    } catch (err: any) {
+      const errMsg = err.response?.data?.error || "部屋の作成に失敗した．";
+      alert(`エラー：${errMsg}`);
+      console.error("部屋の作成に失敗した：", err);
     } finally {
       setLoading(false);
     }

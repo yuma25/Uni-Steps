@@ -25,13 +25,17 @@ func NewGroupUsecase(gr domain.GroupRepository, ur domain.UserRepository) *Group
 
 // CreateGroup は新しいグループを作成し，作成者をオーナーとして登録する．
 func (uc *GroupUsecase) CreateGroup(ctx context.Context, name string, ownerID string) (*domain.Group, error) {
+	log.Printf("DEBUG: ユーザー %s によるグループ作成（名前: %s）を開始する．\n", ownerID, name)
+
 	// 1．オーナーとなるユーザーが存在するか確認する．
 	user, err := uc.userRepo.FindByID(ctx, ownerID)
 	if err != nil {
+		log.Printf("ERROR: オーナー検索中にエラーが発生した: %v\n", err)
 		return nil, fmt.Errorf("オーナー情報の取得に失敗した： %w", err)
 	}
 	if user == nil {
-		return nil, fmt.Errorf("オーナーとなるユーザーが見つからない")
+		log.Printf("ERROR: オーナーが見つからない (ID: %s)\n", ownerID)
+		return nil, fmt.Errorf("オーナーとなるユーザーが見つからない（ログイン状態を確認してほしい）")
 	}
 
 	// 2．新しいグループ構造体を作成する．
@@ -43,10 +47,13 @@ func (uc *GroupUsecase) CreateGroup(ctx context.Context, name string, ownerID st
 	}
 
 	// 3．データベースに保存する．
+	log.Println("DEBUG: データベースへのグループ保存を実行する．")
 	if err := uc.groupRepo.Save(ctx, group); err != nil {
+		log.Printf("ERROR: グループの保存に失敗した: %v\n", err)
 		return nil, fmt.Errorf("グループの保存に失敗した： %w", err)
 	}
 
+	log.Printf("DEBUG: グループ作成に成功した (ID: %s)\n", group.ID)
 	return group, nil
 }
 
