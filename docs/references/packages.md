@@ -203,6 +203,11 @@ HTTP リクエストを表す構造体である．
 
 ---
 
+## 💡 トラブルシューティング：Supabase への接続
+Supabase (PostgreSQL) への接続時に `network is unreachable` エラーが発生する場合，環境が IPv6 に対応していない可能性がある．その際は，標準の 5432 ポートではなく，コネクションプーラー用の **6543 ポート** を使用する URL に切り替えることで解決できる場合が多い．
+
+---
+
 ## 12. LINE Messaging API
 **Package**: `github.com/line/line-bot-sdk-go/v8/linebot/messaging_api`  
 **Reference**: [pkg.go.dev/github.com/line/line-bot-sdk-go/v8/linebot/messaging_api](https://pkg.go.dev/github.com/line/line-bot-sdk-go/v8/linebot/messaging_api)
@@ -321,6 +326,9 @@ OAuth 2.0 のアクセストークンやリフレッシュトークンを保持�
 
 ### 📜 `interface`
 オブジェクトの形状を定義するための構文である．本プロジェクトでは Task や User のデータ構造を定義するために多用する．
+
+### ⚙️ `import type { ... }`
+型定義（interface や type）のみをインポートすることを明示する構文である．実行時のコード（JavaScript）から完全に削除されるため，Vite 等のビルドツールにおいて「エクスポートが見つからない」といったエラーを防ぐために重要である．
 
 ---
 

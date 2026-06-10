@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { taskApi } from '../api/tasks';
-import { Task } from '../types';
+import type { Task } from '../types';
 import { Bell, RefreshCw, PlusCircle } from 'lucide-react';
 
 /**

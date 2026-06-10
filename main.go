@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/google/generative-ai-go/genai"
 	"github.com/joho/godotenv"
@@ -36,10 +37,26 @@ func main() {
 		log.Fatal("DATABASE_URL が設定されていない．.env ファイルを確認すること．")
 	}
 
-	gormDB, err := gorm.Open(postgres.Open(dbURL), &gorm.Config{})
-	if err != nil {
-		log.Fatalf("データベースの接続に失敗した: %v", err)
+	log.Println("データベースへの接続を開始中（最大5秒待機）...")
+
+	// 接続タイムアウトを設定したコンテキストを作成する．
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	gormDB, err := gorm.Open(postgres.Open(dbURL), &gorm.Config{
+		ConnPool: nil, // デフォルトのコネクションプールを使用する．
+	})
+
+	// 接続確認（Ping）を行い，実際に通信できるかテストする．
+	if err == nil {
+		sqlDB, _ := gormDB.DB()
+		err = sqlDB.PingContext(ctx)
 	}
+
+	if err != nil {
+		log.Fatalf("データベースの接続に失敗した．設定またはネットワークを確認すること: %v", err)
+	}
+	log.Println("データベースの接続に成功した．")
 
 	// 2.5 データベースの自動マイグレーション
 	log.Println("データベースのマイグレーションを実行中...")
@@ -54,6 +71,7 @@ func main() {
 	log.Println("マイグレーションが完了した．")
 
 	// 3. 依存性の注入（DI: Dependency Injection）
+	log.Println("各サービスの初期化と依存性の注入を開始中...")
 
 	// --- インフラストラクチャ（道具）の初期化 ---
 	taskRepo := db.NewTaskRepository(gormDB)
@@ -133,6 +151,8 @@ func main() {
 	handler.NewTaskHandler(e, taskUsecase, syncUsecase)
 	handler.NewNotificationHandler(e, userRepo)
 	handler.NewAuthHandler(e, userRepo, oauthCfg)
+
+	log.Println("全てのコンポーネントの初期化が完了した．サーバーを起動する．")
 
 	// 4. サーバーの起動
 	port := os.Getenv("PORT")

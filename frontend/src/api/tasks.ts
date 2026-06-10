@@ -1,5 +1,5 @@
 import client from './client';
-import { Task } from '../types';
+import type { Task } from '../types';
 
 /**
  * 課題管理に関連する API 通信を担当するモジュールである．
