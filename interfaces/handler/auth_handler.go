@@ -90,6 +90,6 @@ func (h *AuthHandler) GoogleCallback(c echo.Context) error {
 
 	// 5．ダッシュボードへリダイレクトする．
 	// フロントエンドの URL へリダイレクト（暫定的に localhost:5173 を使用）
-	frontendUrl := "http://localhost:5173/dashboard?user_id=" + user.ID
+	frontendUrl := "http://localhost:5173/select-group?user_id=" + user.ID
 	return c.Redirect(http.StatusTemporaryRedirect, frontendUrl)
 }

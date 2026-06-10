@@ -127,16 +127,6 @@ JSON データを構造体に変換する．
 
 ---
 
-## 26. UUID 生成 (uuid)
-**Package**: `github.com/google/uuid`  
-**Reference**: [pkg.go.dev/github.com/google/uuid](https://pkg.go.dev/github.com/google/uuid)
-
-### ⚙️ `func New() UUID`
-ランダムな UUID（バージョン 4）を生成する．
-*   🔧 `func (uuid UUID) String() string`: UUID を標準的な文字列形式（例：`550e8400-e29b-41d4-a716-446655440000`）に変換する．
-
----
-
 ## 8. Google Classroom API
 **Package**: `google.golang.org/api/classroom/v1`  
 **Reference**: [pkg.go.dev/google.golang.org/api/classroom/v1](https://pkg.go.dev/google.golang.org/api/classroom/v1)
@@ -224,6 +214,8 @@ Go のスライス（配列）やマップなどの複雑な構造を，1つの�
 
 ## 💡 トラブルシューティング：Supabase への接続
 Supabase (PostgreSQL) への接続時に `network is unreachable` エラーが発生する場合，環境が IPv6 に対応していない可能性がある．その際は，標準の 5432 ポートではなく，コネクションプーラー用の **6543 ポート** を使用する URL に切り替えることで解決できる場合が多い．
+
+また，6543 ポート（Transaction モード）を使用する際は，GORM の設定で **`PreferSimpleProtocol: true`** を指定する必要がある．これを怠ると，プリペアドステートメントの衝突によりマイグレーションやクエリが失敗する原因となる．
 
 ---
 
@@ -366,7 +358,9 @@ OAuth 2.0 のアクセストークンやリフレッシュトークンを保持�
 **Reference**: [lucide.dev](https://lucide.dev/)
 
 ### ⚛️ `IconComponent`
-各アイコン（Check, Bell 等）を React コンポーネントとして提供するライブラリである．
+各アイコン（Check, Bell, RefreshCw, Plus, X 等）を React コンポーネントとして提供するライブラリである．
+*   🏷️ `size: number`: アイコンの大きさを指定するプロパティである．
+*   🏷️ `className: string`: CSS クラスを適用するためのプロパティであり，アニメーション（回転等）の付与に使用する．
 
 ---
 
@@ -384,6 +378,12 @@ OAuth 2.0 のアクセストークンやリフレッシュトークンを保持�
 *   🏷️ `path: string`: マッチさせるパスである．
 *   🏷️ `element: React.ReactNode`: 表示するコンポーネントである．
 
+### 🎣 `function useNavigate(): NavigateFunction`
+プログラム的にページを遷移させるためのフックである．
+
+### 🎣 `function useSearchParams(): [URLSearchParams, SetURLSearchParams]`
+URL のクエリパラメータ（`?user_id=...` 等）を読み書きするためのフックである．
+
 ---
 
 ## 25. フロントエンド・API モジュール (Task API)
@@ -398,3 +398,15 @@ UI から入力された情報を元に，手動で課題を登録する関数�
 ### ⚙️ `taskApi.syncTasks(userId: string, groupId: string): Promise<{ message: string; tasks: Task[] }>`
 外部 LMS (Google Classroom等) から課題を同期するリクエストを送信する関数である．
 
+
+---
+
+## 26. UUID 生成 (uuid)
+**Package**: `github.com/google/uuid`  
+**Reference**: [pkg.go.dev/github.com/google/uuid](https://pkg.go.dev/github.com/google/uuid)
+
+### ⚙️ `func New() UUID`
+ランダムな UUID（バージョン 4）を生成する．
+*   🔧 `func (uuid UUID) String() string`: UUID を標準的な文字列形式（例：`550e8400-e29b-41d4-a716-446655440000`）に変換する．
+
+---

@@ -1,30 +1,44 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { taskApi } from '../api/tasks';
 import type { Task } from '../types';
-import { Bell, RefreshCw, PlusCircle } from 'lucide-react';
+import { Bell, RefreshCw, PlusCircle, X } from 'lucide-react';
 
 /**
  * ダッシュボード画面のコンポーネントである．
- * 課題一覧の表示，同期の実行，手動登録の開始を行う中心的な画面である．
+ * URL のクエリパラメータからユーザー ID とグループ ID を取得し，そのコンテキストでの課題管理を行う．
  */
 const DashboardPage: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const userId = searchParams.get('user_id') || '';
+  const groupId = searchParams.get('group_id') || '';
+  
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showModal, setShowModal] = useState(false);
 
-  // 仮の ID（本来はログインユーザーの情報から取得する）
-  const tempGroupId = "default-group-id";
-  const tempUserId = "default-user-id";
+  // 手動登録用のフォーム状態である．
+  const [formData, setFormData] = useState({
+    title: '',
+    deadline: '',
+    is_critical: false,
+    recurrence: 'none'
+  });
 
-  // 画面表示時に課題一覧を取得する．
   useEffect(() => {
+    if (!userId || !groupId) {
+      navigate('/login');
+      return;
+    }
     fetchTasks();
-  }, []);
+  }, [userId, groupId]);
 
   const fetchTasks = async () => {
     try {
       setLoading(true);
-      const data = await taskApi.listGroupTasks(tempGroupId);
+      const data = await taskApi.listGroupTasks(groupId);
       setTasks(data);
       setError(null);
     } catch (err) {
@@ -38,8 +52,8 @@ const DashboardPage: React.FC = () => {
   const handleSync = async () => {
     try {
       setLoading(true);
-      await taskApi.syncTasks(tempUserId, tempGroupId);
-      await fetchTasks(); // 同期後に再取得する．
+      await taskApi.syncTasks(userId, groupId);
+      await fetchTasks();
       alert("同期が完了した．（更新がある場合のみ反映される）");
     } catch (err: any) {
       alert(err.response?.data?.error || "同期に失敗した．");
@@ -48,17 +62,40 @@ const DashboardPage: React.FC = () => {
     }
   };
 
+  const handleCreateTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      await taskApi.createManualTask({
+        ...formData,
+        group_id: groupId,
+        user_id: userId,
+        deadline: new Date(formData.deadline).toISOString(),
+      });
+      setShowModal(false);
+      setFormData({ title: '', deadline: '', is_critical: false, recurrence: 'none' });
+      await fetchTasks();
+    } catch (err) {
+      alert("課題の登録に失敗した．");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">
-        <h1>Uni-Steps</h1>
+        <div className="title-group">
+          <h1>Uni-Steps</h1>
+          <span className="group-badge">Room: {groupId.substring(0, 8)}</span>
+        </div>
         <div className="header-actions">
           <button onClick={handleSync} disabled={loading} className="icon-button">
-            <RefreshCw className={loading ? "animate-spin" : ""} />
+            <RefreshCw className={loading ? "animate-spin" : ""} size={18} />
             同期
           </button>
-          <button className="icon-button primary">
-            <PlusCircle />
+          <button onClick={() => setShowModal(true)} className="icon-button primary">
+            <PlusCircle size={18} />
             課題追加
           </button>
         </div>
@@ -83,7 +120,10 @@ const DashboardPage: React.FC = () => {
                   <div className="task-info">
                     <h3>{task.title}</h3>
                     <p className="deadline">期限: {new Date(task.deadline).toLocaleString('ja-JP')}</p>
-                    <span className="source-tag">{task.source}</span>
+                    <div className="tags">
+                      <span className="source-tag">{task.source}</span>
+                      {task.recurrence !== 'none' && <span className="recurrence-tag">{task.recurrence}</span>}
+                    </div>
                   </div>
                   <div className="task-status">
                     {task.is_completed ? "✅ 完了" : "⏳ 未完了"}
@@ -94,6 +134,62 @@ const DashboardPage: React.FC = () => {
           )}
         </section>
       </main>
+
+      {/* 手動登録用モーダルである． */}
+      {showModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2>課題を手動で追加する</h2>
+              <button onClick={() => setShowModal(false)} className="close-button"><X /></button>
+            </div>
+            <form onSubmit={handleCreateTask} className="task-form">
+              <div className="form-group">
+                <label>タイトル</label>
+                <input 
+                  type="text" 
+                  required 
+                  value={formData.title}
+                  onChange={e => setFormData({...formData, title: e.target.value})}
+                  placeholder="例：数学のレポート提出"
+                />
+              </div>
+              <div className="form-group">
+                <label>期限</label>
+                <input 
+                  type="datetime-local" 
+                  required 
+                  value={formData.deadline}
+                  onChange={e => setFormData({...formData, deadline: e.target.value})}
+                />
+              </div>
+              <div className="form-group inline">
+                <input 
+                  type="checkbox" 
+                  id="is_critical"
+                  checked={formData.is_critical}
+                  onChange={e => setFormData({...formData, is_critical: e.target.checked})}
+                />
+                <label htmlFor="is_critical">起床確認を必須にする（重要）</label>
+              </div>
+              <div className="form-group">
+                <label>繰り返し</label>
+                <select 
+                  value={formData.recurrence}
+                  onChange={e => setFormData({...formData, recurrence: e.target.value})}
+                >
+                  <option value="none">なし</option>
+                  <option value="weekly">毎週</option>
+                  <option value="biweekly">隔週</option>
+                </select>
+              </div>
+              <button type="submit" disabled={loading} className="submit-button">
+                {loading ? "登録中..." : "登録する"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

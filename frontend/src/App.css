@@ -128,6 +128,118 @@ h1 {
   margin-top: 0.5rem;
 }
 
+.recurrence-tag {
+  display: inline-block;
+  font-size: 0.75rem;
+  background-color: #e3f2fd;
+  color: #1976d2;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-top: 0.5rem;
+  margin-left: 0.5rem;
+}
+
+.tags {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* モーダルのスタイルである． */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.close-button {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: #666;
+}
+
+.form-group {
+  margin-bottom: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.form-group.inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-weight: bold;
+  margin-bottom: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.form-group input[type="text"],
+.form-group input[type="datetime-local"],
+.form-group select {
+  padding: 0.6rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1rem;
+}
+
+.submit-button {
+  width: 100%;
+  padding: 0.8rem;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.submit-button:hover {
+  background-color: #45a049;
+}
+
+.group-badge {
+  background: #f0f0f0;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.title-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
 .animate-spin {
   animation: spin 1s linear infinite;
 }
@@ -135,4 +247,57 @@ h1 {
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+/* グループ選択画面のスタイルである． */
+.selection-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: left;
+}
+
+.group-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.group-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.5rem;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.group-card:hover {
+  border-color: #4285f4;
+  background-color: #f8fbff;
+  transform: translateY(-2px);
+}
+
+.create-group-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.create-group-form input {
+  flex: 1;
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+hr {
+  margin: 2rem 0;
+  border: 0;
+  border-top: 1px solid #eee;
 }

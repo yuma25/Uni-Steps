@@ -17,3 +17,11 @@ export interface User {
   name: string;
   email?: string;
 }
+
+export interface Group {
+  id: string;                  // グループの一意識別子である．
+  name: string;                // グループの名称である．
+  owner_id: string;            // オーナーのユーザー ID である．
+  line_channel_token?: string; // BYOT 用の LINE トークンである．
+  line_group_id?: string;      // 通知先の LINE グループ ID である．
+}

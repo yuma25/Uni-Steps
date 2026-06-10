@@ -43,8 +43,13 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	gormDB, err := gorm.Open(postgres.Open(dbURL), &gorm.Config{
-		ConnPool: nil, // デフォルトのコネクションプールを使用する．
+	// Supabase のコネクションプーラー（6543ポート）を使用する場合，
+	// プリペアドステートメントの衝突を防ぐために PreferSimpleProtocol を true に設定する必要がある．
+	gormDB, err := gorm.Open(postgres.New(postgres.Config{
+		DSN:                  dbURL,
+		PreferSimpleProtocol: true, // シンプルプロトコルを強制する．
+	}), &gorm.Config{
+		ConnPool: nil,
 	})
 
 	// 接続確認（Ping）を行い，実際に通信できるかテストする．
@@ -76,8 +81,9 @@ func main() {
 	gormDB.Model(&domain.Group{}).Where("id = ?", "default-group-id").Count(&groupCount)
 	if groupCount == 0 {
 		gormDB.Create(&domain.Group{
-			ID:   "default-group-id",
-			Name: "デフォルトグループ",
+			ID:      "default-group-id",
+			Name:    "デフォルトグループ",
+			OwnerID: "system-admin", // 初期データ用の管理者 ID である．
 		})
 		log.Println("デモ用のデフォルトグループを作成した．")
 	}
@@ -141,6 +147,7 @@ func main() {
 	taskUsecase := usecase.NewTaskUsecase(taskRepo, aiService)
 	syncUsecase := usecase.NewSyncUsecase(taskRepo, groupRepo, lmsService)
 	monitorUsecase := usecase.NewMonitorUsecase(taskRepo, aiService, compositeNotifService)
+	groupUsecase := usecase.NewGroupUsecase(groupRepo, userRepo)
 
 	// 3.5 監視プロセス（Goroutine）の起動
 	// メインの HTTP サーバーの邪魔をしないように，`go` キーワードをつけて裏側（並行）で走らせる．
@@ -163,6 +170,7 @@ func main() {
 	handler.NewTaskHandler(e, taskUsecase, syncUsecase)
 	handler.NewNotificationHandler(e, userRepo)
 	handler.NewAuthHandler(e, userRepo, oauthCfg)
+	handler.NewGroupHandler(e, groupUsecase)
 
 	log.Println("全てのコンポーネントの初期化が完了した．サーバーを起動する．")
 
