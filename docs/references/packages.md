@@ -237,5 +237,38 @@ OAuth 2.0 のアクセストークンやリフレッシュトークンを保持�
 **Package**: `golang.org/x/oauth2/google`  
 **Reference**: [pkg.go.dev/golang.org/x/oauth2/google](https://pkg.go.dev/golang.org/x/oauth2/google)
 
-### 🏷️ 定数
-*   `Endpoint`: Google の OAuth 2.0 認証エンドポイント（認可 URL とトークン URL）の定義である．
+---
+
+## 16. OS インターフェース (os)
+**Package**: `os`  
+**Reference**: [pkg.go.dev/os](https://pkg.go.dev/os)
+
+### ⚙️ `func Getenv(key string) string`
+指定された環境変数の値を取得する．環境変数が存在しない場合は空文字を返す．
+
+### ⚙️ `func Setenv(key, value string) error`
+環境変数を設定する．
+
+---
+
+## 17. ログ出力 (log)
+**Package**: `log`  
+**Reference**: [pkg.go.dev/log](https://pkg.go.dev/log)
+
+### ⚙️ `func Println(v ...any)`
+標準ロガーを使用してログを一行出力する．
+
+### ⚙️ `func Fatalf(format string, v ...any)`
+`Printf` と同様にフォーマット済みログを出力し，その後 `os.Exit(1)` を呼び出してプログラムを終了する．
+
+---
+
+## 18. エラー処理 (errors)
+**Package**: `errors`  
+**Reference**: [pkg.go.dev/errors](https://pkg.go.dev/errors)
+
+### ⚙️ `func Is(err, target error) bool`
+エラーのチェーンの中に特定のターゲットエラーが含まれているか判定する．`gorm.ErrRecordNotFound` 等の判定に使用する．
+
+### ⚙️ `func New(text string) error`
+指定されたメッセージを持つ新しいエラーを生成する．

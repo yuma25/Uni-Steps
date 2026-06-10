@@ -90,13 +90,19 @@ func main() {
 	googleClientSecret := os.Getenv("GOOGLE_CLIENT_SECRET")
 	googleRedirectURL := os.Getenv("GOOGLE_REDIRECT_URL")
 
-	// Classroom API の読み取り権限スコープを要求する．
+	// Classroom API の読み取り権限およびユーザー識別用スコープを要求する．
 	oauthCfg := &oauth2.Config{
 		ClientID:     googleClientID,
 		ClientSecret: googleClientSecret,
 		RedirectURL:  googleRedirectURL,
-		Scopes:       []string{"https://www.googleapis.com/auth/classroom.coursework.me.readonly"},
-		Endpoint:     google.Endpoint,
+		Scopes: []string{
+			"openid",
+			"https://www.googleapis.com/auth/userinfo.email",
+			"https://www.googleapis.com/auth/userinfo.profile",
+			"https://www.googleapis.com/auth/classroom.courses.readonly",
+			"https://www.googleapis.com/auth/classroom.coursework.me.readonly",
+		},
+		Endpoint: google.Endpoint,
 	}
 	lmsService := lms.NewGoogleClassroomService(userRepo, oauthCfg)
 
