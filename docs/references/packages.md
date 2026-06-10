@@ -1,6 +1,6 @@
 # Uni-Steps 技術リファレンス集
 
-開発で使用している主要なパッケージやライブラリの公式リファレンスを詳細にまとめている．
+本プロジェクトの開発で使用している全てのパッケージ，ライブラリ，およびそれらが提供するインターフェース，構造体，メソッドの詳細を網羅している．
 
 ## 📜 記述ルール
 1.  **詳細な仕様**: 使用しているインターフェース，構造体，およびそのメソッドまで詳細に記述する．
@@ -24,47 +24,63 @@
 **Reference**: [pkg.go.dev/github.com/labstack/echo/v4](https://pkg.go.dev/github.com/labstack/echo/v4)
 
 ### 📦 `type Echo struct`
-Echo フレームワークのメインとなる構造体である．
-*   ⚙️ `func New() *Echo`: 新しい Echo インスタンスを生成する．
-*   🔧 `func (e *Echo) Start(address string) error`: HTTP サーバーを起動する．
-*   🔧 `func (e *Echo) GET/POST/PATCH/DELETE(...)`: 各 HTTP メソッドのルーティングを登録する．
+HTTP サーバーの本体を管理する構造体である．
+*   ⚙️ `func New() *Echo`: インスタンスを生成する．
+*   🔧 `func (e *Echo) Start(address string) error`: サーバーを起動する．
+*   🔧 `func (e *Echo) GET/POST/PATCH/DELETE(path string, h HandlerFunc, ...)`: ルーティングを登録する．
+*   🔧 `func (e *Echo) Use(middleware ...MiddlewareFunc)`: ミドルウェアを登録する．
 
 ### 🔹 `type Context interface`
-各リクエストの情報を保持するインターフェースである．
-*   🔧 `func (c Context) Param(name string) string`: URL パラメータを取得する．
-*   🔧 `func (c Context) Bind(i interface{}) error`: リクエストボディを構造体に変換する．
-*   🔧 `func (c Context) JSON(code int, i interface{}) error`: JSON レスポンスを送信する．
+各 HTTP リクエストのコンテキスト（状態）を保持するインターフェースである．
+*   🔧 `func (c Context) Param(name string) string`: URL 内のパスパラメータ（`:id` 等）を取得する．
+*   🔧 `func (c Context) QueryParam(name string) string`: クエリパラメータ（`?user_id=...` 等）を取得する．
+*   🔧 `func (c Context) Bind(i interface{}) error`: リクエストボディ（JSON 等）を構造体に変換する．
+*   🔧 `func (c Context) JSON(code int, i interface{}) error`: 構造体を JSON 変換して送信する．
+*   🔧 `func (c Context) Request() *http.Request`: 現在の HTTP リクエストオブジェクトを返す．
 *   🔧 `func (c Context) Redirect(code int, url string) error`: 指定した URL へリダイレクトする．
 
 ---
 
-## 2. 生成 AI (Gemini)
-**Package**: `github.com/google/generative-ai-go/genai`  
-**Reference**: [pkg.go.dev/github.com/google/generative-ai-go/genai](https://pkg.go.dev/github.com/google/generative-ai-go/genai)
-
-### 📦 `type Client struct`
-Gemini API クライアントである．
-*   ⚙️ `func NewClient(ctx context.Context, opts ...option.ClientOption) (*Client, error)`: クライアントを生成する．
-
-### 📦 `type GenerativeModel struct`
-*   🔧 `func (m *GenerativeModel) GenerateContent(ctx context.Context, parts ...Part) (*GenerateContentResponse, error)`: AI にコンテンツ生成を依頼する．
-
----
-
-## 3. データベース ORM (gorm)
+## 2. データベース ORM (GORM)
 **Package**: `gorm.io/gorm`  
 **Reference**: [pkg.go.dev/gorm.io/gorm](https://pkg.go.dev/gorm.io/gorm)
 
 ### 📦 `type DB struct`
-*   🔧 `func (db *DB) AutoMigrate(dst ...interface{}) error`: テーブルを自動作成・更新する．
-*   🔧 `func (db *DB) Save(value interface{}) *DB`: レコードを保存する．
-*   🔧 `func (db *DB) Where(query interface{}, args ...interface{}) *DB`: 検索条件を指定する．
+データベース操作を管理するメインの構造体である．
+*   ⚙️ `func Open(dialector Dialer, config *Config) (*DB, error)`: 接続を開く．
+*   🔧 `func (db *DB) AutoMigrate(dst ...interface{}) error`: テーブルの自動作成・更新を行う．
+*   🔧 `func (db *DB) WithContext(ctx context.Context) *DB`: タイムアウト制御用コンテキストを適用する．
+*   🔧 `func (db *DB) Save(value interface{}) *DB`: レコードの保存（INSERT/UPDATE）を行う．
+*   🔧 `func (db *DB) Create(value interface{}) *DB`: レコードを新規作成する．
+*   🔧 `func (db *DB) Where(query interface{}, args ...interface{}) *DB`: 取得条件を指定する．
+*   🔧 `func (db *DB) First(dest interface{}, conds ...interface{}) *DB`: 条件に一致する最初の1件を取得する．
+*   🔧 `func (db *DB) Find(dest interface{}, conds ...interface{}) *DB`: 条件に一致する全件を取得する．
+*   🔧 `func (db *DB) Model(value interface{}) *DB`: 操作対象のモデルを指定する．
+*   🔧 `func (db *DB) Count(count *int64) *DB`: 件数をカウントする．
 
-### 💡 GORM のシリアライザ (Serializers)
-*   🏷️ `gorm:"serializer:json"`: Go のスライス等を JSON 文字列として DB に保存する機能である．
+### 🏷️ タグ・定数
+*   🏷️ `gorm:"serializer:json"`: Go の複雑な型（スライス等）を JSON 形式で DB 列に保存する．
+*   🏷️ `gorm:"primaryKey"`: 主キーとして指定する．
+*   🏷️ `gorm:"unique"`: ユニーク制約を付与する．
+*   🏷️ `gorm:"many2many:table_name"`: 多対多の関係を中間テーブルとして定義する．
+*   🏷️ `ErrRecordNotFound`: 検索結果が 0 件の際に返されるエラー定数である．
 
-### 💡 トラブルシューティング：Supabase 接続
-*   6543 ポート（プーラー）を使用する際は **`PreferSimpleProtocol: true`** を指定する必要がある．
+---
+
+## 3. 生成 AI (Google Generative AI)
+**Package**: `github.com/google/generative-ai-go/genai`  
+**Reference**: [pkg.go.dev/github.com/google/generative-ai-go/genai](https://pkg.go.dev/github.com/google/generative-ai-go/genai)
+
+### 📦 `type Client struct`
+Gemini API との通信用クライアントである．
+*   ⚙️ `func NewClient(ctx context.Context, opts ...option.ClientOption) (*Client, error)`: クライアントを生成する．
+*   🔧 `func (c *Client) GenerativeModel(name string) *GenerativeModel`: 特定のモデルを取得する．
+*   🔧 `func (c *Client) Close() error`: 接続を終了する．
+
+### 📦 `type GenerativeModel struct`
+AI による文章生成を行う構造体である．
+*   🔧 `func (m *GenerativeModel) GenerateContent(ctx context.Context, parts ...Part) (*GenerateContentResponse, error)`: テキストを生成する．
+*   🏷️ `ResponseMIMEType string`: レスポンスの形式（`application/json` 等）を指定する．
 
 ---
 
@@ -72,63 +88,114 @@ Gemini API クライアントである．
 **Package**: `github.com/line/line-bot-sdk-go/v8/linebot/messaging_api`
 
 ### 📦 `type MessagingApiAPI struct`
-*   🔧 `func (client *MessagingApiAPI) PushMessage(pushReq *PushMessageRequest, xRetryKey string)`: メッセージを送信する．
+*   ⚙️ `func NewMessagingApiAPI(channelToken string) (*MessagingApiAPI, error)`: クライアントを生成する．
+*   🔧 `func (client *MessagingApiAPI) PushMessage(req *PushMessageRequest, xRetryKey string)`: 特定の ID（グループ等）にプッシュ通知を送る．
 
 ---
 
 ## 5. Web Push 通知 (webpush-go)
 **Package**: `github.com/SherClockHolmes/webpush-go`
 
-### ⚙️ `func SendNotification(message []byte, s *Subscription, options *Options)`
-指定されたブラウザへ通知を送信する．
+### ⚙️ `func GenerateVAPIDKeys() (privateKey, publicKey string, err error)`
+キーペアを生成する．
 
-### 💡 配信の仕組み（グループ配信）
-Web Push は本来個人宛だが，Uni-Steps では**ループ処理を用いてグループ全員のトークンへ個別に送信する**ことで，実質的な一斉発信を実現している．
+### ⚙️ `func SendNotification(message []byte, s *Subscription, options *Options)`
+指定されたブラウザ購読情報に対して通知を送信する．
+
+### 📦 `type Subscription struct`
+ブラウザから提供される通知宛先情報（Endpoint, Keys）を保持する．
 
 ---
 
-## 6. 標準ライブラリ (Standard Libraries)
+## 6. OAuth 2.0 認証 (oauth2)
+**Package**: `golang.org/x/oauth2`
+
+### 📦 `type Config struct`
+*   🔧 `func (c *Config) AuthCodeURL(state string, ...) string`: 認可 URL を生成する．
+*   🔧 `func (c *Config) Exchange(ctx context.Context, code string, ...) (*Token, error)`: トークンを取得する．
+*   🔧 `func (c *Config) Client(ctx context.Context, t *Token) *http.Client`: 認証済みクライアントを生成する．
+
+---
+
+## 7. Google Classroom API
+**Package**: `google.golang.org/api/classroom/v1`
+
+### 📦 `type Service struct`
+*   ⚙️ `func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error)`: サービスを生成する．
+
+### 📦 `type CoursesService struct`
+*   🔧 `func (r *CoursesService) List() *CoursesListCall`: コース一覧取得を作成する．
+*   🔧 `func (c *CoursesListCall) CourseStates(states ...string) *CoursesListCall`: 状態（`ACTIVE` 等）で絞り込む．
+
+---
+
+## 8. 標準ライブラリ (Standard Libraries)
 
 ### ⚙️ `package context`
-デッドラインやキャンセル信号を管理する．
-*   `func WithTimeout(...)`: タイムアウト付き Context を生成する．
+*   ⚙️ `func Background() Context`: 起点のコンテキストを生成する．
+*   ⚙️ `func WithTimeout(parent Context, timeout Duration) (Context, CancelFunc)`: 制限時間付きのコンテキストを生成する．
+*   ⚙️ `func WithCancel(parent Context) (Context, CancelFunc)`: 手動キャンセル可能なコンテキストを生成する．
+
+### ⚙️ `package time`
+*   ⚙️ `func Now() Time`: 現在時刻を取得する．
+*   ⚙️ `func Parse(layout, value string) (Time, error)`: 文字列から時刻へ変換する．
+*   🔧 `func (t Time) Format(layout string) string`: 時刻から文字列へ変換する．
+*   🔧 `func (t Time) After(u Time) bool`: 時刻の前後を比較する．
+*   ⚙️ `func Since(t Time) Duration`: 経過時間を計測する．
+*   ⚙️ `func NewTicker(d Duration) *Ticker`: 定期実行タイマーを生成する．
+*   🏷️ `RFC3339 string`: 標準的な日時フォーマットのレイアウト定数である．
 
 ### ⚙️ `package fmt`
-入出力や文字列フォーマットを行う．
-*   `func Errorf(...)`: エラーをラップして生成する．
+*   ⚙️ `func Errorf(format string, a ...any) error`: 元のエラーを `%w` でラップして新しいエラーを生成する．
+*   ⚙️ `func Sprint(a ...any) string`: 引数を文字列に変換して連結する．
 
-### ⚙️ `package io`
-入出力の基本インターフェースを提供する．
-*   🔹 `type Reader interface`: データの読み込みを抽象化する．
+### ⚙️ `package log`
+*   ⚙️ `func Println(v ...any)`: 標準出力にログを書き出す．
+*   ⚙️ `func Fatalf(format string, v ...any)`: ログ出力後にプログラムを強制終了する．
 
----
-
-## 7. JSON (encoding/json)
-*   📦 `type Decoder struct`: ストリーム（レスポンスボディ等）から JSON を効率的に読み取る．
-
----
-
-## 8. UUID (github.com/google/uuid)
-*   ⚙️ `func NewString() string`: ランダムな ID 文字列を生成する．
+### ⚙️ `package encoding/json`
+*   ⚙️ `func Unmarshal(data []byte, v any) error`: JSON バイト列を構造体に変換する．
+*   ⚙️ `func Marshal(v any) ([]byte, error)`: 構造体を JSON バイト列に変換する．
+*   📦 `type Decoder struct`: ストリームから順次 JSON を読み取る．
 
 ---
 
-## 9. フロントエンド技術 (Frontend)
+## 9. ユーティリティ (uuid)
+**Package**: `github.com/google/uuid`
 
-### 🛠️ Vite
-ビルドおよび開発サーバーである．
+### ⚙️ `func New().String() string`
+ランダムな一意の ID 文字列を生成する．
 
-### ⚛️ React
-*   🎣 `useState`: コンポーネントの状態管理である．
-*   🎣 `useEffect`: 副作用（API 通信等）の実行である．
+---
 
-### 📜 TypeScript
-*   📜 `interface`: データ形状の定義である．
-*   ⚙️ `import type`: 型のみを安全にインポートする構文である（画面真っ白エラーの防止に必須）．
+## 10. フロントエンド：React & TypeScript
+**Reference**: [react.dev](https://react.dev/), [typescriptlang.org](https://www.typescriptlang.org/)
 
-### 📚 Axios
-バックエンド API との通信用クライアントである．
+### ⚛️ `React.FC<P>`
+関数のコンポーネントであることを定義する型である．
 
-### 📚 React Router
-*   🎣 `useNavigate`: ページ遷移である．
-*   🎣 `useSearchParams`: クエリパラメータの操作である．
+### 🎣 `useState<T>(initialValue: T)`
+コンポーネントの状態（State）を管理するための Hook である．
+
+### 🎣 `useEffect(effect, deps)`
+描画時や特定の変数が変わった時に実行する副作用（API 呼び出し等）を定義する Hook である．
+
+### 📜 `interface`
+TypeScript でオブジェクトの構造を定義する構文である．
+
+### ⚙️ `import type { ... }`
+型定義のみを読み込むことを明示し，実行時の JS ファイルを軽量化・エラー防止する．
+
+---
+
+## 11. フロントエンド：Axios & Routing
+**Reference**: [axios-http.com](https://axios-http.com/), [reactrouter.com](https://reactrouter.com/)
+
+### 📦 `axios.create(config)`
+ベース URL 等をあらかじめ設定した共通クライアントを作成する．
+
+### 🎣 `useNavigate()`
+JavaScript のコードから強制的にページを遷移させるための Hook である．
+
+### 🎣 `useSearchParams()`
+URL の後ろにある `?id=...` といったパラメータを取得・操作するための Hook である．
