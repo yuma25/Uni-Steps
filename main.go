@@ -58,6 +58,7 @@ func main() {
 	// --- インフラストラクチャ（道具）の初期化 ---
 	taskRepo := db.NewTaskRepository(gormDB)
 	userRepo := db.NewUserRepository(gormDB)
+	groupRepo := db.NewGroupRepository(gormDB)
 
 	// AI サービスの初期化
 	geminiAPIKey := os.Getenv("GEMINI_API_KEY")
@@ -108,7 +109,7 @@ func main() {
 
 	// --- ユースケース（現場監督）の初期化 ---
 	taskUsecase := usecase.NewTaskUsecase(taskRepo, aiService)
-	syncUsecase := usecase.NewSyncUsecase(taskRepo, lmsService) // 初期化した lmsService を注入
+	syncUsecase := usecase.NewSyncUsecase(taskRepo, groupRepo, lmsService)
 	monitorUsecase := usecase.NewMonitorUsecase(taskRepo, aiService, compositeNotifService)
 
 	// 3.5 監視プロセス（Goroutine）の起動

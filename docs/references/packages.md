@@ -160,6 +160,8 @@ HTTP リクエストを表す構造体である．
 日時を表現する構造体である．
 *   ⚙️ `func Date(year int, month Month, day, hour, min, sec, nsec int, loc *Location) Time`: 指定した日時要素から Time 構造体を生成する．
 *   🔧 `func (t Time) Format(layout string) string`: 日時を指定したレイアウト文字列（例：`time.RFC3339`）でフォーマットする．
+*   🔧 `func (t Time) After(u Time) bool`: 日時 t が u より後であるか判定する．
+*   ⚙️ `func Since(t Time) Duration`: 日時 t からの経過時間を返す．
 *   ⚙️ `func Now() Time`: 現在のローカル時間を返す．
 
 ## 11. データベース ORM (gorm)

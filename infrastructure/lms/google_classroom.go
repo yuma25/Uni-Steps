@@ -60,7 +60,7 @@ func (s *GoogleClassroomService) FetchTasks(ctx context.Context, userID string, 
 
 	var tasks []*domain.Task
 
-	// 5．取得した CourseWork をドメインモデルの Task に変換する．
+	// 5．取得した CourseWork をドメインモデル의 Task に変換する．
 	for _, cw := range resp.CourseWork {
 		var deadline time.Time
 		if cw.DueDate != nil && cw.DueTime != nil {
@@ -68,10 +68,14 @@ func (s *GoogleClassroomService) FetchTasks(ctx context.Context, userID string, 
 				int(cw.DueTime.Hours), int(cw.DueTime.Minutes), 0, 0, time.UTC)
 		}
 
+		// Classroom API の UpdateTime (RFC3339形式の文字列) を time.Time に変換する．
+		lmsUpdateTime, _ := time.Parse(time.RFC3339, cw.UpdateTime)
+
 		task := &domain.Task{
-			Title:      cw.Title,
-			ExternalID: cw.Id, // Classroom 側の課題 ID
-			Deadline:   deadline,
+			Title:         cw.Title,
+			ExternalID:    cw.Id, // Classroom 側の課題 ID
+			Deadline:      deadline,
+			LMSUpdateTime: lmsUpdateTime,
 		}
 		tasks = append(tasks, task)
 	}

@@ -20,3 +20,9 @@ type UserRepository interface {
 	Save(ctx context.Context, user *User) error
 	FindByID(ctx context.Context, id string) (*User, error)
 }
+
+// GroupRepository はグループデータの永続化に関する約束事である．
+type GroupRepository interface {
+	Save(ctx context.Context, group *Group) error
+	FindByID(ctx context.Context, id string) (*Group, error)
+}

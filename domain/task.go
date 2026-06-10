@@ -27,6 +27,7 @@ type Task struct {
 	RawText         string      `json:"raw_text"`         // ユーザーが入力した生の文章である（AI 解析時のみ）．
 	Title           string      `json:"title"`            // 課題のタイトルである．
 	Deadline        time.Time   `json:"deadline"`         // 課題の期限（単発または初回）である．
+	LMSUpdateTime   time.Time   `json:"lms_update_time"`  // 外部 LMS 側での最終更新日時である．
 	Recurrence      string      `json:"recurrence"`       // 繰り返しの設定（none, weekly, biweekly, custom）である．
 	CustomDeadlines []time.Time `json:"custom_deadlines"` // 特定の日付を複数選択した場合の期限リストである．
 	IsCompleted     bool        `json:"is_completed"`     // 完了したかどうかのフラグである．
