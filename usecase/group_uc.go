@@ -43,17 +43,26 @@ func (uc *GroupUsecase) CreateGroup(ctx context.Context, name string, ownerID st
 		ID:      uuid.New().String(),
 		Name:    name,
 		OwnerID: ownerID,
-		Users:   []*domain.User{user}, // 作成者を最初のメンバーとして追加する．
+		// 最初は空のリストにして，部屋の保存を優先する．
+		Users: []*domain.User{},
 	}
 
-	// 3．データベースに保存する．
-	log.Println("DEBUG: データベースへのグループ保存を実行する．")
+	// 3．まずデータベースに「部屋」だけを保存する．
+	log.Println("DEBUG: データベースへのグループ保存（1段階目）を実行する．")
 	if err := uc.groupRepo.Save(ctx, group); err != nil {
-		log.Printf("ERROR: グループの保存に失敗した: %v\n", err)
+		log.Printf("ERROR: グループ自体の保存に失敗した: %v\n", err)
 		return nil, fmt.Errorf("グループの保存に失敗した： %w", err)
 	}
 
-	log.Printf("DEBUG: グループ作成に成功した (ID: %s)\n", group.ID)
+	// 4．保存された部屋に対して，オーナー（ユーザー）を所属させる．
+	log.Println("DEBUG: グループへのメンバー紐付け（2段階目）を実行する．")
+	group.Users = append(group.Users, user)
+	if err := uc.groupRepo.Save(ctx, group); err != nil {
+		log.Printf("ERROR: メンバーの紐付けに失敗した: %v\n", err)
+		return nil, fmt.Errorf("メンバーの紐付けに失敗した： %w", err)
+	}
+
+	log.Printf("DEBUG: グループ作成とメンバー登録に成功した (ID: %s)\n", group.ID)
 	return group, nil
 }
 
