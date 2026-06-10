@@ -102,6 +102,9 @@ API キーによる認証オプションを生成する．
 ### ⚙️ `func Printf(format string, a ...any) (n int, err error)`
 標準出力にフォーマット済み文字列を表示する．
 
+### ⚙️ `func Sprint(a ...any) string`
+引数をデフォルトのフォーマットで文字列に変換し，連結して返す．
+
 ---
 
 ## 7. JSON のエンコード・デコード (encoding/json)
@@ -163,6 +166,21 @@ HTTP リクエストを表す構造体である．
 *   🔧 `func (t Time) After(u Time) bool`: 日時 t が u より後であるか判定する．
 *   ⚙️ `func Since(t Time) Duration`: 日時 t からの経過時間を返す．
 *   ⚙️ `func Now() Time`: 現在のローカル時間を返す．
+*   ⚙️ `func Parse(layout, value string) (Time, error)`: レイアウトに従って文字列を Time 型に変換する．
+
+### 📦 `type Duration int64`
+2つの日時の間の経過時間をナノ秒単位で表す型である．
+
+### 📦 `type Ticker struct`
+一定間隔でチャネルに値を送るタイマーである．
+*   ⚙️ `func NewTicker(d Duration) *Ticker`: 指定された間隔で発火する新しい Ticker を生成する．
+*   🔧 `func (t *Ticker) Stop()`: Ticker を停止させる．リソース解放のために必須である．
+
+### 🏷️ 定数
+*   `UTC *Location`: 協定世界時のロケーションを表す．
+*   `RFC3339`: 日時フォーマットの標準レイアウト（例：`2006-01-02T15:04:05Z07:00`）である．
+*   `Minute Duration`: 1分を表す Duration 定数である．
+*   `Hour Duration`: 1時間を表す Duration 定数である．
 
 ## 11. データベース ORM (gorm)
 **Package**: `gorm.io/gorm`  
