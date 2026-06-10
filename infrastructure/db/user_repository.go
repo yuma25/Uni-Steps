@@ -40,3 +40,16 @@ func (r *userRepository) FindByID(ctx context.Context, id string) (*domain.User,
 	}
 	return &user, nil
 }
+
+// FindByEmail は指定されたメールアドレスのユーザーをデータベースから取得する．
+func (r *userRepository) FindByEmail(ctx context.Context, email string) (*domain.User, error) {
+	var user domain.User
+	err := r.db.WithContext(ctx).Where("email = ?", email).First(&user).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &user, nil
+}

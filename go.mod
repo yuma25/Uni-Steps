@@ -5,6 +5,7 @@ go 1.25.8
 require (
 	github.com/SherClockHolmes/webpush-go v1.4.0
 	github.com/google/generative-ai-go v0.20.1
+	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
 	github.com/labstack/echo/v4 v4.15.2
 	github.com/line/line-bot-sdk-go/v8 v8.20.0
@@ -27,7 +28,6 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/golang-jwt/jwt/v5 v5.2.1 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.16 // indirect
 	github.com/googleapis/gax-go/v2 v2.22.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect

@@ -1,8 +1,10 @@
 package handler
 
 import (
+	"encoding/json"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/yuma25/Uni-Steps/domain"
 	"golang.org/x/oauth2"
@@ -32,7 +34,7 @@ func (h *AuthHandler) GoogleLogin(c echo.Context) error {
 	return c.Redirect(http.StatusTemporaryRedirect, url)
 }
 
-// GoogleCallback は Google からの認可コードを受け取り，トークンを取得・保存する．
+// GoogleCallback は Google からの認可コードを受け取り，ユーザー情報の取得・保存・ログインを行う．
 func (h *AuthHandler) GoogleCallback(c echo.Context) error {
 	code := c.QueryParam("code")
 	if code == "" {
@@ -45,27 +47,49 @@ func (h *AuthHandler) GoogleCallback(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "トークンの交換に失敗した"})
 	}
 
-	// 2．本来はここでユーザー ID を取得（ID トークンの解析等）する必要がある．
-	// プロトタイプのため，固定のユーザー ID またはクエリ等から ID を受け取る想定とする．
-	userID := c.QueryParam("user_id")
-	if userID == "" {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "user_id が指定されていない（本来は認証済みのセッションから取得する）"})
-	}
-
-	user, err := h.userRepo.FindByID(c.Request().Context(), userID)
+	// 2．Google の UserInfo API からユーザーのプロフィールを取得する．
+	client := h.oauthCfg.Client(c.Request().Context(), token)
+	resp, err := client.Get("https://www.googleapis.com/oauth2/v3/userinfo")
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "ユーザー情報の取得に失敗した"})
 	}
+	defer resp.Body.Close()
+
+	var googleUser struct {
+		Sub   string `json:"sub"`
+		Email string `json:"email"`
+		Name  string `json:"name"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&googleUser); err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "ユーザー情報の解析に失敗した"})
+	}
+
+	// 3．メールアドレスを元に，既存ユーザーか新規ユーザーかを判定する．
+	user, err := h.userRepo.FindByEmail(c.Request().Context(), googleUser.Email)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "データベース検索に失敗した"})
+	}
+
 	if user == nil {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "ユーザーが見つからない"})
+		// 新規ユーザー登録（サインアップ）
+		user = &domain.User{
+			ID:    uuid.New().String(),
+			Name:  googleUser.Name,
+			Email: googleUser.Email,
+		}
 	}
 
-	// 3．取得したトークンをユーザー情報に保存する．
+	// 4．トークン情報を更新して保存する．
 	user.GoogleAccessToken = token.AccessToken
-	user.GoogleRefreshToken = token.RefreshToken
+	if token.RefreshToken != "" {
+		user.GoogleRefreshToken = token.RefreshToken
+	}
 	if err := h.userRepo.Save(c.Request().Context(), user); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "トークンの保存に失敗した"})
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "ユーザー情報の保存に失敗した"})
 	}
 
-	return c.JSON(http.StatusOK, map[string]string{"message": "Google 連携に成功した"})
+	// 5．ダッシュボードへリダイレクトする．
+	// フロントエンドの URL へリダイレクト（暫定的に localhost:5173 を使用）
+	frontendUrl := "http://localhost:5173/dashboard?user_id=" + user.ID
+	return c.Redirect(http.StatusTemporaryRedirect, frontendUrl)
 }

@@ -120,6 +120,21 @@ JSON データを構造体に変換する．
 ### ⚙️ `func Marshal(v any) ([]byte, error)`
 構造体を JSON データに変換する．
 
+### 📦 `type Decoder struct`
+ストリームから JSON オブジェクトを読み取ってデコードする．
+*   ⚙️ `func NewDecoder(r io.Reader) *Decoder`: 指定されたリーダー（HTTP レスポンスボディ等）から読み取るデコーダーを生成する．
+*   🔧 `func (dec *Decoder) Decode(v any) error`: 次の JSON エンコードされた値を読み取り，`v` に格納する．
+
+---
+
+## 26. UUID 生成 (uuid)
+**Package**: `github.com/google/uuid`  
+**Reference**: [pkg.go.dev/github.com/google/uuid](https://pkg.go.dev/github.com/google/uuid)
+
+### ⚙️ `func New() UUID`
+ランダムな UUID（バージョン 4）を生成する．
+*   🔧 `func (uuid UUID) String() string`: UUID を標準的な文字列形式（例：`550e8400-e29b-41d4-a716-446655440000`）に変換する．
+
 ---
 
 ## 8. Google Classroom API
