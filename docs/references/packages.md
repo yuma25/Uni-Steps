@@ -357,3 +357,17 @@ OAuth 2.0 のアクセストークンやリフレッシュトークンを保持�
 *   🏷️ `path: string`: マッチさせるパスである．
 *   🏷️ `element: React.ReactNode`: 表示するコンポーネントである．
 
+---
+
+## 25. フロントエンド・API モジュール (Task API)
+**File**: `frontend/src/api/tasks.ts`
+
+### ⚙️ `taskApi.listGroupTasks(groupId: string): Promise<Task[]>`
+指定されたグループの課題一覧をバックエンドから取得する関数である．
+
+### ⚙️ `taskApi.createManualTask(task: Partial<Task>): Promise<Task>`
+UI から入力された情報を元に，手動で課題を登録する関数である．
+
+### ⚙️ `taskApi.syncTasks(userId: string, groupId: string): Promise<{ message: string; tasks: Task[] }>`
+外部 LMS (Google Classroom等) から課題を同期するリクエストを送信する関数である．
+
