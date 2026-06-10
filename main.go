@@ -69,6 +69,7 @@ func main() {
 		&domain.User{},
 		&domain.Group{},
 		&domain.Task{},
+		&domain.WakeupCheck{},
 	)
 	if err != nil {
 		log.Fatalf("マイグレーションに失敗した: %v", err)
@@ -95,6 +96,7 @@ func main() {
 	taskRepo := db.NewTaskRepository(gormDB)
 	userRepo := db.NewUserRepository(gormDB)
 	groupRepo := db.NewGroupRepository(gormDB)
+	wakeupRepo := db.NewWakeupRepository(gormDB)
 
 	// AI サービスの初期化
 	geminiAPIKey := os.Getenv("GEMINI_API_KEY")
@@ -146,7 +148,7 @@ func main() {
 	// --- ユースケース（現場監督）の初期化 ---
 	taskUsecase := usecase.NewTaskUsecase(taskRepo, aiService)
 	syncUsecase := usecase.NewSyncUsecase(taskRepo, groupRepo, lmsService)
-	monitorUsecase := usecase.NewMonitorUsecase(taskRepo, aiService, compositeNotifService)
+	monitorUsecase := usecase.NewMonitorUsecase(taskRepo, userRepo, groupRepo, wakeupRepo, aiService, compositeNotifService)
 	groupUsecase := usecase.NewGroupUsecase(groupRepo, userRepo)
 
 	// 3.5 監視プロセス（Goroutine）の起動
@@ -170,7 +172,8 @@ func main() {
 	handler.NewTaskHandler(e, taskUsecase, syncUsecase)
 	handler.NewNotificationHandler(e, userRepo)
 	handler.NewAuthHandler(e, userRepo, oauthCfg)
-	handler.NewGroupHandler(e, groupUsecase, lmsService) // lmsService を追加
+	handler.NewGroupHandler(e, groupUsecase, lmsService)
+	handler.NewWakeupHandler(e, wakeupRepo) // lmsService を追加
 
 	log.Println("全てのコンポーネントの初期化が完了した．サーバーを起動する．")
 
