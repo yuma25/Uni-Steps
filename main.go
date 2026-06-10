@@ -70,6 +70,18 @@ func main() {
 	}
 	log.Println("マイグレーションが完了した．")
 
+	// 2.6 デモ用データの投入 (Seeding)
+	// フロントエンドの初期開発で使用するデフォルトグループが存在しない場合は作成する．
+	var groupCount int64
+	gormDB.Model(&domain.Group{}).Where("id = ?", "default-group-id").Count(&groupCount)
+	if groupCount == 0 {
+		gormDB.Create(&domain.Group{
+			ID:   "default-group-id",
+			Name: "デフォルトグループ",
+		})
+		log.Println("デモ用のデフォルトグループを作成した．")
+	}
+
 	// 3. 依存性の注入（DI: Dependency Injection）
 	log.Println("各サービスの初期化と依存性の注入を開始中...")
 
