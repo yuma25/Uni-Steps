@@ -5,11 +5,14 @@
 ## 📜 記述ルール
 1.  **詳細な仕様**: 使用しているインターフェース，構造体，およびそのメソッドまで詳細に記述する．
 2.  **種別の明記**: 以下のアイコンとタグを用いて，要素の種類が一目で判別できるように表記する．
-    *   🔹 **[Interface]**: インターフェース
-    *   📦 **[Struct]**: 構造体
-    *   ⚙️ **[Function]**: 関数（構造体に紐づかないもの）
-    *   🔧 **[Method]**: メソッド（構造体やインターフェースに紐づくもの）
+    *   🔹 **[Interface]**: Go インターフェース
+    *   📦 **[Struct]**: Go 構造体
+    *   ⚙️ **[Function]**: 関数（独立したもの）
+    *   🔧 **[Method]**: メソッド（構造体やクラスに紐づくもの）
     *   🏷️ **[Constant / Field]**: 定数や構造体のフィールド変数
+    *   ⚛️ **[Component]**: React コンポーネント
+    *   🎣 **[Hook]**: React フック
+    *   📜 **[Type / Interface]**: TypeScript の型またはインターフェース
 3.  **既存内容の維持**: 既存の記述を削除せず，常に追記・更新を行う．
 4.  **記述スタイル**: 「である」調を使用し，句読点は「．」「，」に統一する．
 5.  **リンクの明示**: パッケージ名および公式リファレンスへの URL を必ず記載する．
@@ -302,29 +305,55 @@ OAuth 2.0 のアクセストークンやリフレッシュトークンを保持�
 
 ---
 
-## 20. API クライアント (Axios)
+## 20. ユーザーインターフェースライブラリ (React)
+**Reference**: [react.dev](https://react.dev/)
+
+### 🎣 `function useState<T>(initialState: T | (() => T)): [T, Dispatch<SetStateAction<T>>]`
+コンポーネントに状態（State）を追加するための Hook である．
+
+### 🎣 `function useEffect(effect: EffectCallback, deps?: DependencyList): void`
+外部システムとの同期（副作用の実行）を行うための Hook である．
+
+---
+
+## 21. 静的型付け (TypeScript)
+**Reference**: [typescriptlang.org](https://www.typescriptlang.org/)
+
+### 📜 `interface`
+オブジェクトの形状を定義するための構文である．本プロジェクトでは Task や User のデータ構造を定義するために多用する．
+
+---
+
+## 22. API クライアント (Axios)
 **Reference**: [axios-http.com](https://axios-http.com/)
 
-### 📚 Axios
-ブラウザおよび Node.js で動作する Promise ベースの HTTP クライアントである．バックエンド API との通信に使用する．
-*   ⚙️ `func axios.create(config)`: カスタム設定（`baseURL` 等）を持つ新しい Axios インスタンスを生成する．
+### 📦 `AxiosInstance`
+カスタム設定を持つ Axios のインスタンスである．
+*   🔧 `func axios.create(config: AxiosRequestConfig): AxiosInstance`: 新しいインスタンスを生成する．
+*   🔧 `get<T>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>>`: GET リクエストを送信する．
+*   🔧 `post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>>`: POST リクエストを送信する．
 
 ---
 
-## 21. アイコンライブラリ (Lucide React)
+## 23. アイコンライブラリ (Lucide React)
 **Reference**: [lucide.dev](https://lucide.dev/)
 
-### 📚 Lucide React
-React 用の軽量で美しいアイコンセットである．UI の視覚的補助に使用する．
+### ⚛️ `IconComponent`
+各アイコン（Check, Bell 等）を React コンポーネントとして提供するライブラリである．
 
 ---
 
-## 22. ルーティング (React Router)
+## 24. ルーティング (React Router)
 **Reference**: [reactrouter.com](https://reactrouter.com/)
 
-### 📚 React Router
-React アプリケーションでページ遷移や URL 管理を行うための標準的なライブラリである．
-*   📦 `<BrowserRouter>`: ブラウザの履歴（History API）を使用して UI を URL と同期させるためのコンポーネントである．
-*   📦 `<Routes>`: 複数の `<Route>` をラップし，URL に一致する最初のルートをレンダリングするコンポーネントである．
-*   📦 `<Route>`: 特定の URL パスと，それに対応するレンダリング対象のコンポーネントを定義する．
+### ⚛️ `<BrowserRouter>`
+ブラウザの履歴（History API）を使用して UI を URL と同期させるためのコンポーネントである．
+
+### ⚛️ `<Routes>`
+複数の `<Route>` をラップし，URL に一致する最初のルートをレンダリングするコンポーネントである．
+
+### ⚛️ `<Route>`
+特定の URL パスと，それに対応するレンダリング対象のコンポーネントを定義する．
+*   🏷️ `path: string`: マッチさせるパスである．
+*   🏷️ `element: React.ReactNode`: 表示するコンポーネントである．
 
