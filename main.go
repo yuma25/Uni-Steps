@@ -18,6 +18,7 @@ import (
 	"github.com/yuma25/Uni-Steps/infrastructure/line"
 	"github.com/yuma25/Uni-Steps/infrastructure/lms"
 	"github.com/yuma25/Uni-Steps/infrastructure/notification"
+	"github.com/yuma25/Uni-Steps/infrastructure/scheduler"
 	"github.com/yuma25/Uni-Steps/infrastructure/webpush"
 	"github.com/yuma25/Uni-Steps/interfaces/handler"
 	"github.com/yuma25/Uni-Steps/usecase"
@@ -30,7 +31,6 @@ import (
 
 func main() {
 	// 0. タイムゾーンを日本時間 (JST) に設定する．
-	// これにより time.Now() などがデフォルトで日本時間を返すようになる．
 	loc, err := time.LoadLocation("Asia/Tokyo")
 	if err != nil {
 		log.Printf("タイムゾーンの読み込みに失敗した（デフォルトを使用する）： %v\n", err)
@@ -47,8 +47,6 @@ func main() {
 		log.Fatal("DATABASE_URL が設定されていない．.env ファイルを確認すること．")
 	}
 
-	// 接続文字列にタイムゾーン設定を追加する（PostgreSQL 用）．
-	// すでにクエリパラメータがある場合を考慮しつつ追加する．
 	if !strings.Contains(dbURL, "TimeZone=") {
 		if strings.Contains(dbURL, "?") {
 			dbURL += "&TimeZone=Asia/Tokyo"
@@ -58,32 +56,20 @@ func main() {
 	}
 
 	log.Println("データベースへの接続を開始中（最大5秒待機）...")
-
-	// 接続タイムアウトを設定したコンテキストを作成する．
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// Supabase のコネクションプーラー（6543ポート）を使用する場合，
-	// プリペアドステートメントの衝突を防ぐために PreferSimpleProtocol を true に設定する必要がある．
-	gormDB, err := gorm.Open(postgres.New(postgres.Config{
-		DSN:                  dbURL,
-		PreferSimpleProtocol: true, // シンプルプロトコルを強制する．
-	}), &gorm.Config{
-		ConnPool: nil,
-	})
-
-	// 接続確認（Ping）を行い，実際に通信できるかテストする．
-	if err == nil {
-		sqlDB, _ := gormDB.DB()
-		err = sqlDB.PingContext(ctx)
+	gormDB, err := gorm.Open(postgres.Open(dbURL), &gorm.Config{})
+	if err != nil {
+		log.Fatalf("データベース接続に失敗した: %v", err)
 	}
 
-	if err != nil {
-		log.Fatalf("データベースの接続に失敗した．設定またはネットワークを確認すること: %v", err)
+	sqlDB, _ := gormDB.DB()
+	if err := sqlDB.PingContext(ctx); err != nil {
+		log.Fatalf("データベースへの Ping に失敗した: %v", err)
 	}
 	log.Println("データベースの接続に成功した．")
 
-	// 2.5 データベースの自動マイグレーション
 	log.Println("データベースのマイグレーションを実行中...")
 	err = gormDB.AutoMigrate(
 		&domain.User{},
@@ -97,60 +83,39 @@ func main() {
 	}
 	log.Println("マイグレーションが完了した．")
 
-	// 2.6 デモ用データの投入 (Seeding)
-	// フロントエンドの初期開発で使用するデフォルトグループが存在しない場合は作成する．
-	var groupCount int64
-	gormDB.Model(&domain.Group{}).Where("id = ?", "default-group-id").Count(&groupCount)
-	if groupCount == 0 {
-		gormDB.Create(&domain.Group{
-			ID:      "default-group-id",
-			Name:    "デフォルトグループ",
-			OwnerID: "system-admin", // 初期データ用の管理者 ID である．
-		})
+	// デモ用の初期データ（必要に応じて）
+	var count int64
+	gormDB.Model(&domain.Group{}).Count(&count)
+	if count == 0 {
+		gormDB.Create(&domain.Group{ID: "default-group-id", Name: "デフォルトグループ", OwnerID: "system-admin"})
 		log.Println("デモ用のデフォルトグループを作成した．")
 	}
 
-	// 3. 依存性の注入（DI: Dependency Injection）
 	log.Println("各サービスの初期化と依存性の注入を開始中...")
 
-	// --- インフラストラクチャ（道具）の初期化 ---
+	// --- インフラ層（道具）の初期化 ---
 	taskRepo := db.NewTaskRepository(gormDB)
 	userRepo := db.NewUserRepository(gormDB)
 	groupRepo := db.NewGroupRepository(gormDB)
 	wakeupRepo := db.NewWakeupRepository(gormDB)
 
-	// AI サービスの初期化
-	geminiAPIKey := os.Getenv("GEMINI_API_KEY")
-	genaiClient, err := genai.NewClient(context.Background(), option.WithAPIKey(geminiAPIKey))
+	// Gemini AI の初期化
+	genaiClient, err := genai.NewClient(context.Background(), option.WithAPIKey(os.Getenv("GEMINI_API_KEY")))
 	if err != nil {
-		log.Fatalf("Gemini クライアントの作成に失敗した: %v", err)
+		log.Fatalf("Gemini クライアントの初期化に失敗した: %v", err)
 	}
-	defer genaiClient.Close()
 	aiService := ai.NewGeminiService(genaiClient, "gemini-2.0-flash")
 
-	// LINE サービスの初期化
-	lineToken := os.Getenv("LINE_CHANNEL_TOKEN")
-	lineService, err := line.NewLineService(lineToken)
-	if err != nil {
-		log.Fatalf("LINE サービスの作成に失敗した: %v", err)
-	}
-
-	// Web Push サービスの初期化
-	vapidPub := os.Getenv("VAPID_PUBLIC_KEY")
-	vapidPriv := os.Getenv("VAPID_PRIVATE_KEY")
-	vapidContact := os.Getenv("VAPID_CONTACT") // 例: "mailto:admin@example.com"
-	webPushService := webpush.NewWebPushService(userRepo, vapidPub, vapidPriv, vapidContact)
-
-	// 通知サービス（LINE + Web Push の複合）の初期化
+	// 通知サービスの初期化
+	webPushService := webpush.NewWebPushService(userRepo, os.Getenv("VAPID_PUBLIC_KEY"), os.Getenv("VAPID_PRIVATE_KEY"), "mailto:admin@example.com")
+	lineService, _ := line.NewLineService(os.Getenv("LINE_CHANNEL_TOKEN"))
 	compositeNotifService := notification.NewCompositeNotificationService(lineService, webPushService)
 
-	// LMS サービス（Google Classroom）の初期化
-	// 環境変数から OAuth 2.0 クライアント ID とシークレットを取得して設定する．
+	// Google Classroom API 設定
 	googleClientID := os.Getenv("GOOGLE_CLIENT_ID")
 	googleClientSecret := os.Getenv("GOOGLE_CLIENT_SECRET")
 	googleRedirectURL := os.Getenv("GOOGLE_REDIRECT_URL")
 
-	// Classroom API の読み取り権限およびユーザー識別用スコープを要求する．
 	oauthCfg := &oauth2.Config{
 		ClientID:     googleClientID,
 		ClientSecret: googleClientSecret,
@@ -166,25 +131,24 @@ func main() {
 	}
 	lmsService := lms.NewGoogleClassroomService(userRepo, oauthCfg)
 
+	// スケジューラー（予約管理）の初期化
+	schService := scheduler.NewInMemScheduler(aiService, compositeNotifService)
+
 	// --- ユースケース（現場監督）の初期化 ---
-	taskUsecase := usecase.NewTaskUsecase(taskRepo, aiService)
-	syncUsecase := usecase.NewSyncUsecase(taskRepo, groupRepo, lmsService)
+	taskUsecase := usecase.NewTaskUsecase(taskRepo, groupRepo, aiService, schService)
+	syncUsecase := usecase.NewSyncUsecase(taskRepo, groupRepo, lmsService, schService)
 	monitorUsecase := usecase.NewMonitorUsecase(taskRepo, userRepo, groupRepo, wakeupRepo, aiService, compositeNotifService)
 	groupUsecase := usecase.NewGroupUsecase(groupRepo, userRepo)
 
 	// 3.5 監視プロセス（Goroutine）の起動
-	// メインの HTTP サーバーの邪魔をしないように，`go` キーワードをつけて裏側（並行）で走らせる．
 	go monitorUsecase.StartMonitoring(context.Background())
 
 	// Echo サーバーの初期化
 	e := echo.New()
-
-	// ミドルウェアの設定
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORS())
 
-	// ヘルスチェック
 	e.GET("/health", func(c echo.Context) error {
 		return c.String(http.StatusOK, "Uni-Steps API is running")
 	})
@@ -194,11 +158,10 @@ func main() {
 	handler.NewNotificationHandler(e, userRepo)
 	handler.NewAuthHandler(e, userRepo, oauthCfg)
 	handler.NewGroupHandler(e, groupUsecase, lmsService)
-	handler.NewWakeupHandler(e, wakeupRepo) // lmsService を追加
+	handler.NewWakeupHandler(e, wakeupRepo)
 
 	log.Println("全てのコンポーネントの初期化が完了した．サーバーを起動する．")
 
-	// 4. サーバーの起動
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"

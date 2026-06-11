@@ -41,7 +41,16 @@ export const groupApi = {
    * 外部 LMS (Google Classroom 等) からコース一覧を同期・取得する．
    */
   syncLMSGroups: async (userId: string): Promise<Group[]> => {
-    const resp = await client.post<Group[]>('/api/users/${userId}/groups/sync');
+    const resp = await client.post<Group[]>(`/api/users/${userId}/groups/sync`);
     return resp.data;
-    },
-    };
+  },
+  /**
+   * 部屋の設定（リマインド間隔など）を更新する．
+   */
+  updateSettings: async (groupId: string, intervals: number[], userId: string): Promise<void> => {
+    await client.patch(`/api/groups/${groupId}/settings`, {
+      remind_intervals: intervals,
+      user_id: userId,
+    });
+  },
+};

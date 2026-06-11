@@ -11,38 +11,47 @@ import (
 
 // TaskUsecase は課題管理に関するビジネスロジックを担当する構造体である．
 type TaskUsecase struct {
-	taskRepo  domain.TaskRepository // 課題データの永続化を担うリポジトリである．
-	aiService domain.AIService      // AI による文章生成（リマインド等）を担うサービスである．
+	taskRepo  domain.TaskRepository   // 課題データの永続化を担うリポジトリである．
+	groupRepo domain.GroupRepository  // グループ設定を取得するためのリポジトリである．
+	aiService domain.AIService        // AI による文章生成（リマインド等）を担うサービスである．
+	scheduler domain.SchedulerService // リマインド予約を管理するサービスである．
 }
 
 // NewTaskUsecase は TaskUsecase の新しいインスタンスを生成する．
-func NewTaskUsecase(tr domain.TaskRepository, ai domain.AIService) *TaskUsecase {
+func NewTaskUsecase(tr domain.TaskRepository, gr domain.GroupRepository, ai domain.AIService, sch domain.SchedulerService) *TaskUsecase {
 	return &TaskUsecase{
 		taskRepo:  tr,
+		groupRepo: gr,
 		aiService: ai,
+		scheduler: sch,
 	}
 }
 
 // RegisterManualTask は UI から直接入力された情報に基づいて課題を登録するユースケースである．
 func (uc *TaskUsecase) RegisterManualTask(ctx context.Context, task *domain.Task) (*domain.Task, error) {
-	// 1．入力元のソースを手動に設定する．
 	task.Source = domain.SourceManual
-
-	// 2．必要最低限のバリデーションを行う（タイトルが空でないか等）．
 	if task.Title == "" {
 		return nil, fmt.Errorf("タイトルは必須である")
 	}
-
-	// 3．新規 ID を発行する（ID が空の場合）．
 	if task.ID == "" {
 		task.ID = uuid.New().String()
 	}
 
-	// 4．データベースに保存する．
 	if err := uc.taskRepo.Save(ctx, task); err != nil {
 		return nil, fmt.Errorf("手動タスクの保存に失敗した： %w", err)
 	}
 
+	// 部屋の設定を取得してリマインドを予約する．
+	group, _ := uc.groupRepo.FindByID(ctx, task.GroupID)
+	if group != nil && !task.Deadline.IsZero() {
+		for _, up := range task.UserProgress {
+			if !up.IsCompleted {
+				for _, interval := range group.RemindIntervals {
+					_ = uc.scheduler.ScheduleTaskRemind(ctx, task, up.UserID, interval, task.Deadline.Add(-time.Duration(interval)*time.Minute))
+				}
+			}
+		}
+	}
 	return task, nil
 }
 
@@ -61,30 +70,28 @@ func (uc *TaskUsecase) UpdateTask(ctx context.Context, taskID string, input *dom
 		return nil, fmt.Errorf("更新対象の課題が見つからない")
 	}
 
-	// Classroom 課題の場合は，タイトルや期限の編集を制限するなどの配慮が必要かもしれないが，
-	// 今回は柔軟性を優先して更新を許可する．
 	existing.Title = input.Title
 	existing.Deadline = input.Deadline
 
+	// 部屋の設定を取得
+	group, _ := uc.groupRepo.FindByID(ctx, existing.GroupID)
+
 	// 進捗状況（該当者）の更新
 	if input.UserProgress != nil {
-		// 入力にあるユーザー ID のリストをマップ化する．
 		inputUserIDs := make(map[string]*domain.TaskUserProgress)
 		for _, up := range input.UserProgress {
 			inputUserIDs[up.UserID] = up
 		}
-
-		// 既存の進捗状況をフィルタリング・更新する．
 		newProgress := []*domain.TaskUserProgress{}
 		for _, ep := range existing.UserProgress {
 			if _, ok := inputUserIDs[ep.UserID]; ok {
-				// 継続して該当者の場合は残す（完了状態は維持するが，名前などは更新される可能性がある）
 				newProgress = append(newProgress, ep)
 				delete(inputUserIDs, ep.UserID)
+			} else {
+				// 該当者から外れた場合は全ての予約をキャンセル
+				_ = uc.scheduler.CancelTaskReminds(ctx, taskID, ep.UserID)
 			}
 		}
-
-		// 新しく追加された該当者を加える．
 		for _, up := range inputUserIDs {
 			up.TaskID = taskID
 			if up.UpdatedAt.IsZero() {
@@ -98,6 +105,24 @@ func (uc *TaskUsecase) UpdateTask(ctx context.Context, taskID string, input *dom
 	if err := uc.taskRepo.Save(ctx, existing); err != nil {
 		return nil, err
 	}
+
+	// リマインドの再予約
+	if group != nil && !existing.Deadline.IsZero() {
+		for _, up := range existing.UserProgress {
+			if !up.IsCompleted {
+				for _, interval := range group.RemindIntervals {
+					_ = uc.scheduler.ScheduleTaskRemind(ctx, existing, up.UserID, interval, existing.Deadline.Add(-time.Duration(interval)*time.Minute))
+				}
+			} else {
+				_ = uc.scheduler.CancelTaskReminds(ctx, taskID, up.UserID)
+			}
+		}
+	} else {
+		for _, up := range existing.UserProgress {
+			_ = uc.scheduler.CancelTaskReminds(ctx, taskID, up.UserID)
+		}
+	}
+
 	return existing, nil
 }
 
@@ -111,24 +136,31 @@ func (uc *TaskUsecase) ToggleUserCompletion(ctx context.Context, taskID, userID 
 		return fmt.Errorf("課題が見つからない")
 	}
 
+	group, _ := uc.groupRepo.FindByID(ctx, task.GroupID)
+
 	found := false
 	for i, up := range task.UserProgress {
 		if up.UserID == userID {
 			task.UserProgress[i].IsCompleted = !task.UserProgress[i].IsCompleted
 			task.UserProgress[i].UpdatedAt = time.Now()
+
+			if task.UserProgress[i].IsCompleted {
+				_ = uc.scheduler.CancelTaskReminds(ctx, taskID, userID)
+			} else if group != nil && !task.Deadline.IsZero() {
+				for _, interval := range group.RemindIntervals {
+					_ = uc.scheduler.ScheduleTaskRemind(ctx, task, userID, interval, task.Deadline.Add(-time.Duration(interval)*time.Minute))
+				}
+			}
 			found = true
 			break
 		}
 	}
 
 	if !found {
-		// 進捗レコードがない場合は作成する（手動追加された課題などの場合）．
 		task.UserProgress = append(task.UserProgress, &domain.TaskUserProgress{
-			TaskID:      taskID,
-			UserID:      userID,
-			IsCompleted: true,
-			UpdatedAt:   time.Now(),
+			TaskID: taskID, UserID: userID, IsCompleted: true, UpdatedAt: time.Now(),
 		})
+		_ = uc.scheduler.CancelTaskReminds(ctx, taskID, userID)
 	}
 
 	return uc.taskRepo.Save(ctx, task)

@@ -78,30 +78,10 @@ body {
 
 .back-button:hover { background: var(--surface); border-color: var(--primary); color: var(--primary); }
 
-.title-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.invite-badge {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 2px 8px;
-  background: var(--neutral-900);
-  color: white;
-  border-radius: 4px;
-  font-size: 0.7rem;
+.title-group h1 {
+  font-size: 1.4rem;
   font-weight: 800;
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.invite-badge:hover {
-  background: var(--primary);
-  transform: scale(1.05);
+  margin: 0 0 0.4rem 0;
 }
 
 .group-info {
@@ -501,7 +481,51 @@ body {
   overflow-y: auto;
 }
 
+.interval-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.interval-tag {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.remove-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+}
+
+.remove-btn:hover { color: var(--danger); }
+
+.interval-input-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.interval-input-group input { flex: 1; }
+
 .full-width { width: 100%; }
+
+.animate-pop { animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
 
 /* Responsiveness */
 @media (max-width: 650px) {

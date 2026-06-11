@@ -43,11 +43,12 @@ func (uc *GroupUsecase) CreateGroup(ctx context.Context, name string, ownerID st
 	inviteCode := uuid.New().String()[:8]
 
 	group := &domain.Group{
-		ID:         uuid.New().String(),
-		Name:       name,
-		OwnerID:    ownerID,
-		InviteCode: inviteCode,
-		Users:      []*domain.User{},
+		ID:              uuid.New().String(),
+		Name:            name,
+		OwnerID:         ownerID,
+		InviteCode:      inviteCode,
+		RemindIntervals: []int{1440, 60}, // デフォルト設定：24時間前と1時間前
+		Users:           []*domain.User{},
 	}
 
 	// 3．まずデータベースに「部屋」だけを保存する．
@@ -107,4 +108,22 @@ func (uc *GroupUsecase) ListUserGroups(ctx context.Context, userID string) ([]*d
 		return nil, fmt.Errorf("所属グループ一覧の取得に失敗した： %w", err)
 	}
 	return groups, nil
+}
+
+// UpdateSettings は部屋の設定を更新する．オーナーのみ許可する．
+func (uc *GroupUsecase) UpdateSettings(ctx context.Context, groupID string, userID string, intervals []int) error {
+	group, err := uc.groupRepo.FindByID(ctx, groupID)
+	if err != nil {
+		return err
+	}
+	if group == nil {
+		return fmt.Errorf("グループが見つからない")
+	}
+
+	if group.OwnerID != userID {
+		return fmt.Errorf("この部屋の設定を変更する権限がない（オーナーのみ可能）")
+	}
+
+	group.RemindIntervals = intervals
+	return uc.groupRepo.Save(ctx, group)
 }

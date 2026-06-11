@@ -23,6 +23,26 @@ func NewGroupHandler(e *echo.Echo, gu *usecase.GroupUsecase, ls domain.LMSServic
 	e.POST("/api/groups", h.CreateGroup)
 	e.POST("/api/groups/join", h.JoinGroupByInviteCode)
 	e.GET("/api/users/:userId/groups", h.ListUserGroups)
+	e.PATCH("/api/groups/:groupId/settings", h.UpdateGroupSettings)
+}
+
+// UpdateGroupSettings は部屋の設定（リマインド間隔など）を更新する．
+func (h *GroupHandler) UpdateGroupSettings(c echo.Context) error {
+	groupID := c.Param("groupId")
+	var req struct {
+		RemindIntervals []int  `json:"remind_intervals"`
+		UserID          string `json:"user_id"`
+	}
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "リクエスト形式が不正である"})
+	}
+
+	err := h.groupUsecase.UpdateSettings(c.Request().Context(), groupID, req.UserID, req.RemindIntervals)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{"message": "設定を更新した"})
 }
 
 // CreateGroup は新しいグループの作成を受け付ける．

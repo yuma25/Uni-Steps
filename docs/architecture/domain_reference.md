@@ -107,6 +107,16 @@
 *   `SendGroupMessage(ctx, targetID, msg) error`: グループ通知．
 *   `SendDirectMessage(ctx, userID, msg) error`: 個人通知．
 
+### 🔹 `type SchedulerService interface` (NEW: 予約方式)
+未来の時刻に通知を予約する新方式の窓口である．
+*   `ScheduleTaskRemind(ctx, task, userID, runAt)`: 指定時刻にリマインドを予約する．
+*   `CancelTaskRemind(ctx, taskID, userID)`: 予約済みの通知を取り消す．
+
+### 📦 `type ReminderJob struct` (NEW)
+予約された通知の情報を保持するデータモデルである．
+*   `TargetTime`: 通知を飛ばすべき正確な時刻．
+*   `Status`: `pending`（待機中），`sent`（送信済み），`cancelled`（取消済み）．
+
 ---
 
 ## 5. 起床確認 (domain/wakeup.go)
