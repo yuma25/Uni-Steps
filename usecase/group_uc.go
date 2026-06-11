@@ -35,7 +35,7 @@ func (uc *GroupUsecase) CreateGroup(ctx context.Context, name string, ownerID st
 	}
 	if user == nil {
 		log.Printf("ERROR: オーナーが見つからない (ID: %s)\n", ownerID)
-		return nil, fmt.Errorf("オーナーとなるユーザーが見つからない（ログイン状態を確認してほしい）")
+		return nil, fmt.Errorf("オーナーとなるユーザーが見つからない")
 	}
 
 	// 2．新しいグループ構造体を作成する．

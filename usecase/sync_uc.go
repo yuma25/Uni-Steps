@@ -38,9 +38,6 @@ func (uc *SyncUsecase) SyncTasks(ctx context.Context, userID string, groupID str
 		return nil, fmt.Errorf("指定されたグループが見つからない")
 	}
 
-	// ※以前はここで group.LMSCourseID のチェックとクールダウンチェックを行っていたが，
-	// ユーザーの要望により「全アクティブコースを対象」とし，利便性のためにクールダウンを一時的に緩和する．
-
 	// 2．外部 LMS からすべての課題一覧を取得する．
 	tasks, err := uc.lmsService.FetchTasks(ctx, userID)
 	if err != nil {

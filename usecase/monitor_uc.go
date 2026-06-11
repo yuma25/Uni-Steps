@@ -31,30 +31,6 @@ func NewMonitorUsecase(tr domain.TaskRepository, ur domain.UserRepository, gr do
 	}
 }
 
-// StartMonitoring は無限ループでデータベースを監視する処理を開始する．
-func (uc *MonitorUsecase) StartMonitoring(ctx context.Context) {
-	log.Println("監視プロセス（Goroutine）が起動した．")
-
-	ticker := time.NewTicker(5 * time.Minute)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			log.Println("監視プロセスを終了する．")
-			return
-		case t := <-ticker.C:
-			log.Printf("[%s] 定期監視を実行中...\n", t.Format(time.RFC3339))
-
-			// A. 期限間近の課題リマインド（既存ロジック）
-			uc.checkApproachingTasks(ctx)
-
-			// B. 起床確認のチェック（新規ロジック）
-			uc.checkWakeupStatuses(ctx)
-		}
-	}
-}
-
 func (uc *MonitorUsecase) checkApproachingTasks(ctx context.Context) {
 	targetTime := time.Now().Add(24 * time.Hour)
 	tasks, err := uc.taskRepo.FindApproachingDeadlines(ctx, targetTime)
@@ -112,5 +88,29 @@ func (uc *MonitorUsecase) checkWakeupStatuses(ctx context.Context) {
 		check.Status = domain.WakeupStatusAlerted
 		_ = uc.wakeupRepo.Save(ctx, check)
 		log.Printf(">>> 生存確認アラートをグループ %s に送信した（対象: %s）\n", group.Name, userName)
+	}
+}
+
+// StartMonitoring は無限ループでデータベースを監視する処理を開始する．
+func (uc *MonitorUsecase) StartMonitoring(ctx context.Context) {
+	log.Println("監視プロセス（Goroutine）が起動した．")
+
+	ticker := time.NewTicker(5 * time.Minute)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			log.Println("監視プロセスを終了する．")
+			return
+		case t := <-ticker.C:
+			log.Printf("[%s] 定期監視を実行中...\n", t.Format(time.RFC3339))
+
+			// A. 期限間近の課題リマインド（既存ロジック）
+			uc.checkApproachingTasks(ctx)
+
+			// B. 起床確認のチェック（新規ロジック）
+			uc.checkWakeupStatuses(ctx)
+		}
 	}
 }
