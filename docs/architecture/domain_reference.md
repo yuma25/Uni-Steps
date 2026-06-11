@@ -17,6 +17,7 @@
 | `RawText` | `string` | ユーザーが入力した生の文章 (AI 解析時のみ) |
 | `Title` | `string` | 課題のタイトル |
 | `Deadline` | `time.Time` | 提出期限 (西暦1年は「未定」扱い) |
+| `IsLMSDeadlineSet` | `bool` | 外部 LMS 側で最初から期限があったかのフラグである． |
 | `LMSUpdateTime` | `time.Time` | LMS 側での最終更新日時 |
 | `Recurrence` | `RecurrenceSettings` | 繰り返しの設定 (JSON形式で一括管理) |
 | `UserProgress` | `[]*TaskUserProgress` | メンバーごとの進捗状況リスト (1:N) |

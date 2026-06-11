@@ -189,6 +189,7 @@ AI による文章生成を行う構造体である．
 課題の基本情報と進捗を管理する中心的な構造体である．
 *   🏷️ `ExternalID string`: Google Classroom 側の ID（重複防止用）である．
 *   🏷️ `Deadline time.Time`: 提出期限である．西暦 1 年（`IsZero`）は「未定」を意味する．
+*   🏷️ `IsLMSDeadlineSet bool`: 外部 LMS 側で最初から期限があったかのフラグである．
 *   🏷️ `Recurrence RecurrenceSettings`: 繰り返しのルールを保持する JSON オブジェクトである．
 *   🏷️ `UserProgress []*TaskUserProgress`: 各メンバーの完了状態のリストである．
 
@@ -204,6 +205,11 @@ AI による文章生成を行う構造体である．
 グループ（部屋）の情報を保持する構造体である．
 *   🏷️ `InviteCode string`: 8 桁の参加用招待コードである．
 *   🏷️ `Users []*User`: 所属しているメンバーのリストである．
+
+### 📦 `type User struct`
+システム利用者（個人）の情報である．
+*   🏷️ `GoogleTokenExpiry time.Time`: Google OAuth トークンの有効期限である．
+*   🏷️ `Groups []*Group`: 所属している部屋のリストである．
 
 ### 📦 `type WakeupCheck struct`
 起床確認のスケジュールと結果を保持する構造体である．
