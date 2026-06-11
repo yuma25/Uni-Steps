@@ -68,6 +68,12 @@ func (uc *SyncUsecase) SyncTasks(ctx context.Context, userID string, groupID str
 			// 既存の場合は，ID を引き継いで「更新」扱いにする．
 			task.ID = existing.ID
 
+			// 期限の上書き防止ロジック：
+			// Uni-Steps 側ですでに期限が設定されており，LMS 側が未定（Zero）の場合は，既存の期限を優先する．
+			if task.Deadline.IsZero() && !existing.Deadline.IsZero() {
+				task.Deadline = existing.Deadline
+			}
+
 			// 進捗状況の統合：今回のユーザーの情報を更新または追加し，他人の情報は維持する．
 			if len(task.UserProgress) > 0 {
 				newProgress := task.UserProgress[0] // FetchTasks は常に1人分（自分）を返す

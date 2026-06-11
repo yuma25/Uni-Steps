@@ -188,13 +188,30 @@ const DashboardPage: React.FC = () => {
   };
 
   const activeTasks = tasks.filter(t => {
+    const myProgress = t.user_progress?.find(p => p.user_id === userId);
     const deadlineDate = new Date(t.deadline);
-    return deadlineDate.getFullYear() <= 1 || deadlineDate >= new Date();
+    const isUndetermined = deadlineDate.getFullYear() <= 1;
+    
+    if (isUndetermined) {
+      // 期限未定の場合は，自分が完了していなければ表示
+      return !myProgress?.is_completed;
+    }
+    // 期限がある場合は，期限が過ぎるまで表示（完了していても残す）
+    return deadlineDate >= new Date();
   });
+
   const archivedTasks = tasks
     .filter(t => {
+      const myProgress = t.user_progress?.find(p => p.user_id === userId);
       const deadlineDate = new Date(t.deadline);
-      return deadlineDate.getFullYear() > 1 && deadlineDate < new Date();
+      const isUndetermined = deadlineDate.getFullYear() <= 1;
+      
+      if (isUndetermined) {
+        // 期限未定の場合は，自分が完了していればアーカイブ
+        return myProgress?.is_completed;
+      }
+      // 期限がある場合は，期限が過ぎたらアーカイブ
+      return deadlineDate < new Date();
     })
     .sort((a, b) => new Date(b.deadline).getTime() - new Date(a.deadline).getTime());
 

@@ -104,6 +104,10 @@ Google Classroom 等の外部システムから情報を統合するロジック
 
 ### 🔧 `func (uc *SyncUsecase) SyncTasks(ctx, userID, groupID) ([]*domain.Task, error)`
 外部 LMS から最新の課題と提出状況を取得し，特定の部屋へ保存・更新する手順である．
+- **処理のこだわり**:
+  - **差分同期**: `LMSLastUpdatedAt` を用いて，更新があった課題のみを処理する．
+  - **進捗のマージ**: 自分の完了状態は LMS に合わせるが，他のメンバーの進捗データは破壊せず維持する．
+  - **期限の保護**: Uni-Steps 側ですでに手動で期限が設定されている場合，LMS 側が「未定」であっても既存の期限を優先して保持する．
 - **引数**:
   - `userID string`: 同期に使用する OAuth トークンを持つユーザーの ID．
   - `groupID string`: 課題を流し込む先の部屋 ID．
