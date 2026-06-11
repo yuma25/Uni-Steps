@@ -65,6 +65,7 @@
 | `WebPushToken` | `string` | ブラウザ通知用トークン (JSON) |
 | `GoogleAccessToken` | `string` | Classroom同期用アクセストークン |
 | `GoogleRefreshToken` | `string` | トークン更新用リフレッシュトークン |
+| `GoogleTokenExpiry` | `time.Time` | Google OAuth トークンの有効期限 |
 | `LastCheckInAt` | `time.Time` | 最終起床確認（またはログイン）時刻 |
 | `Groups` | `[]*Group` | 所属している部屋のリスト |
 

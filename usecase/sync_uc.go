@@ -68,6 +68,9 @@ func (uc *SyncUsecase) SyncTasks(ctx context.Context, userID string, groupID str
 			// 既存の場合は，ID を引き継いで「更新」扱いにする．
 			task.ID = existing.ID
 
+			// LMS の元々の期限設定有無の状態を反映する
+			existing.IsLMSDeadlineSet = task.IsLMSDeadlineSet
+
 			// 期限の上書き防止ロジック：
 			// Uni-Steps 側ですでに期限が設定されており，LMS 側が未定（Zero）の場合は，既存の期限を優先する．
 			if task.Deadline.IsZero() && !existing.Deadline.IsZero() {

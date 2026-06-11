@@ -114,6 +114,8 @@ func (h *AuthHandler) GoogleCallback(c echo.Context) error {
 	if token.RefreshToken != "" {
 		user.GoogleRefreshToken = token.RefreshToken
 	}
+	user.GoogleTokenExpiry = token.Expiry
+
 	if err := h.userRepo.Save(c.Request().Context(), user); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "ユーザー情報の保存に失敗した"})
 	}

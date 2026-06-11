@@ -71,14 +71,16 @@
 - **戻り値**:
   - `[]*domain.Task`: 期限の近い順（昇順）に並んだ課題のリスト．
 
-### 🔧 `func (uc *TaskUsecase) UpdateTask(ctx, taskID, input) (*domain.Task, error)`
+### 🔧 `func (uc *TaskUsecase) UpdateTask(ctx context.Context, taskID string, input *domain.Task) (*domain.Task, error)`
 既存の課題の内容や該当者リストを更新する手順である．
+- **UI レベルの制限**: Google Classroom 由来の課題については，データ整合性維持のため，フロントエンド側で「期限のみ」が編集可能となるよう制限されている．手動課題については全項目の編集が可能である．
 - **引数**:
   - `taskID string`: 更新対象の内部課題 ID．
   - `input *domain.Task`: 更新後の情報（タイトル，期限，該当者リスト）を持つオブジェクト．
 - **戻り値**:
   - `*domain.Task`: 更新後の課題オブジェクト．既存メンバーの完了状態は維持される．
   - `error`: 対象不在や保存失敗時のエラー．
+
 
 ### 🔧 `func (uc *TaskUsecase) ToggleUserCompletion(ctx, taskID, userID) error`
 特定のユーザーの課題完了状態を「完了 ↔ 未完了」で反転させる手順である．

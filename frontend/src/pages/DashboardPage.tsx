@@ -219,7 +219,11 @@ const DashboardPage: React.FC = () => {
     const myStatus = getTaskStatus(task);
     const deadlineDate = new Date(task.deadline);
     const isUndetermined = deadlineDate.getFullYear() <= 1;
-    const canEdit = task.source !== 'google_classroom' || isUndetermined;
+    
+    // 編集ボタン（鉛筆）を出す条件：
+    // 1. 手動登録の課題である
+    // 2. Classroom 課題だが，Google 側で期限が設定されていなかった（＝自分たちで管理すべきもの）
+    const canEdit = task.source !== 'google_classroom' || !task.is_lms_deadline_set;
 
     return (
       <div key={task.id} className="task-card">
@@ -344,18 +348,33 @@ const DashboardPage: React.FC = () => {
             <form onSubmit={handleSaveTask}>
               <div className="form-group">
                 <label>タイトル</label>
-                <input type="text" required value={taskFormData.title} onChange={e => setTaskFormData({...taskFormData, title: e.target.value})} placeholder="例：レポート提出" />
+                <input 
+                  type="text" required 
+                  value={taskFormData.title} 
+                  onChange={e => setTaskFormData({...taskFormData, title: e.target.value})} 
+                  placeholder="例：レポート提出"
+                  disabled={editingTask?.source === 'google_classroom'}
+                />
               </div>
               <div className="form-group">
                 <label>期限</label>
-                <input type="datetime-local" value={taskFormData.deadline} onChange={e => setTaskFormData({...taskFormData, deadline: e.target.value})} />
+                <input 
+                  type="datetime-local" 
+                  value={taskFormData.deadline} 
+                  onChange={e => setTaskFormData({...taskFormData, deadline: e.target.value})} 
+                />
               </div>
               <div className="form-group">
                 <label>該当者</label>
                 <div className="assignee-selector">
                   {group?.users?.map(member => (
                     <label key={member.id} className="assignee-item">
-                      <input type="checkbox" checked={taskFormData.assignees.includes(member.id)} onChange={() => handleToggleAssignee(member.id)} />
+                      <input 
+                        type="checkbox" 
+                        checked={taskFormData.assignees.includes(member.id)} 
+                        onChange={() => handleToggleAssignee(member.id)} 
+                        disabled={editingTask?.source === 'google_classroom'}
+                      />
                       <span>{member.name}</span>
                     </label>
                   ))}

@@ -20,6 +20,7 @@ export interface Task {
   external_id: string;     // 外部 LMS における課題의 ID である．
   title: string;           // 課題のタイトルである．
   deadline: string;        // 課題の期限である（ISO8601 形式）．
+  is_lms_deadline_set: boolean; // 外部 LMS 側で最初から期限があったか
   recurrence: RecurrenceSettings; // 繰り返しの設定（統合オブジェクト）
   user_progress: TaskUserProgress[]; // 各ユーザーの完了状態
 }

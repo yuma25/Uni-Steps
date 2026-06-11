@@ -11,6 +11,7 @@ type User struct {
 	WebPushToken       string    `json:"web_push_token"`                       // ブラウザ通知用のトークンである．
 	GoogleAccessToken  string    `json:"google_access_token"`                  // Google Classroom 連携用の OAuth アクセストークンである．
 	GoogleRefreshToken string    `json:"google_refresh_token"`                 // Google Classroom 連携用の OAuth リフレッシュトークンである．
+	GoogleTokenExpiry  time.Time `json:"google_token_expiry"`                  // Google OAuth トークンの有効期限である．
 	LastCheckInAt      time.Time `json:"last_check_in_at"`                     // 最終起床確認時刻である．
 	Groups             []*Group  `json:"groups" gorm:"many2many:user_groups;"` // ユーザーが所属しているグループのリストである．
 }

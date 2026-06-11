@@ -35,13 +35,24 @@ func (s *GoogleClassroomService) FetchTasks(ctx context.Context, userID string) 
 		return nil, fmt.Errorf("Google 連携が行われていないか，トークンが存在しない")
 	}
 
-	token := &oauth2.Token{
+	initialToken := &oauth2.Token{
 		AccessToken:  user.GoogleAccessToken,
 		RefreshToken: user.GoogleRefreshToken,
+		Expiry:       user.GoogleTokenExpiry,
 		TokenType:    "Bearer",
 	}
 
-	client := s.oauthCfg.Client(ctx, token)
+	// 自動リフレッシュ機能付きの TokenSource を作成する．
+	// トークンが更新された際にデータベースへ保存するラップ処理を行う．
+	ts := &persistentTokenSource{
+		ctx:      ctx,
+		userID:   userID,
+		userRepo: s.userRepo,
+		oauthCfg: s.oauthCfg,
+		source:   s.oauthCfg.TokenSource(ctx, initialToken),
+	}
+
+	client := oauth2.NewClient(ctx, ts)
 	srv, err := classroom.NewService(ctx, option.WithHTTPClient(client))
 	if err != nil {
 		return nil, fmt.Errorf("Classroom サービスの作成に失敗した： %w", err)
@@ -86,10 +97,11 @@ func (s *GoogleClassroomService) FetchTasks(ctx context.Context, userID string) 
 			lmsUpdateTime = lmsUpdateTime.Local()
 
 			task := &domain.Task{
-				Title:         cw.Title,
-				ExternalID:    cw.Id,
-				Deadline:      deadline,
-				LMSUpdateTime: lmsUpdateTime,
+				Title:            cw.Title,
+				ExternalID:       cw.Id,
+				Deadline:         deadline,
+				IsLMSDeadlineSet: cw.DueDate != nil,
+				LMSUpdateTime:    lmsUpdateTime,
 				UserProgress: []*domain.TaskUserProgress{
 					{
 						UserID:      userID,
@@ -104,6 +116,41 @@ func (s *GoogleClassroomService) FetchTasks(ctx context.Context, userID string) 
 	}
 
 	return tasks, nil
+}
+
+// persistentTokenSource は oauth2.TokenSource をラップし，
+// 新しいトークンが発行された際に自動的にデータベースを更新する構造体である．
+type persistentTokenSource struct {
+	ctx      context.Context
+	userID   string
+	userRepo domain.UserRepository
+	oauthCfg *oauth2.Config
+	source   oauth2.TokenSource
+}
+
+func (ts *persistentTokenSource) Token() (*oauth2.Token, error) {
+	token, err := ts.source.Token()
+	if err != nil {
+		return nil, err
+	}
+
+	// 取得したトークンをデータベースの最新状態と比較（簡易的に毎回保存する設計とする）．
+	// 本来は AccessToken の変更を検知して保存するのが効率的だが，
+	// ここでは安全のためリフレッシュの可能性がある場合は常に保存を試みる．
+	user, err := ts.userRepo.FindByID(ts.ctx, ts.userID)
+	if err == nil && user != nil {
+		// トークンが更新されているか，有効期限が DB より先であれば保存する．
+		if user.GoogleAccessToken != token.AccessToken {
+			user.GoogleAccessToken = token.AccessToken
+			if token.RefreshToken != "" {
+				user.GoogleRefreshToken = token.RefreshToken
+			}
+			user.GoogleTokenExpiry = token.Expiry
+			_ = ts.userRepo.Save(ts.ctx, user)
+		}
+	}
+
+	return token, nil
 }
 
 // GetProviderName はこのサービスが Google Classroom であることを返す．
