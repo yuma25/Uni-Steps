@@ -3,22 +3,18 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { taskApi } from '../api/tasks';
 import { groupApi } from '../api/groups';
 import { notificationApi } from '../api/notifications';
-import type { Task, Group } from '../types';
-import { Bell, RefreshCw, PlusCircle, X, Settings, Plus, Archive, Edit, ChevronDown, ArrowLeft, Users, Calendar, CheckCircle, Clock, Copy, Share2, Trash2, BellRing, Sparkles, Send } from 'lucide-react';
+import { wakeupApi } from '../api/wakeup';
+import type { Task, Group, WakeupCheck } from '../types';
+import { Bell, RefreshCw, PlusCircle, X, Settings, Plus, Archive, Edit, ChevronDown, ArrowLeft, Users, Calendar, CheckCircle, Clock, Copy, Share2, Trash2, BellRing, Sparkles, Send, Sunrise, Sun, AlertCircle } from 'lucide-react';
 
 /**
  * Base64 URL 形式の文字列を Uint8Array に変換するヘルパー関数である．
- * Web Push の VAPID 鍵をブラウザが認識できる形式にするために必要である．
  */
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
-  const base64 = (base64String + padding)
-    .replace(/-/g, '+')
-    .replace(/_/g, '/');
-
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
   const rawData = window.atob(base64);
   const outputArray = new Uint8Array(rawData.length);
-
   for (let i = 0; i < rawData.length; ++i) {
     outputArray[i] = rawData.charCodeAt(i);
   }
@@ -33,10 +29,13 @@ const DashboardPage: React.FC = () => {
   
   const [tasks, setTasks] = useState<Task[]>([]);
   const [group, setGroup] = useState<Group | null>(null);
+  const [activeWakeup, setActiveWakeup] = useState<WakeupCheck | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showWakeupModal, setShowWakeupModal] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [showArchive, setShowArchive] = useState(false);
   const [notifPermission, setNotifPermission] = useState<NotificationPermission>(Notification.permission);
@@ -46,6 +45,11 @@ const DashboardPage: React.FC = () => {
     deadline: '',
     recurrence_type: 'none',
     assignees: [] as string[]
+  });
+
+  const [wakeupFormData, setWakeupFormData] = useState({
+    target_time: '',
+    grace_minutes: 15
   });
 
   const [settingsFormData, setSettingsFormData] = useState({
@@ -66,10 +70,12 @@ const DashboardPage: React.FC = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [taskData, groups] = await Promise.all([
+      const [taskData, groups, wakeups] = await Promise.all([
         taskApi.listGroupTasks(groupId),
-        groupApi.listMyGroups(userId)
+        groupApi.listMyGroups(userId),
+        wakeupApi.getActive(userId)
       ]);
+      
       setTasks(taskData || []);
       if (groups && Array.isArray(groups)) {
         const currentGroup = groups.find(g => g.id === groupId);
@@ -81,6 +87,10 @@ const DashboardPage: React.FC = () => {
           });
         }
       }
+      
+      const pendingWakeup = wakeups.find(w => w.status === 'pending');
+      setActiveWakeup(pendingWakeup || null);
+      
       setError(null);
     } catch (err: any) {
       console.error("Fetch error:", err);
@@ -111,23 +121,16 @@ const DashboardPage: React.FC = () => {
     try {
       const permission = await Notification.requestPermission();
       setNotifPermission(permission);
-      
       if (permission === 'granted') {
         const registration = await navigator.serviceWorker.register('/sw.js');
-        
-        // 以前の購読があれば解除してクリーンアップ（不整合防止）
         const existingSub = await registration.pushManager.getSubscription();
         if (existingSub) await existingSub.unsubscribe();
-
-        // 公開鍵をバイナリ形式に変換
         const vapidPublicKey = 'BDj40a3LAnB-Tyemxggm-wYyuHbE_kadO6CqX6u-Ewyrkqi5ypr-txXJO7jflV_4VGa47paZU7DX_-0OPZy6Bx8';
         const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
-
         const subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: convertedVapidKey
         });
-        
         await notificationApi.subscribe(userId, subscription);
         alert("通知が有効になりました！AI からのリマインドが届くようになります．");
       }
@@ -149,12 +152,44 @@ const DashboardPage: React.FC = () => {
     }
   };
 
+  const handleRequestWakeup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      await wakeupApi.request({
+        user_id: userId,
+        group_id: groupId,
+        target_time: new Date(wakeupFormData.target_time).toISOString(),
+        grace_minutes: wakeupFormData.grace_minutes
+      });
+      setShowWakeupModal(false);
+      await fetchData();
+      alert("起床見守りを開始しました．明日の朝，忘れずにチェックインしてください！");
+    } catch (err: any) {
+      alert("見守り予約に失敗しました．");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCheckIn = async () => {
+    try {
+      setLoading(true);
+      await wakeupApi.checkin(userId);
+      await fetchData();
+      alert("おはようございます！起床を確認しました．SOS 通知を解除しました．");
+    } catch (err) {
+      alert("チェックインに失敗しました．");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSaveTask = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       setLoading(true);
       const deadline = taskFormData.deadline ? new Date(taskFormData.deadline).toISOString() : "0001-01-01T00:00:00Z";
-      
       const userProgress = taskFormData.assignees.map(id => {
         const member = group?.users?.find(u => u.id === id);
         const existingProgress = editingTask?.user_progress?.find(p => p.user_id === id);
@@ -166,20 +201,13 @@ const DashboardPage: React.FC = () => {
           updated_at: existingProgress?.updated_at || new Date().toISOString()
         };
       });
-
-      const taskData = {
-        title: taskFormData.title,
-        deadline: deadline,
-        recurrence: { type: taskFormData.recurrence_type, custom_dates: [] },
-        user_progress: userProgress as any
-      };
-
+      const taskData = { title: taskFormData.title, deadline: deadline, recurrence: { type: taskFormData.recurrence_type, custom_dates: [] }, user_progress: userProgress as any };
       if (editingTask) {
+        if (!editingTask.id) throw new Error("課題 ID が見つからないため更新できない．");
         await taskApi.updateTask(editingTask.id, taskData);
       } else {
         await taskApi.createManualTask({ ...taskData, group_id: groupId });
       }
-      
       setShowTaskModal(false);
       await fetchData();
     } catch (err: any) {
@@ -202,28 +230,6 @@ const DashboardPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const addInterval = () => {
-    const val = parseInt(newInterval);
-    if (settingsFormData.remind_intervals.length >= 3) {
-      alert("リマインド通知は最大 3 つまで設定できます．");
-      return;
-    }
-    if (!isNaN(val) && val > 0 && !settingsFormData.remind_intervals.includes(val)) {
-      setSettingsFormData({
-        ...settingsFormData,
-        remind_intervals: [...settingsFormData.remind_intervals, val].sort((a, b) => b - a)
-      });
-      setNewInterval('');
-    }
-  };
-
-  const removeInterval = (val: number) => {
-    setSettingsFormData({
-      ...settingsFormData,
-      remind_intervals: settingsFormData.remind_intervals.filter(i => i !== val)
-    });
   };
 
   const getTaskStatus = (task: Task) => {
@@ -251,9 +257,7 @@ const DashboardPage: React.FC = () => {
     const myStatus = getTaskStatus(task);
     const deadlineDate = new Date(task.deadline);
     const isUndetermined = deadlineDate.getFullYear() <= 1;
-    
     const canEdit = task.source !== 'google_classroom' || !task.is_lms_deadline_set;
-
     return (
       <div key={task.id} className="task-card">
         <div className="task-info">
@@ -297,16 +301,10 @@ const DashboardPage: React.FC = () => {
         </div>
         <div className="header-actions">
           {notifPermission === 'granted' && (
-            <button onClick={handleSendTestNotification} className="icon-button" title="通知テスト">
-              <Send size={16} />
-              <span>テスト</span>
-            </button>
+            <button onClick={handleSendTestNotification} className="icon-button" title="通知テスト"><Send size={16} /><span>テスト</span></button>
           )}
           {notifPermission !== 'granted' && (
-            <button onClick={handleEnableNotifications} className="icon-button warning-btn">
-              <BellRing size={16} />
-              <span>通知を有効化</span>
-            </button>
+            <button onClick={handleEnableNotifications} className="icon-button warning-btn"><BellRing size={16} /><span>通知を有効化</span></button>
           )}
           <button onClick={handleSync} disabled={loading} className="icon-button"><RefreshCw className={loading ? "animate-spin" : ""} size={16} />同期</button>
           <button onClick={() => { setEditingTask(null); setTaskFormData({ title: '', deadline: '', recurrence_type: 'none', assignees: [userId] }); setShowTaskModal(true); }} className="icon-button primary"><Plus size={16} />課題追加</button>
@@ -318,10 +316,42 @@ const DashboardPage: React.FC = () => {
 
       <main className="dashboard-content">
         {error && <div className="error-message">{error}</div>}
+
+        {/* 起床確認セクション */}
+        <section className="wakeup-section">
+          {activeWakeup ? (
+            <div className="wakeup-card active">
+              <div className="wakeup-info">
+                <Sunrise size={24} className="wakeup-icon" />
+                <div>
+                  <h3>起床見守り中</h3>
+                  <p>予定時刻: {new Date(activeWakeup.target_time).toLocaleString('ja-JP', { hour: '2-digit', minute: '2-digit' })} (+{activeWakeup.grace_minutes}分猶予)</p>
+                </div>
+              </div>
+              <button onClick={handleCheckIn} className="checkin-button">
+                <Sun size={18} />
+                <span>起きました！</span>
+              </button>
+            </div>
+          ) : (
+            <div className="wakeup-card empty" onClick={() => {
+               const tomorrow = new Date();
+               tomorrow.setDate(tomorrow.getDate() + 1);
+               tomorrow.setHours(8, 0, 0, 0);
+               setWakeupFormData({ target_time: tomorrow.toISOString().slice(0, 16), grace_minutes: 15 });
+               setShowWakeupModal(true);
+            }}>
+              < Sunrise size={20} />
+              <span>明日の起床時間をセットして，仲間に見守ってもらう</span>
+            </div>
+          )}
+        </section>
+        
         <section className="task-section">
           <h2>現在の課題</h2>
           {activeTasks.length === 0 ? <p className="empty-state">現在取り組むべき課題はありません．</p> : <div className="task-list">{activeTasks.map(renderTaskCard)}</div>}
         </section>
+        
         {archivedTasks.length > 0 && (
           <div className="archive-container">
             <div className="archive-header" onClick={() => setShowArchive(!showArchive)}><span>過去の課題 ({archivedTasks.length}件)</span><ChevronDown size={16} style={{transform: showArchive ? 'rotate(180deg)' : 'none', transition: '0.2s'}} /></div>
@@ -358,6 +388,22 @@ const DashboardPage: React.FC = () => {
         </div>
       )}
 
+      {/* 起床設定モーダル */}
+      {showWakeupModal && (
+        <div className="modal-overlay">
+          <div className="modal-content animate-pop">
+            <button onClick={() => setShowWakeupModal(false)} className="close-button"><X size={20} /></button>
+            <div className="modal-header-text"><h2>起床見守りをセット</h2><p>もし起きられなかった場合，仲間に SOS 通知が飛びます．</p></div>
+            <form onSubmit={handleRequestWakeup}>
+              <div className="form-group"><label>起床予定時刻</label><input type="datetime-local" required value={wakeupFormData.target_time} onChange={e => setWakeupFormData({...wakeupFormData, target_time: e.target.value})} /></div>
+              <div className="form-group"><label>猶予時間（分）</label><input type="number" required value={wakeupFormData.grace_minutes} onChange={e => setWakeupFormData({...wakeupFormData, grace_minutes: parseInt(e.target.value)})} placeholder="例：15" /></div>
+              <div className="alert-info"><AlertCircle size={16} /><span>設定時刻から猶予時間を過ぎてもチェックインがない場合，部屋のメンバー全員に通知が飛びます．</span></div>
+              <button type="submit" disabled={loading} className="icon-button primary full-width" style={{marginTop: '1.5rem', background: 'var(--warning)', border: 'none'}}>見守りを開始する</button>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* 設定モーダル */}
       {showSettingsModal && (
         <div className="modal-overlay">
@@ -367,32 +413,30 @@ const DashboardPage: React.FC = () => {
             <form onSubmit={handleSaveSettings}>
               <div className="form-group">
                 <label>AI のキャラクター設定</label>
-                <select 
-                  className="full-width" 
-                  value={settingsFormData.ai_character} 
-                  onChange={e => setSettingsFormData({...settingsFormData, ai_character: e.target.value})}
-                  style={{padding: '0.8rem', borderRadius: '8px', border: '1px solid var(--neutral-300)'}}
-                >
+                <select className="full-width" value={settingsFormData.ai_character} onChange={e => setSettingsFormData({...settingsFormData, ai_character: e.target.value})} style={{padding: '0.8rem', borderRadius: '8px', border: '1px solid var(--neutral-300)'}}>
                   <option value="default">標準アシスタント</option>
                   <option value="strict">厳しい教官</option>
                   <option value="kind">心配性な幼馴染</option>
                   <option value="cool">冷徹な執事</option>
                 </select>
               </div>
-
               <div className="form-group">
                 <label>リマインド通知タイミング（分前 / 最大3つ）</label>
                 <div className="interval-list">
                   {settingsFormData.remind_intervals.map(val => (
-                    <div key={val} className="interval-tag">
-                      <span>{val >= 1440 ? `${val/1440}日` : val >= 60 ? `${val/60}時間` : `${val}分`}前</span>
-                      <button type="button" onClick={() => removeInterval(val)} className="remove-btn"><X size={12} /></button>
-                    </div>
+                    <div key={val} className="interval-tag"><span>{val >= 1440 ? `${val/1440}日` : val >= 60 ? `${val/60}時間` : `${val}分`}前</span><button type="button" onClick={() => { setSettingsFormData({...settingsFormData, remind_intervals: settingsFormData.remind_intervals.filter(i => i !== val)}); }} className="remove-btn"><X size={12} /></button></div>
                   ))}
                 </div>
                 <div className="interval-input-group">
                   <input type="number" value={newInterval} onChange={e => setNewInterval(e.target.value)} placeholder="例：30" />
-                  <button type="button" onClick={addInterval} className="icon-button">追加</button>
+                  <button type="button" onClick={() => {
+                    const val = parseInt(newInterval);
+                    if (settingsFormData.remind_intervals.length >= 3) { alert("最大 3 つまでです．"); return; }
+                    if (!isNaN(val) && val > 0 && !settingsFormData.remind_intervals.includes(val)) {
+                      setSettingsFormData({ ...settingsFormData, remind_intervals: [...settingsFormData.remind_intervals, val].sort((a, b) => b - a) });
+                      setNewInterval('');
+                    }
+                  }} className="icon-button">追加</button>
                 </div>
               </div>
               <button type="submit" disabled={loading} className="icon-button primary full-width" style={{marginTop: '1rem', justifyContent: 'center'}}>設定を保存する</button>

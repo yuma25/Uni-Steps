@@ -546,11 +546,105 @@ body {
 /* Responsiveness */
 @media (max-width: 650px) {
   .dashboard-header { flex-direction: column; align-items: stretch; }
-  .header-actions { justify-content: space-between; }
-  .header-actions .icon-button { flex: 1; justify-content: center; }
+  .header-actions { justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; }
+  .header-actions .icon-button { flex: 1; justify-content: center; min-width: 100px; }
   .task-card { grid-template-columns: 1fr; gap: 1rem; }
   .task-status { flex-direction: row; justify-content: space-between; border-top: 1px solid var(--neutral-200); padding-top: 1rem; }
   .main-actions { grid-template-columns: 1fr; }
   .selection-header { flex-direction: column; align-items: flex-start; gap: 1.5rem; }
   .logout-button { align-self: stretch; justify-content: center; }
+  .wakeup-card { flex-direction: column; gap: 1rem; text-align: center; }
+}
+/* Wakeup Section Styles */
+.wakeup-section {
+  margin-bottom: 2.5rem;
+}
+
+.wakeup-card {
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.wakeup-card.empty {
+  background: white;
+  border: 2px dashed var(--neutral-300);
+  color: var(--text-sub);
+  justify-content: center;
+  gap: 0.75rem;
+  font-weight: 600;
+}
+
+.wakeup-card.empty:hover {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+}
+
+.wakeup-card.active {
+  background: linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%);
+  border: 1px solid #fde68a;
+  box-shadow: var(--shadow-subtle);
+  cursor: default;
+}
+
+.wakeup-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.wakeup-icon {
+  color: var(--warning);
+}
+
+.wakeup-info h3 {
+  font-size: 1rem;
+  margin-bottom: 0.2rem;
+  color: #92400e;
+}
+
+.wakeup-info p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #b45309;
+}
+
+.checkin-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  background: #f59e0b;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.checkin-button:hover {
+  background: #d97706;
+  transform: scale(1.05);
+}
+
+.alert-info {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #fff1f2;
+  color: #be123c;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  margin-top: 1rem;
+  line-height: 1.5;
+}
+
+.alert-info svg {
+  flex-shrink: 0;
 }

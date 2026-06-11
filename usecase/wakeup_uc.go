@@ -70,3 +70,8 @@ func (uc *WakeupUsecase) ConfirmWakeup(ctx context.Context, userID string) error
 
 	return nil
 }
+
+// GetActiveChecks はユーザーの進行中の起床確認を取得する．
+func (uc *WakeupUsecase) GetActiveChecks(ctx context.Context, userID string) ([]*domain.WakeupCheck, error) {
+	return uc.wakeupRepo.FindActiveByUser(ctx, userID)
+}

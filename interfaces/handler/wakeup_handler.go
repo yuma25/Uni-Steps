@@ -20,6 +20,24 @@ func NewWakeupHandler(e *echo.Echo, uc *usecase.WakeupUsecase) {
 	}
 	e.POST("/api/wakeup/request", h.RequestWakeupCheck)
 	e.POST("/api/wakeup/checkin", h.CheckIn)
+	e.GET("/api/wakeup/active", h.GetActiveChecks)
+}
+
+// ... existing RequestWakeupCheck and CheckIn ...
+
+// GetActiveChecks は進行中の起床確認を取得する．
+func (h *WakeupHandler) GetActiveChecks(c echo.Context) error {
+	userID := c.QueryParam("user_id")
+	if userID == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "user_id が必要である"})
+	}
+
+	checks, err := h.wakeupUsecase.GetActiveChecks(c.Request().Context(), userID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, checks)
 }
 
 // RequestWakeupCheck は新しい起床確認を予約する．

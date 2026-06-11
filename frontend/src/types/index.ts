@@ -31,6 +31,16 @@ export interface User {
   email?: string;
 }
 
+export interface WakeupCheck {
+  id: string;
+  user_id: string;
+  group_id: string;
+  target_time: string;
+  grace_minutes: number;
+  status: 'pending' | 'confirmed' | 'alerted';
+  created_at: string;
+}
+
 export interface Group {
   id: string;                  // グループの一意識別子である．
   name: string;                // グループの名称である．
