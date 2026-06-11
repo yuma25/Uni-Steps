@@ -25,24 +25,6 @@ func NewGroupHandler(e *echo.Echo, gu *usecase.GroupUsecase, ls domain.LMSServic
 	e.GET("/api/users/:userId/groups", h.ListUserGroups)
 }
 
-// JoinGroupByInviteCode は招待コードを用いて部屋に参加する．
-func (h *GroupHandler) JoinGroupByInviteCode(c echo.Context) error {
-	var req struct {
-		InviteCode string `json:"invite_code"`
-		UserID     string `json:"user_id"`
-	}
-	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "リクエスト形式が不正である"})
-	}
-
-	group, err := h.groupUsecase.JoinGroupByInviteCode(c.Request().Context(), req.InviteCode, req.UserID)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
-	}
-
-	return c.JSON(http.StatusOK, group)
-}
-
 // CreateGroup は新しいグループの作成を受け付ける．
 func (h *GroupHandler) CreateGroup(c echo.Context) error {
 	var req struct {
@@ -59,6 +41,24 @@ func (h *GroupHandler) CreateGroup(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusCreated, group)
+}
+
+// JoinGroupByInviteCode は招待コードを用いて部屋に参加する．
+func (h *GroupHandler) JoinGroupByInviteCode(c echo.Context) error {
+	var req struct {
+		InviteCode string `json:"invite_code"`
+		UserID     string `json:"user_id"`
+	}
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "リクエスト形式が不正である"})
+	}
+
+	group, err := h.groupUsecase.JoinGroupByInviteCode(c.Request().Context(), req.InviteCode, req.UserID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, group)
 }
 
 // ListUserGroups はユーザーが所属するグループ一覧を返す．

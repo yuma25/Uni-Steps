@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
@@ -28,14 +29,43 @@ func NewAuthHandler(e *echo.Echo, ur domain.UserRepository, cfg *oauth2.Config) 
 
 // GoogleLogin は Google の認可画面へリダイレクトする．
 func (h *AuthHandler) GoogleLogin(c echo.Context) error {
-	// 本来は CSRF 対策として state パラメータにランダムな文字列を設定すべきである．
-	// 今回はプロトタイプのため固定文字列とする．
-	url := h.oauthCfg.AuthCodeURL("state-token", oauth2.AccessTypeOffline, oauth2.ApprovalForce)
+	// CSRF 対策としてランダムな文字列（state）を生成する．
+	state := uuid.New().String()
+
+	// state を Cookie に保存する（ブラウザ側で保持させ，Callback 時に検証する）．
+	cookie := &http.Cookie{
+		Name:     "oauth_state",
+		Value:    state,
+		Expires:  time.Now().Add(15 * time.Minute), // 15 分間有効
+		HttpOnly: true,                             // JavaScript からアクセス不可
+		Secure:   false,                            // 本番環境（HTTPS）では true にすべきである
+		Path:     "/",
+		SameSite: http.SameSiteLaxMode,
+	}
+	c.SetCookie(cookie)
+
+	url := h.oauthCfg.AuthCodeURL(state, oauth2.AccessTypeOffline, oauth2.ApprovalForce)
 	return c.Redirect(http.StatusTemporaryRedirect, url)
 }
 
 // GoogleCallback は Google からの認可コードを受け取り，ユーザー情報の取得・保存・ログインを行う．
 func (h *AuthHandler) GoogleCallback(c echo.Context) error {
+	// state の検証を行う（CSRF 対策）．
+	state := c.QueryParam("state")
+	cookie, err := c.Cookie("oauth_state")
+	if err != nil || state == "" || state != cookie.Value {
+		return c.JSON(http.StatusForbidden, map[string]string{"error": "不正なリクエスト（state 不一致）が検出された"})
+	}
+
+	// 使用済みの Cookie を削除する．
+	c.SetCookie(&http.Cookie{
+		Name:     "oauth_state",
+		Value:    "",
+		MaxAge:   -1,
+		Path:     "/",
+		HttpOnly: true,
+	})
+
 	code := c.QueryParam("code")
 	if code == "" {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "認可コードが提供されていない"})

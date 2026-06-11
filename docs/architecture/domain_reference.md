@@ -73,10 +73,10 @@
 ## 3. 保存・検索ルール (domain/repository.go)
 
 ### 🔹 `type TaskRepository interface`
-*   `Save(ctx, task) error`: 保存・更新．
-*   `FindByID(ctx, id) (*Task, error)`: ID で検索．
+*   `Save(ctx, task) error`: 保存・更新．`UserProgress` も含めて永続化する．
+*   `FindByID(ctx, id) (*Task, error)`: 内部 ID で検索．
 *   `FindByExternalID(ctx, extID) (*Task, error)`: Classroom 側の ID で検索．
-*   `FindByGroupID(ctx, groupID) ([]*Task, error)`: 部屋の課題を全件取得．
+*   `FindByGroupID(ctx, groupID) ([]*Task, error)`: 部屋の課題を期限順（ASC）で全件取得．
 *   `FindApproachingDeadlines(ctx, until) ([]*Task, error)`: 期限間近の課題を抽出．
 
 ### 🔹 `type UserRepository interface`
@@ -85,8 +85,8 @@
 *   `FindByEmail(ctx, email) (*User, error)`: メールアドレスで検索．
 
 ### 🔹 `type GroupRepository interface`
-*   `Save(ctx, group) error`: 保存．
-*   `FindByID(ctx, id) (*Group, error)`: ID で検索．
+*   `Save(ctx, group) error`: 保存．`Users` との紐付け（多対多）も管理．
+*   `FindByID(ctx, id) (*Group, error)`: ID で検索（メンバー情報も Preload）．
 *   `FindByInviteCode(ctx, code) (*Group, error)`: 招待コードで特定．
 *   `FindByUserID(ctx, userID) ([]*Group, error)`: 所属部屋を一覧．
 
