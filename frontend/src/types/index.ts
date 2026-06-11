@@ -30,9 +30,11 @@ export interface Group {
   id: string;                  // グループの一意識別子である．
   name: string;                // グループの名称である．
   owner_id: string;            // オーナーのユーザー ID である．
+  invite_code: string;         // 参加用の招待コードである．
   line_channel_token?: string; // BYOT 用の LINE トークンである．
   line_group_id?: string;      // 通知先の LINE グループ ID である．
   lms_course_id?: string;      // 紐付けられた LMS コースの ID である．
   last_synced_at?: string;     // 最終同期時刻である．
   lms_last_updated_at?: string; // LMS 側の最終更新時刻である．
+  users?: User[];              // 所属メンバー
 }

@@ -41,6 +41,19 @@ func (r *groupRepository) FindByID(ctx context.Context, id string) (*domain.Grou
 	return &group, nil
 }
 
+// FindByInviteCode は招待コードでグループを検索する．
+func (r *groupRepository) FindByInviteCode(ctx context.Context, code string) (*domain.Group, error) {
+	var group domain.Group
+	err := r.db.WithContext(ctx).Preload("Users").Where("invite_code = ?", code).First(&group).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &group, nil
+}
+
 // FindByUserID は指定されたユーザー ID が所属しているグループ一覧を取得する．
 func (r *groupRepository) FindByUserID(ctx context.Context, userID string) ([]*domain.Group, error) {
 	groups := []*domain.Group{}

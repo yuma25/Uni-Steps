@@ -27,12 +27,14 @@ export const groupApi = {
   },
 
   /**
-   * 既存のグループに招待コード等で参加する（将来的な拡張用）．
+   * 招待コードを用いて既存の部屋に参加する．
    */
-  joinGroup: async (groupId: string, userId: string): Promise<void> => {
-    await client.post(`/api/groups/${groupId}/join`, {
+  joinGroup: async (inviteCode: string, userId: string): Promise<Group> => {
+    const resp = await client.post<Group>('/api/groups/join', {
+      invite_code: inviteCode,
       user_id: userId,
     });
+    return resp.data;
   },
 
   /**

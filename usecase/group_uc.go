@@ -39,30 +39,64 @@ func (uc *GroupUsecase) CreateGroup(ctx context.Context, name string, ownerID st
 	}
 
 	// 2．新しいグループ構造体を作成する．
+	// 招待コードは UUID の先頭 8 文字を簡易的に使用する．
+	inviteCode := uuid.New().String()[:8]
+
 	group := &domain.Group{
-		ID:      uuid.New().String(),
-		Name:    name,
-		OwnerID: ownerID,
-		// 最初は空のリストにして，部屋の保存を優先する．
-		Users: []*domain.User{},
+		ID:         uuid.New().String(),
+		Name:       name,
+		OwnerID:    ownerID,
+		InviteCode: inviteCode,
+		Users:      []*domain.User{},
 	}
 
 	// 3．まずデータベースに「部屋」だけを保存する．
-	log.Println("DEBUG: データベースへのグループ保存（1段階目）を実行する．")
 	if err := uc.groupRepo.Save(ctx, group); err != nil {
-		log.Printf("ERROR: グループ自体の保存に失敗した: %v\n", err)
 		return nil, fmt.Errorf("グループの保存に失敗した： %w", err)
 	}
 
 	// 4．保存された部屋に対して，オーナー（ユーザー）を所属させる．
-	log.Println("DEBUG: グループへのメンバー紐付け（2段階目）を実行する．")
 	group.Users = append(group.Users, user)
 	if err := uc.groupRepo.Save(ctx, group); err != nil {
-		log.Printf("ERROR: メンバーの紐付けに失敗した: %v\n", err)
 		return nil, fmt.Errorf("メンバーの紐付けに失敗した： %w", err)
 	}
 
-	log.Printf("DEBUG: グループ作成とメンバー登録に成功した (ID: %s)\n", group.ID)
+	return group, nil
+}
+
+// JoinGroupByInviteCode は招待コードを用いて既存のグループに参加する．
+func (uc *GroupUsecase) JoinGroupByInviteCode(ctx context.Context, code string, userID string) (*domain.Group, error) {
+	// 1．招待コードに該当するグループを探す．
+	group, err := uc.groupRepo.FindByInviteCode(ctx, code)
+	if err != nil {
+		return nil, fmt.Errorf("招待コードの検証に失敗した： %w", err)
+	}
+	if group == nil {
+		return nil, fmt.Errorf("無効な招待コードである")
+	}
+
+	// 2．参加するユーザーが存在するか確認する．
+	user, err := uc.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("ユーザー情報の取得に失敗した： %w", err)
+	}
+	if user == nil {
+		return nil, fmt.Errorf("ユーザーが見つからない")
+	}
+
+	// 3．既に参加していないか確認する．
+	for _, u := range group.Users {
+		if u.ID == userID {
+			return group, nil // 既に参加済みの場合はそのまま成功とする
+		}
+	}
+
+	// 4．ユーザーをグループに追加して保存する．
+	group.Users = append(group.Users, user)
+	if err := uc.groupRepo.Save(ctx, group); err != nil {
+		return nil, fmt.Errorf("グループへの参加に失敗した： %w", err)
+	}
+
 	return group, nil
 }
 

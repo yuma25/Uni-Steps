@@ -3,11 +3,11 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { taskApi } from '../api/tasks';
 import { groupApi } from '../api/groups';
 import type { Task, Group } from '../types';
-import { Bell, RefreshCw, PlusCircle, X, Settings, Plus, Archive, Edit, ChevronDown, ArrowLeft, Users, Calendar, CheckCircle, Clock } from 'lucide-react';
+import { Bell, RefreshCw, PlusCircle, X, Settings, Plus, Archive, Edit, ChevronDown, ArrowLeft, Users, Calendar, CheckCircle, Clock, Copy, Share2 } from 'lucide-react';
 
 /**
  * ダッシュボード画面のコンポーネントである．
- * UIを洗練させ，無駄な装飾を削ぎ落としてプロフェッショナルな外観に変更した．
+ * URL のクエリパラメータからユーザー ID とグループ ID を取得し，そのコンテキストでの課題管理を行う．
  */
 const DashboardPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -174,6 +174,13 @@ const DashboardPage: React.FC = () => {
     }
   };
 
+  const copyInviteCode = () => {
+    if (group?.invite_code) {
+      navigator.clipboard.writeText(group.invite_code);
+      alert("招待コードをクリップボードにコピーしました！友達に共有しましょう．");
+    }
+  };
+
   const getTaskStatus = (task: Task) => {
     const myProgress = task.user_progress?.find(p => p.user_id === userId);
     const deadlineDate = new Date(task.deadline);
@@ -245,7 +252,15 @@ const DashboardPage: React.FC = () => {
             <ArrowLeft size={20} />
           </button>
           <div className="title-group">
-            <h1>{group?.name || "Uni-Steps"}</h1>
+            <div className="title-row">
+              <h1>{group?.name || "Uni-Steps"}</h1>
+              {group?.invite_code && (
+                <button onClick={copyInviteCode} className="invite-badge" title="招待コードをコピー">
+                  <Share2 size={12} />
+                  コード: {group.invite_code}
+                </button>
+              )}
+            </div>
             <div className="group-info">
               {group?.users && (
                 <div className="member-list-summary">
@@ -302,15 +317,16 @@ const DashboardPage: React.FC = () => {
 
       {showTaskModal && (
         <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3>{editingTask ? "課題を編集" : "新しい課題"}</h3>
-              <button onClick={() => setShowTaskModal(false)} className="close-button"><X size={20} /></button>
+          <div className="modal-content animate-pop">
+            <button onClick={() => setShowTaskModal(false)} className="close-button"><X size={20} /></button>
+            <div className="modal-header-text">
+              <h2>{editingTask ? "課題を編集" : "新しい課題"}</h2>
+              <p>{editingTask ? "課題の詳細を変更します．" : "手動で課題を追加します．"}</p>
             </div>
             <form onSubmit={handleSaveTask}>
               <div className="form-group">
                 <label>タイトル</label>
-                <input type="text" required value={taskFormData.title} onChange={e => setTaskFormData({...taskFormData, title: e.target.value})} />
+                <input type="text" required value={taskFormData.title} onChange={e => setTaskFormData({...taskFormData, title: e.target.value})} placeholder="例：レポート提出" />
               </div>
               <div className="form-group">
                 <label>期限</label>
@@ -327,7 +343,7 @@ const DashboardPage: React.FC = () => {
                   ))}
                 </div>
               </div>
-              <button type="submit" disabled={loading} className="icon-button primary" style={{width: '100%', marginTop: '1rem', justifyContent: 'center'}}>
+              <button type="submit" disabled={loading} className="icon-button primary full-width" style={{marginTop: '1rem', justifyContent: 'center'}}>
                 {editingTask ? "更新する" : "登録する"}
               </button>
             </form>

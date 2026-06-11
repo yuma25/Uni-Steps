@@ -181,11 +181,16 @@ AI による文章生成を行う構造体である．
 ### ⚙️ `func New().String() string`
 ランダムな一意の ID 文字列を生成する．
 
-### 🔧 `func (uc *TaskUsecase) UpdateTask(ctx context.Context, taskID string, input *domain.Task) (*domain.Task, error)`
-課題の基本情報（タイトル，期限等）および該当者リストを更新する手順である．既存の進捗状況を維持しつつ，新しく追加されたメンバーのレコードを生成する．
+### 📦 `type Group struct`
+グループ（部屋）の情報を保持する構造体である．
+*   🏷️ `InviteCode string`: 8 桁の参加用招待コードである．
+*   🏷️ `Users []*User`: 所属しているメンバーのリストである．
 
-### 🔧 `func (uc *TaskUsecase) ToggleUserCompletion(ctx context.Context, taskID, userID string) error`
-特定のユーザーの完了状態を反転させる手順である．進捗レコードが存在しない場合は自動的に生成する．
+### 🔧 `func (uc *GroupUsecase) JoinGroupByInviteCode(ctx context.Context, code string, userID string) (*domain.Group, error)`
+招待コードを検証し，ユーザーをグループに追加する手順である．既に参加済みの場合はそのままグループ情報を返す．
+
+### 🔧 `func (h *GroupHandler) JoinGroupByInviteCode(c echo.Context) error`
+招待コードによる参加リクエストを受け付けるハンドラーである．パス `/api/groups/join` に割り当てられている．
 
 ---
 
@@ -196,11 +201,17 @@ AI による文章生成を行う構造体である．
 *   🏷️ `--primary`: メインのアクション色（Clear Blue）である．
 *   🏷️ `--radius`: 要素の角丸（標準 10px）を定義する．
 *   🏷️ `--shadow-hover`: 浮き出し効果を演出するシャドウ設定である．
+*   🏷️ `--bg-app`: アプリ全体の背景色である．
 
 ### ⚛️ `DashboardPage` コンポーネント
 課題の一覧表示，同期，および編集を統合管理する主要な画面である．
 *   🎣 `useSearchParams`: URL から `user_id` と `group_id` を抽出するために使用する．
 *   ⚙️ `renderTaskCard`: 課題の状態に応じたカードを描画する内部関数である．
+*   ⚙️ `copyInviteCode`: 招待コードをクリップボードにコピーする関数である．
+
+### ⚛️ `GroupSelectionPage` コンポーネント
+部屋の作成，招待コードによる参加，および参加中の部屋一覧を表示する画面である．
+*   ⚙️ `handleJoinGroup`: 招待コードを用いて既存の部屋に参加する処理である．
 
 ### 📱 モバイル対応 (Responsive Design)
 *   Media Queries (`@media (max-width: 650px)`) を用い，スマホ画面ではヘッダーやカードのレイアウトを縦方向に最適化している．
@@ -218,3 +229,5 @@ SVG ベースの軽量なアイコン群である．
 *   🏷️ `<Users />`: メンバーリスト表示に使用する．
 *   🏷️ `<ChevronDown />`: アーカイブの開閉（アコーディオン）に使用する．
 *   🏷️ `<ArrowLeft />`: ホームへの戻るボタンに使用する．
+*   🏷️ `<Share2 />` / `<Copy />`: 招待コードの共有・コピーに使用する．
+*   🏷️ `<UserPlus />`: 招待コードによる参加ボタンに使用する．

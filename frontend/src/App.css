@@ -78,10 +78,30 @@ body {
 
 .back-button:hover { background: var(--surface); border-color: var(--primary); color: var(--primary); }
 
-.title-group h1 {
-  font-size: 1.4rem;
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.invite-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 2px 8px;
+  background: var(--neutral-900);
+  color: white;
+  border-radius: 4px;
+  font-size: 0.7rem;
   font-weight: 800;
-  margin: 0 0 0.4rem 0;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.invite-badge:hover {
+  background: var(--primary);
+  transform: scale(1.05);
 }
 
 .group-info {
