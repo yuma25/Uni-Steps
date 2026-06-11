@@ -100,59 +100,6 @@ func (uc *GroupUsecase) JoinGroupByInviteCode(ctx context.Context, code string, 
 	return group, nil
 }
 
-// FetchAvailableLMSCourses は外部 LMS からユーザーが利用可能なコース一覧を取得する．
-func (uc *GroupUsecase) FetchAvailableLMSCourses(ctx context.Context, userID string, lmsService domain.LMSService) ([]*domain.Group, error) {
-	log.Printf("DEBUG: ユーザー %s の利用可能コース取得を開始する．\n", userID)
-	groups, err := lmsService.FetchCourses(ctx, userID)
-	if err != nil {
-		return nil, fmt.Errorf("LMS からのコース取得に失敗した： %w", err)
-	}
-	return groups, nil
-}
-
-// SyncLMSGroups は外部 LMS（Google Classroom 等）からコース一覧を取得し，
-// 必要に応じてデータベースに保存するユースケースである．
-func (uc *GroupUsecase) SyncLMSGroups(ctx context.Context, userID string, lmsService domain.LMSService) ([]*domain.Group, error) {
-	log.Printf("DEBUG: ユーザー %s の LMS コース同期を開始する．\n", userID)
-
-	// 1．外部 LMS からコース一覧を取得する．
-	groups, err := lmsService.FetchCourses(ctx, userID)
-	if err != nil {
-		log.Printf("ERROR: LMS からのコース取得に失敗した: %v\n", err)
-		return nil, fmt.Errorf("LMS からのコース取得に失敗した： %w", err)
-	}
-	log.Printf("DEBUG: LMS から %d 件のコースを取得した．\n", len(groups))
-
-	// 2．取得したコースをデータベースに保存する．
-	for _, g := range groups {
-		if err := uc.groupRepo.Save(ctx, g); err != nil {
-			log.Printf("WARNING: グループ %s の保存に失敗した: %v\n", g.Name, err)
-		}
-	}
-
-	return groups, nil
-}
-
-// LinkLMSCourse は特定の部屋に対して外部 LMS のコース ID を紐付ける．
-func (uc *GroupUsecase) LinkLMSCourse(ctx context.Context, groupId string, lmsCourseId string) error {
-	// 1．対象のグループを取得する．
-	group, err := uc.groupRepo.FindByID(ctx, groupId)
-	if err != nil {
-		return fmt.Errorf("グループ情報の取得に失敗した： %w", err)
-	}
-	if group == nil {
-		return fmt.Errorf("指定されたグループが見つからない")
-	}
-
-	// 2．コース ID を設定して保存する．
-	group.LMSCourseID = lmsCourseId
-	if err := uc.groupRepo.Save(ctx, group); err != nil {
-		return fmt.Errorf("LMS コースの紐付けに失敗した： %w", err)
-	}
-
-	return nil
-}
-
 // ListUserGroups は指定されたユーザーが所属しているグループの一覧を取得する．
 func (uc *GroupUsecase) ListUserGroups(ctx context.Context, userID string) ([]*domain.Group, error) {
 	groups, err := uc.groupRepo.FindByUserID(ctx, userID)

@@ -181,53 +181,49 @@ AI による文章生成を行う構造体である．
 ### ⚙️ `func New().String() string`
 ランダムな一意の ID 文字列を生成する．
 
+---
+
+## 10. ドメインモデル拡張 (Domain Specifics)
+
+### 📦 `type Task struct`
+課題の基本情報と進捗を管理する中心的な構造体である．
+*   🏷️ `ExternalID string`: Google Classroom 側の ID（重複防止用）である．
+*   🏷️ `Deadline time.Time`: 提出期限である．西暦 1 年（`IsZero`）は「未定」を意味する．
+*   🏷️ `Recurrence RecurrenceSettings`: 繰り返しのルールを保持する JSON オブジェクトである．
+*   🏷️ `UserProgress []*TaskUserProgress`: 各メンバーの完了状態のリストである．
+
+### 📦 `type TaskUserProgress struct`
+特定の課題に対する個別のユーザーの完了状態を管理する構造体である．
+*   🏷️ `TaskID string`: 紐づく課題の ID である．
+*   🏷️ `UserID string`: 対象ユーザーの ID である．
+*   🏷️ `UserName string`: 表示用のユーザー名である．
+*   🏷️ `IsCompleted bool`: 完了フラグである．
+*   🏷️ `UpdatedAt time.Time`: 完了ボタンが押された最新の時刻である．
+
 ### 📦 `type Group struct`
 グループ（部屋）の情報を保持する構造体である．
 *   🏷️ `InviteCode string`: 8 桁の参加用招待コードである．
 *   🏷️ `Users []*User`: 所属しているメンバーのリストである．
 
-### 🔧 `func (uc *GroupUsecase) JoinGroupByInviteCode(ctx context.Context, code string, userID string) (*domain.Group, error)`
-招待コードを検証し，ユーザーをグループに追加する手順である．既に参加済みの場合はそのままグループ情報を返す．
-
-### 🔧 `func (h *GroupHandler) JoinGroupByInviteCode(c echo.Context) error`
-招待コードによる参加リクエストを受け付けるハンドラーである．パス `/api/groups/join` に割り当てられている．
-
----
-
-## 11. フロントエンド：デザインシステム & レスポンシブ
-本プロジェクトでは，独自のデザインシステムを CSS 変数を用いて定義し，レスポンシブな UI を実現している．
-
-### 🎨 CSS 変数 (CSS Variables)
-*   🏷️ `--primary`: メインのアクション色（Clear Blue）である．
-*   🏷️ `--radius`: 要素の角丸（標準 10px）を定義する．
-*   🏷️ `--shadow-hover`: 浮き出し効果を演出するシャドウ設定である．
-*   🏷️ `--bg-app`: アプリ全体の背景色である．
-
-### ⚛️ `DashboardPage` コンポーネント
-課題の一覧表示，同期，および編集を統合管理する主要な画面である．
-*   🎣 `useSearchParams`: URL から `user_id` と `group_id` を抽出するために使用する．
-*   ⚙️ `renderTaskCard`: 課題の状態に応じたカードを描画する内部関数である．
-*   ⚙️ `copyInviteCode`: 招待コードをクリップボードにコピーする関数である．
-
-### ⚛️ `GroupSelectionPage` コンポーネント
-部屋の作成，招待コードによる参加，および参加中の部屋一覧を表示する画面である．
-*   ⚙️ `handleJoinGroup`: 招待コードを用いて既存の部屋に参加する処理である．
-
-### 📱 モバイル対応 (Responsive Design)
-*   Media Queries (`@media (max-width: 650px)`) を用い，スマホ画面ではヘッダーやカードのレイアウトを縦方向に最適化している．
-*   タッチターゲットの確保と，情報の優先順位に基づいた余白（White Space）の動的調整を行っている．
+### 📦 `type WakeupCheck struct`
+起床確認のスケジュールと結果を保持する構造体である．
+*   🏷️ `TargetTime time.Time`: 起床を約束した時刻である．
+*   🏷️ `Status string`: `pending`（待ち），`confirmed`（成功），`alerted`（失敗）のいずれかである．
 
 ---
 
-## 12. アイコンライブラリ (Lucide React)
-**Package**: `lucide-react`  
-**Reference**: [lucide.dev](https://lucide.dev/guide/packages/lucide-react)
+## 11. サービス・インターフェース
 
-### ⚛️ アイコンコンポーネント
-SVG ベースの軽量なアイコン群である．
-*   🏷️ `<Calendar />`: 期限表示に使用する．
-*   🏷️ `<Users />`: メンバーリスト表示に使用する．
-*   🏷️ `<ChevronDown />`: アーカイブの開閉（アコーディオン）に使用する．
-*   🏷️ `<ArrowLeft />`: ホームへの戻るボタンに使用する．
-*   🏷️ `<Share2 />` / `<Copy />`: 招待コードの共有・コピーに使用する．
-*   🏷️ `<UserPlus />`: 招待コードによる参加ボタンに使用する．
+### 🔹 `type LMSService interface`
+外部学習システム（現在は Google Classroom）との通信を抽象化する．
+*   🔧 `func FetchTasks(ctx, userID) ([]*Task, error)`: ユーザーの全アクティブコースから課題を取得する．
+*   🔧 `func GetProviderName() string`: "google_classroom" 等の識別名を返す．
+
+### 🔹 `type AIService interface`
+AI による文章生成の窓口である．
+*   🔧 `func GenerateRemindMessage(ctx, task, style) (string, error)`: 課題内容に応じたリマインド文を生成する．
+
+### 🔹 `type NotificationService interface`
+LINE や Web Push などの通知手段を抽象化する．
+*   🔧 `func SendGroupMessage(ctx, targetID, message) error`: グループ全体へ通知する．
+*   🔧 `func SendDirectMessage(ctx, userID, message) error`: 個人へ直接通知する．

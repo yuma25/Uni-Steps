@@ -65,7 +65,6 @@ func (uc *TaskUsecase) UpdateTask(ctx context.Context, taskID string, input *dom
 	// 今回は柔軟性を優先して更新を許可する．
 	existing.Title = input.Title
 	existing.Deadline = input.Deadline
-	existing.IsCritical = input.IsCritical
 
 	// 進捗状況（該当者）の更新
 	if input.UserProgress != nil {

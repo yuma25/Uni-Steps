@@ -8,6 +8,11 @@ export interface TaskUserProgress {
   updated_at: string;
 }
 
+export interface RecurrenceSettings {
+  type: string;           // none, weekly, biweekly, custom
+  custom_dates?: string[]; // ISO8601 形式のリスト
+}
+
 export interface Task {
   id: string;              // 課題の一意識別子である．
   group_id: string;        // 所属するグループの ID である．
@@ -15,8 +20,7 @@ export interface Task {
   external_id: string;     // 外部 LMS における課題의 ID である．
   title: string;           // 課題のタイトルである．
   deadline: string;        // 課題の期限である（ISO8601 形式）．
-  is_critical: boolean;    // 起床確認が必要な重要課題かどうかのフラグである．
-  recurrence: string;      // 繰り返しの設定である．
+  recurrence: RecurrenceSettings; // 繰り返しの設定（統合オブジェクト）
   user_progress: TaskUserProgress[]; // 各ユーザーの完了状態
 }
 
@@ -33,7 +37,6 @@ export interface Group {
   invite_code: string;         // 参加用の招待コードである．
   line_channel_token?: string; // BYOT 用の LINE トークンである．
   line_group_id?: string;      // 通知先の LINE グループ ID である．
-  lms_course_id?: string;      // 紐付けられた LMS コースの ID である．
   last_synced_at?: string;     // 最終同期時刻である．
   lms_last_updated_at?: string; // LMS 側の最終更新時刻である．
   users?: User[];              // 所属メンバー

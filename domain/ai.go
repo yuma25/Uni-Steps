@@ -10,3 +10,6 @@ type AIService interface {
 	// style: 生成する文章のトーン（例：「熱血」「厳しい」「優しく」等）
 	GenerateRemindMessage(ctx context.Context, task *Task, style string) (string, error)
 }
+
+// 「AIエンジンに対して, どんな命令を出してどんな結果を得るか」というインターフェース
+//  具体的な Geminiへの接続方法はここには書かず, あくまで「こういう機能が欲しい」という設計図

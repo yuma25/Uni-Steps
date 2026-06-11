@@ -7,7 +7,6 @@ import { Bell, RefreshCw, PlusCircle, X, Settings, Plus, Archive, Edit, ChevronD
 
 /**
  * ダッシュボード画面のコンポーネントである．
- * URL のクエリパラメータからユーザー ID とグループ ID を取得し，そのコンテキストでの課題管理を行う．
  */
 const DashboardPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -26,8 +25,7 @@ const DashboardPage: React.FC = () => {
   const [taskFormData, setTaskFormData] = useState({
     title: '',
     deadline: '',
-    is_critical: false,
-    recurrence: 'none',
+    recurrence_type: 'none',
     assignees: [] as string[]
   });
 
@@ -81,8 +79,7 @@ const DashboardPage: React.FC = () => {
     setTaskFormData({
       title: '',
       deadline: '',
-      is_critical: false,
-      recurrence: 'none',
+      recurrence_type: 'none',
       assignees: [userId]
     });
     setShowTaskModal(true);
@@ -98,8 +95,7 @@ const DashboardPage: React.FC = () => {
     setTaskFormData({
       title: task.title,
       deadline: deadlineStr,
-      is_critical: task.is_critical,
-      recurrence: task.recurrence,
+      recurrence_type: task.recurrence?.type || 'none',
       assignees: task.user_progress?.map(p => p.user_id) || []
     });
     setShowTaskModal(true);
@@ -123,21 +119,20 @@ const DashboardPage: React.FC = () => {
         };
       });
 
+      const taskData = {
+        title: taskFormData.title,
+        deadline: deadline,
+        recurrence: { type: taskFormData.recurrence_type, custom_dates: [] },
+        user_progress: userProgress as any
+      };
+
       if (editingTask) {
         if (!editingTask.id) throw new Error("課題 ID が見つからないため更新できない．");
-        await taskApi.updateTask(editingTask.id, {
-          title: taskFormData.title,
-          deadline: deadline,
-          is_critical: taskFormData.is_critical,
-          user_progress: userProgress as any
-        });
+        await taskApi.updateTask(editingTask.id, taskData);
       } else {
         await taskApi.createManualTask({
-          title: taskFormData.title,
-          deadline: deadline,
-          is_critical: taskFormData.is_critical,
+          ...taskData,
           group_id: groupId,
-          user_progress: userProgress as any
         });
       }
       
@@ -210,7 +205,7 @@ const DashboardPage: React.FC = () => {
     const canEdit = task.source !== 'google_classroom' || isUndetermined;
 
     return (
-      <div key={task.id} className={`task-card ${task.is_critical ? 'critical' : ''}`}>
+      <div key={task.id} className="task-card">
         <div className="task-info">
           <h3>{task.title}</h3>
           <p className="deadline">
@@ -225,6 +220,12 @@ const DashboardPage: React.FC = () => {
               </span>
             ))}
           </div>
+          
+          {task.recurrence?.type && task.recurrence.type !== 'none' && (
+            <div className="tags" style={{marginTop: '0.5rem'}}>
+              <span className="source-tag">リピート: {task.recurrence.type}</span>
+            </div>
+          )}
         </div>
         
         <div className="task-status">
