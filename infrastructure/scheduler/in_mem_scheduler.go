@@ -12,15 +12,19 @@ import (
 
 // InMemScheduler はメモリ上でタイマーを管理する SchedulerService の実装である．
 type InMemScheduler struct {
+	userRepo     domain.UserRepository
+	groupRepo    domain.GroupRepository
 	aiService    domain.AIService
 	notifService domain.NotificationService
-	timers       map[string]*time.Timer // key: "taskID:userID:interval"
+	timers       map[string]*time.Timer // key: "task:taskID:userID:interval" or "wakeup:wakeupID"
 	mu           sync.Mutex
 }
 
 // NewInMemScheduler は InMemScheduler の新しいインスタンスを生成する．
-func NewInMemScheduler(ai domain.AIService, ns domain.NotificationService) *InMemScheduler {
+func NewInMemScheduler(ur domain.UserRepository, gr domain.GroupRepository, ai domain.AIService, ns domain.NotificationService) *InMemScheduler {
 	return &InMemScheduler{
+		userRepo:     ur,
+		groupRepo:    gr,
 		aiService:    ai,
 		notifService: ns,
 		timers:       make(map[string]*time.Timer),
@@ -32,28 +36,26 @@ func (s *InMemScheduler) ScheduleTaskRemind(ctx context.Context, task *domain.Ta
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	key := fmt.Sprintf("%s:%s:%d", task.ID, userID, intervalMinutes)
+	key := fmt.Sprintf("task:%s:%s:%d", task.ID, userID, intervalMinutes)
 
-	// すでに同じ予約があれば上書き（再予約）する．
 	if oldTimer, ok := s.timers[key]; ok {
 		oldTimer.Stop()
 	}
 
 	delay := time.Until(runAt)
 	if delay <= 0 {
-		return nil // すでに過ぎている場合は何もしない
+		return nil
 	}
 
 	timer := time.AfterFunc(delay, func() {
 		runCtx := context.Background()
-
-		// AI メッセージの生成
 		msg, err := s.aiService.GenerateRemindMessage(runCtx, task, style)
 		if err != nil {
 			msg = fmt.Sprintf("【リマインド】課題「%s」の期限まであと %d 分です！", task.Title, intervalMinutes)
 		}
 
-		_ = s.notifService.SendDirectMessage(runCtx, userID, msg)
+		targetURL := fmt.Sprintf("/dashboard?user_id=%s&group_id=%s", userID, task.GroupID)
+		_ = s.notifService.SendDirectMessage(runCtx, userID, msg, targetURL)
 
 		s.mu.Lock()
 		delete(s.timers, key)
@@ -69,12 +71,73 @@ func (s *InMemScheduler) CancelTaskReminds(ctx context.Context, taskID string, u
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	prefix := taskID + ":" + userID + ":"
+	prefix := fmt.Sprintf("task:%s:%s:", taskID, userID)
 	for key, timer := range s.timers {
 		if strings.HasPrefix(key, prefix) {
 			timer.Stop()
 			delete(s.timers, key)
 		}
+	}
+
+	return nil
+}
+
+// ScheduleWakeupSOS は起床確認失敗時の SOS 通知を予約する．
+func (s *InMemScheduler) ScheduleWakeupSOS(ctx context.Context, wakeupID string, userID string, groupID string, runAt time.Time) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	key := "wakeup:" + wakeupID
+
+	if oldTimer, ok := s.timers[key]; ok {
+		oldTimer.Stop()
+	}
+
+	delay := time.Until(runAt)
+	if delay <= 0 {
+		return nil
+	}
+
+	timer := time.AfterFunc(delay, func() {
+		runCtx := context.Background()
+
+		// 1．対象ユーザーとグループの情報を取得する．
+		user, _ := s.userRepo.FindByID(runCtx, userID)
+		group, _ := s.groupRepo.FindByID(runCtx, groupID)
+		if user == nil || group == nil {
+			return
+		}
+
+		// 2．緊急メッセージを作成する（本来は AI が望ましい）．
+		alertMsg := fmt.Sprintf("【緊急】%s さんが起床予定時刻を過ぎてもチェックインしていません！誰か連絡を取ってください！", user.Name)
+
+		// 3．グループメンバー全員（本人以外）に通知を飛ばす．
+		for _, member := range group.Users {
+			if member.ID == userID {
+				continue
+			}
+			targetURL := fmt.Sprintf("/dashboard?user_id=%s&group_id=%s", member.ID, group.ID)
+			_ = s.notifService.SendDirectMessage(runCtx, member.ID, alertMsg, targetURL)
+		}
+
+		s.mu.Lock()
+		delete(s.timers, key)
+		s.mu.Unlock()
+	})
+
+	s.timers[key] = timer
+	return nil
+}
+
+// CancelWakeupSOS は予約済みの SOS 通知を取り消す．
+func (s *InMemScheduler) CancelWakeupSOS(ctx context.Context, wakeupID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	key := "wakeup:" + wakeupID
+	if timer, ok := s.timers[key]; ok {
+		timer.Stop()
+		delete(s.timers, key)
 	}
 
 	return nil

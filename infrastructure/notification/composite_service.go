@@ -31,6 +31,6 @@ func (s *CompositeNotificationService) SendGroupMessage(ctx context.Context, tar
 }
 
 // SendDirectMessage は Web Push サービスに処理を委譲する．
-func (s *CompositeNotificationService) SendDirectMessage(ctx context.Context, userID string, message string) error {
-	return s.webPushService.SendDirectMessage(ctx, userID, message)
+func (s *CompositeNotificationService) SendDirectMessage(ctx context.Context, userID string, message string, targetURL string) error {
+	return s.webPushService.SendDirectMessage(ctx, userID, message, targetURL)
 }

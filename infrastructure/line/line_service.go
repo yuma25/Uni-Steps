@@ -54,7 +54,7 @@ func (s *LineService) SendGroupMessage(ctx context.Context, targetID string, mes
 }
 
 // SendDirectMessage は Web Push など別機能で実装するため，ここではエラーを返すかログを出力する．
-func (s *LineService) SendDirectMessage(ctx context.Context, userID string, message string) error {
+func (s *LineService) SendDirectMessage(ctx context.Context, userID string, message string, targetURL string) error {
 	// 今回の設計では，個人宛の直接通知は Web Push を使用する想定であるため，
 	// LINE サービスでは未実装（Not Implemented）とする．
 	return fmt.Errorf("LineService では SendDirectMessage はサポートされていない")

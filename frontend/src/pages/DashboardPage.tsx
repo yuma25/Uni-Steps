@@ -4,7 +4,26 @@ import { taskApi } from '../api/tasks';
 import { groupApi } from '../api/groups';
 import { notificationApi } from '../api/notifications';
 import type { Task, Group } from '../types';
-import { Bell, RefreshCw, PlusCircle, X, Settings, Plus, Archive, Edit, ChevronDown, ArrowLeft, Users, Calendar, CheckCircle, Clock, Copy, Share2, Trash2, BellRing, Sparkles } from 'lucide-react';
+import { Bell, RefreshCw, PlusCircle, X, Settings, Plus, Archive, Edit, ChevronDown, ArrowLeft, Users, Calendar, CheckCircle, Clock, Copy, Share2, Trash2, BellRing, Sparkles, Send } from 'lucide-react';
+
+/**
+ * Base64 URL 形式の文字列を Uint8Array に変換するヘルパー関数である．
+ * Web Push の VAPID 鍵をブラウザが認識できる形式にするために必要である．
+ */
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/-/g, '+')
+    .replace(/_/g, '/');
+
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
 
 const DashboardPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -95,16 +114,38 @@ const DashboardPage: React.FC = () => {
       
       if (permission === 'granted') {
         const registration = await navigator.serviceWorker.register('/sw.js');
+        
+        // 以前の購読があれば解除してクリーンアップ（不整合防止）
+        const existingSub = await registration.pushManager.getSubscription();
+        if (existingSub) await existingSub.unsubscribe();
+
+        // 公開鍵をバイナリ形式に変換
+        const vapidPublicKey = 'BDj40a3LAnB-Tyemxggm-wYyuHbE_kadO6CqX6u-Ewyrkqi5ypr-txXJO7jflV_4VGa47paZU7DX_-0OPZy6Bx8';
+        const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
+
         const subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: 'BDj40a3LAnB-Tyemxggm-wYyuHbE_kadO6CqX6u-Ewyrkqi5ypr-txXJO7jflV_4VGa47paZU7DX_-0OPZy6Bx8'
+          applicationServerKey: convertedVapidKey
         });
+        
         await notificationApi.subscribe(userId, subscription);
         alert("通知が有効になりました！AI からのリマインドが届くようになります．");
       }
     } catch (err) {
       console.error("Notification error:", err);
       alert("通知の設定に失敗しました．");
+    }
+  };
+
+  const handleSendTestNotification = async () => {
+    try {
+      setLoading(true);
+      await notificationApi.sendTestNotification(userId, settingsFormData.ai_character, groupId);
+      alert("テスト通知を送信しました．数秒以内に届くはずです．");
+    } catch (err: any) {
+      alert(`テスト通知の送信に失敗しました：${err.response?.data?.error || err.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -210,6 +251,7 @@ const DashboardPage: React.FC = () => {
     const myStatus = getTaskStatus(task);
     const deadlineDate = new Date(task.deadline);
     const isUndetermined = deadlineDate.getFullYear() <= 1;
+    
     const canEdit = task.source !== 'google_classroom' || !task.is_lms_deadline_set;
 
     return (
@@ -254,6 +296,12 @@ const DashboardPage: React.FC = () => {
           </div>
         </div>
         <div className="header-actions">
+          {notifPermission === 'granted' && (
+            <button onClick={handleSendTestNotification} className="icon-button" title="通知テスト">
+              <Send size={16} />
+              <span>テスト</span>
+            </button>
+          )}
           {notifPermission !== 'granted' && (
             <button onClick={handleEnableNotifications} className="icon-button warning-btn">
               <BellRing size={16} />

@@ -61,7 +61,7 @@ func main() {
 
 	gormDB, err := gorm.Open(postgres.New(postgres.Config{
 		DSN:                  dbURL,
-		PreferSimpleProtocol: true, // プリペアドステートメントを完全に無効化（Supabase の Transaction モード対応）
+		PreferSimpleProtocol: true, // プリペアドステートメントを完全に無効化
 	}), &gorm.Config{
 		PrepareStmt: false,
 	})
@@ -88,14 +88,6 @@ func main() {
 	}
 	log.Println("マイグレーションが完了した．")
 
-	// デモ用の初期データ（必要に応じて）
-	var count int64
-	gormDB.Model(&domain.Group{}).Count(&count)
-	if count == 0 {
-		gormDB.Create(&domain.Group{ID: "default-group-id", Name: "デフォルトグループ", OwnerID: "system-admin"})
-		log.Println("デモ用のデフォルトグループを作成した．")
-	}
-
 	log.Println("各サービスの初期化と依存性の注入を開始中...")
 
 	// --- インフラ層（道具）の初期化 ---
@@ -117,14 +109,10 @@ func main() {
 	compositeNotifService := notification.NewCompositeNotificationService(lineService, webPushService)
 
 	// Google Classroom API 設定
-	googleClientID := os.Getenv("GOOGLE_CLIENT_ID")
-	googleClientSecret := os.Getenv("GOOGLE_CLIENT_SECRET")
-	googleRedirectURL := os.Getenv("GOOGLE_REDIRECT_URL")
-
 	oauthCfg := &oauth2.Config{
-		ClientID:     googleClientID,
-		ClientSecret: googleClientSecret,
-		RedirectURL:  googleRedirectURL,
+		ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
+		ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
+		RedirectURL:  os.Getenv("GOOGLE_REDIRECT_URL"),
 		Scopes: []string{
 			"openid",
 			"https://www.googleapis.com/auth/userinfo.email",
@@ -137,16 +125,16 @@ func main() {
 	lmsService := lms.NewGoogleClassroomService(userRepo, oauthCfg)
 
 	// スケジューラー（予約管理）の初期化
-	schService := scheduler.NewInMemScheduler(aiService, compositeNotifService)
+	schService := scheduler.NewInMemScheduler(userRepo, groupRepo, aiService, compositeNotifService)
 
 	// --- ユースケース（現場監督）の初期化 ---
 	taskUsecase := usecase.NewTaskUsecase(taskRepo, groupRepo, aiService, schService)
 	syncUsecase := usecase.NewSyncUsecase(taskRepo, groupRepo, lmsService, schService)
-	monitorUsecase := usecase.NewMonitorUsecase(taskRepo, userRepo, groupRepo, wakeupRepo, aiService, compositeNotifService)
 	groupUsecase := usecase.NewGroupUsecase(groupRepo, userRepo)
+	wakeupUsecase := usecase.NewWakeupUsecase(wakeupRepo, schService)
 
-	// 3.5 監視プロセス（Goroutine）の起動
-	go monitorUsecase.StartMonitoring(context.Background())
+	// 監視プロセス（Goroutine）は，予約方式への移行に伴い廃止された．
+	// go monitorUsecase.StartMonitoring(context.Background())
 
 	// Echo サーバーの初期化
 	e := echo.New()
@@ -160,10 +148,10 @@ func main() {
 
 	// ハンドラー（窓口）の初期化とルーティング登録
 	handler.NewTaskHandler(e, taskUsecase, syncUsecase)
-	handler.NewNotificationHandler(e, userRepo)
+	handler.NewNotificationHandler(e, userRepo, aiService, compositeNotifService)
 	handler.NewAuthHandler(e, userRepo, oauthCfg)
 	handler.NewGroupHandler(e, groupUsecase, lmsService)
-	handler.NewWakeupHandler(e, wakeupRepo)
+	handler.NewWakeupHandler(e, wakeupUsecase)
 
 	log.Println("全てのコンポーネントの初期化が完了した．サーバーを起動する．")
 

@@ -13,4 +13,15 @@ export const notificationApi = {
       subscription: JSON.stringify(subscription),
     });
   },
+
+  /**
+   * テスト通知を送信する．
+   */
+  sendTestNotification: async (userId: string, aiCharacter: string, groupId?: string): Promise<void> => {
+    await client.post('/api/notifications/test', {
+      user_id: userId,
+      group_id: groupId,
+      ai_character: aiCharacter,
+    });
+  },
 };

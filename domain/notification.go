@@ -18,7 +18,7 @@ type ReminderJob struct {
 // NotificationService はユーザーやグループへの通知を担うインターフェースである．
 type NotificationService interface {
 	SendGroupMessage(ctx context.Context, targetID string, message string) error
-	SendDirectMessage(ctx context.Context, userID string, message string) error
+	SendDirectMessage(ctx context.Context, userID string, message string, targetURL string) error
 }
 
 // SchedulerService は未来の時刻に特定の処理を予約するためのインターフェースである．
@@ -28,4 +28,10 @@ type SchedulerService interface {
 
 	// CancelTaskReminds は予約済みのすべてのリマインドを取り消す．
 	CancelTaskReminds(ctx context.Context, taskID string, userID string) error
+
+	// ScheduleWakeupSOS は起床確認が失敗した場合の SOS 通知を予約する．
+	ScheduleWakeupSOS(ctx context.Context, wakeupID string, userID string, groupID string, runAt time.Time) error
+
+	// CancelWakeupSOS は予約済みの SOS 通知を取り消す（無事に起きた場合など）．
+	CancelWakeupSOS(ctx context.Context, wakeupID string) error
 }

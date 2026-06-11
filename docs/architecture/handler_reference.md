@@ -100,6 +100,12 @@ Web Push 等の購読情報を管理する．
 - **ボディ**: `{"user_id": "ID", "subscription": "JSON文字列"}`
 - **戻り値**: `200 OK`
 
+### 🔧 `POST /api/notifications/test` (`SendTestNotification`)
+動作確認用のテスト通知を即座に送信する．
+- **ボディ**: `{"user_id": "本人ID", "group_id": "部屋ID (任意)", "ai_character": "strict"}`
+- **詳細**: `group_id` が指定されている場合，通知をクリックすると該当する部屋のダッシュボードが開く．指定がない場合は部屋選択画面へ遷移する．
+- **戻り値**: `200 OK`
+
 ---
 
 ## 5. 起床管理 (WakeupHandler)

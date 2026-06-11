@@ -28,7 +28,7 @@ func NewWebPushService(ur domain.UserRepository, pubKey, privKey, contact string
 }
 
 // SendDirectMessage は指定されたユーザーのブラウザに対して Web Push 通知を送信する．
-func (s *WebPushService) SendDirectMessage(ctx context.Context, userID string, message string) error {
+func (s *WebPushService) SendDirectMessage(ctx context.Context, userID string, message string, targetURL string) error {
 	// 1．対象ユーザーの情報をデータベースから取得する．
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
@@ -44,8 +44,16 @@ func (s *WebPushService) SendDirectMessage(ctx context.Context, userID string, m
 		return fmt.Errorf("Web Push トークンの解析に失敗した： %w", err)
 	}
 
-	// 3．送信するメッセージをバイト配列にする．
-	messageBytes := []byte(message)
+	// 3．送信するメッセージを JSON 構造体にまとめる．
+	payload := map[string]string{
+		"title": "Uni-Steps",
+		"body":  message,
+		"url":   targetURL,
+	}
+	messageBytes, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("通知データの JSON 変換に失敗した： %w", err)
+	}
 
 	// 4．Web Push 通知を送信する．
 	resp, err := webpush.SendNotification(messageBytes, &sub, &webpush.Options{

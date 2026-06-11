@@ -4,20 +4,19 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
-	"github.com/yuma25/Uni-Steps/domain"
+	"github.com/yuma25/Uni-Steps/usecase"
 )
 
 // WakeupHandler は起床確認の予約やチェックインを受け付ける窓口である．
 type WakeupHandler struct {
-	wakeupRepo domain.WakeupRepository
+	wakeupUsecase *usecase.WakeupUsecase
 }
 
 // NewWakeupHandler はハンドラーを初期化し，ルーティングを登録する．
-func NewWakeupHandler(e *echo.Echo, wr domain.WakeupRepository) {
+func NewWakeupHandler(e *echo.Echo, uc *usecase.WakeupUsecase) {
 	h := &WakeupHandler{
-		wakeupRepo: wr,
+		wakeupUsecase: uc,
 	}
 	e.POST("/api/wakeup/request", h.RequestWakeupCheck)
 	e.POST("/api/wakeup/checkin", h.CheckIn)
@@ -40,23 +39,9 @@ func (h *WakeupHandler) RequestWakeupCheck(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "時刻の形式が不正である"})
 	}
 
-	grace := req.GraceMinutes
-	if grace == 0 {
-		grace = 5 // デフォルト5分
-	}
-
-	check := &domain.WakeupCheck{
-		ID:           uuid.New().String(),
-		UserID:       req.UserID,
-		GroupID:      req.GroupID,
-		TargetTime:   targetTime,
-		GraceMinutes: grace,
-		Status:       domain.WakeupStatusPending,
-		CreatedAt:    time.Now(),
-	}
-
-	if err := h.wakeupRepo.Save(c.Request().Context(), check); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "予約に失敗した"})
+	check, err := h.wakeupUsecase.RequestWakeup(c.Request().Context(), req.UserID, req.GroupID, targetTime, req.GraceMinutes)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
 	return c.JSON(http.StatusCreated, check)
@@ -71,15 +56,9 @@ func (h *WakeupHandler) CheckIn(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "リクエスト形式が不正である"})
 	}
 
-	// ユーザーの進行中の起床確認を取得する．
-	checks, err := h.wakeupRepo.FindActiveByUser(c.Request().Context(), req.UserID)
+	err := h.wakeupUsecase.ConfirmWakeup(c.Request().Context(), req.UserID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "データの取得に失敗した"})
-	}
-
-	for _, check := range checks {
-		check.Status = domain.WakeupStatusConfirmed
-		_ = h.wakeupRepo.Save(c.Request().Context(), check)
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
 	return c.JSON(http.StatusOK, map[string]string{"message": "起床を確認した．おはよう！"})

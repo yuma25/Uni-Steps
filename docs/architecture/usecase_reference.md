@@ -133,26 +133,30 @@ Google Classroom 等の外部システムから情報を統合するロジック
 
 ---
 
-## 4. 自動監視 (MonitorUsecase)
+## 4. 起床確認 (WakeupUsecase)
+生活リズムの改善を支援する起床見守りロジックを管理する．
 
-### 📦 `type MonitorUsecase struct`
-バックエンドで常駐し，時間経過による自動処理を行う構造体である．
+### 📦 `type WakeupUsecase struct`
+起床確認の登録や判定を行う構造体である．
 - **フィールド**:
-  - リポジトリ群 (Task, User, Group, Wakeup) および AI, 通知サービスへの依存を持つ．
+  - `wakeupRepo domain.WakeupRepository`: 起床記録の保存を担当する．
+  - `scheduler domain.SchedulerService`: SOS 通知の予約を担当する．
 
-### ⚙️ `func NewMonitorUsecase(...) *MonitorUsecase`
-`MonitorUsecase` のコンストラクタである．
+### ⚙️ `func NewWakeupUsecase(wr, sch) *WakeupUsecase`
+`WakeupUsecase` のコンストラクタである．
 
-### 🔧 `func (uc *MonitorUsecase) StartMonitoring(ctx)`
-定期監視プロセス（Goroutine）を起動する手順である．
+### 🔧 `func (uc *WakeupUsecase) RequestWakeup(ctx, userID, groupID, targetTime, graceMinutes) (*domain.WakeupCheck, error)`
+新しい起床見守りを予約し，同時にスケジューラーに SOS 発信を登録する手順である．
+- **SOS 予約**: 起床予定時刻に猶予時間（`graceMinutes`）を加えた時刻に，自動的に SOS 通知が走るよう予約を行う．
 - **引数**:
-  - `ctx context.Context`: このコンテキストが終了（Done）すると，監視も停止する．
+  - `targetTime time.Time`: 起床を約束した時刻．
+  - `graceMinutes int`: 寝坊と判定するまでの猶予時間．
+- **戻り値**:
+  - `*domain.WakeupCheck`: 作成された起床確認オブジェクト．
 
-### 🔧 `func (uc *MonitorUsecase) checkApproachingTasks(ctx)` (内部処理)
-締め切り間近の課題に対し，AI が生成したリマインド文をログに出力する（将来的に送信）．
-
-### 🔧 `func (uc *MonitorUsecase) checkWakeupStatuses(ctx)` (内部処理)
-起床予定時刻を過ぎた「未確認」のユーザーに対し，グループメンバーへ SOS 通知を送信する．
+### 🔧 `func (uc *WakeupUsecase) ConfirmWakeup(ctx, userID) error`
+本人の起床を確認し，予約されていた SOS 通知をキャンセルする手順である．
+- **処理**: ステータスを `confirmed` に更新し，スケジューラーから該当する SOS 予約を削除する．
 
 ---
 *最終更新日: 2026年6月11日*
