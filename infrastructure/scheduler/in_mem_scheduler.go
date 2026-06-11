@@ -3,6 +3,7 @@ package scheduler
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 	"sync"
 	"time"
@@ -44,8 +45,11 @@ func (s *InMemScheduler) ScheduleTaskRemind(ctx context.Context, task *domain.Ta
 
 	delay := time.Until(runAt)
 	if delay <= 0 {
+		log.Printf("[Scheduler] 期限が過去のため予約をスキップ: %s (at %v)\n", task.Title, runAt)
 		return nil
 	}
+
+	log.Printf("[Scheduler] リマインド予約完了: %s (in %v)\n", task.Title, delay)
 
 	timer := time.AfterFunc(delay, func() {
 		runCtx := context.Background()
@@ -72,13 +76,18 @@ func (s *InMemScheduler) CancelTaskReminds(ctx context.Context, taskID string, u
 	defer s.mu.Unlock()
 
 	prefix := fmt.Sprintf("task:%s:%s:", taskID, userID)
+	count := 0
 	for key, timer := range s.timers {
 		if strings.HasPrefix(key, prefix) {
 			timer.Stop()
 			delete(s.timers, key)
+			count++
 		}
 	}
 
+	if count > 0 {
+		log.Printf("[Scheduler] リマインドキャンセル完了: %s (計 %d 件)\n", taskID, count)
+	}
 	return nil
 }
 
@@ -95,8 +104,11 @@ func (s *InMemScheduler) ScheduleWakeupSOS(ctx context.Context, wakeupID string,
 
 	delay := time.Until(runAt)
 	if delay <= 0 {
+		log.Printf("[Scheduler] 起床時刻が過去のため SOS 予約をスキップ (at %v)\n", runAt)
 		return nil
 	}
+
+	log.Printf("[Scheduler] SOS 通知を予約: ID=%s (in %v)\n", wakeupID, delay)
 
 	timer := time.AfterFunc(delay, func() {
 		runCtx := context.Background()
@@ -105,20 +117,22 @@ func (s *InMemScheduler) ScheduleWakeupSOS(ctx context.Context, wakeupID string,
 		user, _ := s.userRepo.FindByID(runCtx, userID)
 		group, _ := s.groupRepo.FindByID(runCtx, groupID)
 		if user == nil || group == nil {
+			log.Printf("[Scheduler] SOS 実行失敗: ユーザーまたはグループが見つからない\n")
 			return
 		}
 
-		// 2．緊急メッセージを作成する（本来は AI が望ましい）．
+		// 2．緊急メッセージを作成する．
 		alertMsg := fmt.Sprintf("【緊急】%s さんが起床予定時刻を過ぎてもチェックインしていません！誰か連絡を取ってください！", user.Name)
 
-		// 3．グループメンバー全員（本人以外）に通知を飛ばす．
+		// 3．グループメンバー全員（本人を含む）に通知を飛ばす．
+		sentCount := 0
 		for _, member := range group.Users {
-			if member.ID == userID {
-				continue
-			}
 			targetURL := fmt.Sprintf("/dashboard?user_id=%s&group_id=%s", member.ID, group.ID)
 			_ = s.notifService.SendDirectMessage(runCtx, member.ID, alertMsg, targetURL)
+			sentCount++
 		}
+
+		log.Printf("[Scheduler] SOS 発信完了: 対象=%s, 送信先=%d 人（本人含む）\n", user.Name, sentCount)
 
 		s.mu.Lock()
 		delete(s.timers, key)
@@ -138,6 +152,7 @@ func (s *InMemScheduler) CancelWakeupSOS(ctx context.Context, wakeupID string) e
 	if timer, ok := s.timers[key]; ok {
 		timer.Stop()
 		delete(s.timers, key)
+		log.Printf("[Scheduler] SOS 通知予約をキャンセル: ID=%s\n", wakeupID)
 	}
 
 	return nil

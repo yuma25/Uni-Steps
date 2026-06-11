@@ -9,8 +9,6 @@ export const groupApi = {
    * ユーザーが所属しているグループ一覧を取得する．
    */
   listMyGroups: async (userId: string): Promise<Group[]> => {
-    // 本来はバックエンドに専用のエンドポイントが必要であるが，
-    // 現時点ではプロトタイプ用として全取得などの代替手段を想定する．
     const resp = await client.get<Group[]>(`/api/users/${userId}/groups`);
     return resp.data;
   },
@@ -47,10 +45,11 @@ export const groupApi = {
   /**
    * 部屋の設定（リマインド間隔など）を更新する．
    */
-  updateSettings: async (groupId: string, intervals: number[], userId: string): Promise<void> => {
+  updateSettings: async (groupId: string, intervals: number[], userId: string, aiCharacter: string): Promise<void> => {
     await client.patch(`/api/groups/${groupId}/settings`, {
       remind_intervals: intervals,
       user_id: userId,
+      ai_character: aiCharacter,
     });
   },
 };

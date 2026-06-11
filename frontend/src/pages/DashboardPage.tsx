@@ -59,6 +59,16 @@ const DashboardPage: React.FC = () => {
 
   const [newInterval, setNewInterval] = useState<string>('');
 
+  // モーダルが開いた時に最新のグループ設定をフォームに反映する．
+  useEffect(() => {
+    if (showSettingsModal && group) {
+      setSettingsFormData({
+        remind_intervals: group.remind_intervals || [1440, 60],
+        ai_character: group.ai_character || 'default'
+      });
+    }
+  }, [showSettingsModal, group]);
+
   useEffect(() => {
     if (!userId || !groupId) {
       navigate('/login');
@@ -70,31 +80,36 @@ const DashboardPage: React.FC = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [taskData, groups, wakeups] = await Promise.all([
+      setError(null);
+
+      const [taskDataRes, groupsRes, wakeupsRes] = await Promise.allSettled([
         taskApi.listGroupTasks(groupId),
         groupApi.listMyGroups(userId),
         wakeupApi.getActive(userId)
       ]);
-      
-      setTasks(taskData || []);
-      if (groups && Array.isArray(groups)) {
-        const currentGroup = groups.find(g => g.id === groupId);
-        if (currentGroup) {
-          setGroup(currentGroup);
-          setSettingsFormData({ 
-            remind_intervals: currentGroup.remind_intervals || [1440, 60],
-            ai_character: currentGroup.ai_character || 'default'
-          });
+
+      if (taskDataRes.status === 'fulfilled') {
+        setTasks(taskDataRes.value || []);
+      }
+
+      if (groupsRes.status === 'fulfilled') {
+        const groups = groupsRes.value;
+        if (groups && Array.isArray(groups)) {
+          const currentGroup = groups.find(g => g.id === groupId);
+          if (currentGroup) {
+            setGroup(currentGroup);
+          }
         }
       }
-      
-      const pendingWakeup = wakeups.find(w => w.status === 'pending');
-      setActiveWakeup(pendingWakeup || null);
-      
-      setError(null);
+
+      if (wakeupsRes.status === 'fulfilled') {
+        const wakeups = wakeupsRes.value;
+        const pendingWakeup = wakeups.find(w => w.status === 'pending');
+        setActiveWakeup(pendingWakeup || null);
+      }
     } catch (err: any) {
       console.error("Fetch error:", err);
-      setError("データの取得に失敗した．サーバーとの通信を確認してほしい．");
+      setError("データの取得中に予期せぬエラーが発生した．");
     } finally {
       setLoading(false);
     }
@@ -232,6 +247,33 @@ const DashboardPage: React.FC = () => {
     }
   };
 
+  const addInterval = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const val = parseInt(newInterval);
+    if (settingsFormData.remind_intervals.length >= 3) {
+      alert("リマインド通知は最大 3 つまで設定できます．");
+      return;
+    }
+    if (!isNaN(val) && val > 0) {
+      if (settingsFormData.remind_intervals.includes(val)) {
+        alert("その時間は既に設定されています．");
+        return;
+      }
+      setSettingsFormData(prev => ({
+        ...prev,
+        remind_intervals: [...prev.remind_intervals, val].sort((a, b) => b - a)
+      }));
+      setNewInterval('');
+    }
+  };
+
+  const removeInterval = (val: number) => {
+    setSettingsFormData(prev => ({
+      ...prev,
+      remind_intervals: prev.remind_intervals.filter(i => i !== val)
+    }));
+  };
+
   const getTaskStatus = (task: Task) => {
     const myProgress = task.user_progress?.find(p => p.user_id === userId);
     const deadlineDate = new Date(task.deadline);
@@ -317,7 +359,6 @@ const DashboardPage: React.FC = () => {
       <main className="dashboard-content">
         {error && <div className="error-message">{error}</div>}
 
-        {/* 起床確認セクション */}
         <section className="wakeup-section">
           {activeWakeup ? (
             <div className="wakeup-card active">
@@ -424,19 +465,12 @@ const DashboardPage: React.FC = () => {
                 <label>リマインド通知タイミング（分前 / 最大3つ）</label>
                 <div className="interval-list">
                   {settingsFormData.remind_intervals.map(val => (
-                    <div key={val} className="interval-tag"><span>{val >= 1440 ? `${val/1440}日` : val >= 60 ? `${val/60}時間` : `${val}分`}前</span><button type="button" onClick={() => { setSettingsFormData({...settingsFormData, remind_intervals: settingsFormData.remind_intervals.filter(i => i !== val)}); }} className="remove-btn"><X size={12} /></button></div>
+                    <div key={val} className="interval-tag"><span>{val >= 1440 ? `${val/1440}日` : val >= 60 ? `${val/60}時間` : `${val}分`}前</span><button type="button" onClick={() => removeInterval(val)} className="remove-btn"><X size={12} /></button></div>
                   ))}
                 </div>
                 <div className="interval-input-group">
                   <input type="number" value={newInterval} onChange={e => setNewInterval(e.target.value)} placeholder="例：30" />
-                  <button type="button" onClick={() => {
-                    const val = parseInt(newInterval);
-                    if (settingsFormData.remind_intervals.length >= 3) { alert("最大 3 つまでです．"); return; }
-                    if (!isNaN(val) && val > 0 && !settingsFormData.remind_intervals.includes(val)) {
-                      setSettingsFormData({ ...settingsFormData, remind_intervals: [...settingsFormData.remind_intervals, val].sort((a, b) => b - a) });
-                      setNewInterval('');
-                    }
-                  }} className="icon-button">追加</button>
+                  <button type="button" onClick={addInterval} className="icon-button">追加</button>
                 </div>
               </div>
               <button type="submit" disabled={loading} className="icon-button primary full-width" style={{marginTop: '1rem', justifyContent: 'center'}}>設定を保存する</button>

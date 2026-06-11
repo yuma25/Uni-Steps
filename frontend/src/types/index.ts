@@ -50,5 +50,7 @@ export interface Group {
   line_group_id?: string;      // 通知先の LINE グループ ID である．
   last_synced_at?: string;     // 最終同期時刻である．
   lms_last_updated_at?: string; // LMS 側の最終更新時刻である．
+  remind_intervals: number[];   // リマインド通知のタイミングである．
+  ai_character: string;        // AI の性格設定である．
   users?: User[];              // 所属メンバー
 }
