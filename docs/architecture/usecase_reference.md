@@ -43,6 +43,16 @@
   - `[]*domain.Group`: 所属している部屋のリスト．各部屋には `Users` リストが Preload（事前読み込み）されている．
   - `error`: 取得失敗時のエラー．
 
+### 🔧 `func (uc *GroupUsecase) UpdateSettings(ctx, groupID, userID, intervals) error`
+部屋の設定（リマインド間隔など）を更新する手順である．
+- **権限**: `userID` がその部屋のオーナーである場合のみ実行を許可する．
+- **制約**: フロントエンド側で最大 3 つまでの制限が課されている．
+- **引数**:
+  - `userID string`: 設定変更を要求しているユーザーの ID．
+  - `intervals []int`: 新しいリマインドタイミングのリスト（分前）．
+- **戻り値**:
+  - `error`: 権限不足や保存失敗時のエラー．
+
 ---
 
 ## 2. 課題管理 (TaskUsecase)
@@ -51,17 +61,20 @@
 手動での課題操作や進捗更新を管理する構造体である．
 - **フィールド**:
   - `taskRepo domain.TaskRepository`: 課題データの保存・検索を担当する．
+  - `groupRepo domain.GroupRepository`: 部屋の設定（通知タイミング等）を確認するために使用する．
   - `aiService domain.AIService`: メッセージ生成を担当する．
+  - `scheduler domain.SchedulerService`: リマインド予約を管理する．
 
-### ⚙️ `func NewTaskUsecase(tr, ai) *TaskUsecase`
-`TaskUsecase` の新しいインスタンスを生成するコンストラクタである．
+### ⚙️ `func NewTaskUsecase(tr, gr, ai, sch) *TaskUsecase`
+`TaskUsecase` の新しいインスタンスを生成するコンストラクタである．新たに部屋リポジトリ（`gr`）を必要とする．
 
 ### 🔧 `func (uc *TaskUsecase) RegisterManualTask(ctx, task) (*domain.Task, error)`
 ユーザーが UI から入力した情報に基づき，新しい課題を登録する手順である．
+- **リマインド予約**: 登録完了後，部屋の `RemindIntervals` 設定に基づき，複数のリマインド通知を自動的に予約する．
 - **引数**:
-  - `task *domain.Task`: 登録する課題のプロトタイプ．タイトルは必須．
+  - `task *domain.Task`: 登録する課題のプロトタイプ．
 - **戻り値**:
-  - `*domain.Task`: 保存された課題オブジェクト．UUID が自動発行される．
+  - `*domain.Task`: 保存された課題オブジェクト．
   - `error`: バリデーション違反や保存失敗時のエラー．
 
 ### 🔧 `func (uc *TaskUsecase) ListGroupTasks(ctx, groupID) ([]*domain.Task, error)`

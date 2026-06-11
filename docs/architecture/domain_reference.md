@@ -54,6 +54,7 @@
 | `LastSyncedAt` | `time.Time` | 同期処理を最後に実行した時刻 |
 | `LMSLastUpdatedAt` | `time.Time` | 外部 LMS 側で最後に更新が検知された時刻 |
 | `InviteCode` | `string` | 8 桁の参加用招待コード (UK) |
+| `RemindIntervals` | `[]int` | リマインド通知を飛ばすタイミング（分前）のリストである．最大 3 つまで保持する． |
 | `Users` | `[]*User` | 所属メンバーのリスト (M:M) |
 
 ### 📦 `type User struct`

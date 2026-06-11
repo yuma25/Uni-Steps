@@ -139,7 +139,11 @@ const DashboardPage: React.FC = () => {
 
   const addInterval = () => {
     const val = parseInt(newInterval);
-    if (!isNaN(val) && !settingsFormData.remind_intervals.includes(val)) {
+    if (settingsFormData.remind_intervals.length >= 3) {
+      alert("リマインド通知は最大 3 つまで設定できます．");
+      return;
+    }
+    if (!isNaN(val) && val > 0 && !settingsFormData.remind_intervals.includes(val)) {
       setSettingsFormData({
         ...settingsFormData,
         remind_intervals: [...settingsFormData.remind_intervals, val].sort((a, b) => b - a)
@@ -178,13 +182,19 @@ const DashboardPage: React.FC = () => {
 
   const renderTaskCard = (task: Task) => {
     const myStatus = getTaskStatus(task);
-    const isUndetermined = new Date(task.deadline).getFullYear() <= 1;
-    const canEdit = task.source !== 'google_classroom' || isUndetermined;
+    const deadlineDate = new Date(task.deadline);
+    const isUndetermined = deadlineDate.getFullYear() <= 1;
+    
+    // 編集ボタン（鉛筆）を出す条件：
+    // 1. 手動登録の課題である (source !== 'google_classroom')
+    // 2. Classroom 課題だが，Google 側で期限が設定されていなかった (!is_lms_deadline_set)
+    const canEdit = task.source !== 'google_classroom' || !task.is_lms_deadline_set;
+
     return (
       <div key={task.id} className="task-card">
         <div className="task-info">
           <h3>{task.title}</h3>
-          <p className="deadline"><Calendar size={13} /><span>{isUndetermined ? "期限未定" : new Date(task.deadline).toLocaleString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span></p>
+          <p className="deadline"><Calendar size={13} /><span>{isUndetermined ? "期限未定" : deadlineDate.toLocaleString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span></p>
           <div className="member-status-list">
             {task.user_progress?.map(p => (
               <span key={p.user_id} className={`member-badge ${p.is_completed ? 'completed' : ''}`}>{p.user_name || "User"}: {p.is_completed ? "完了" : "未"}</span>
@@ -244,7 +254,6 @@ const DashboardPage: React.FC = () => {
         )}
       </main>
 
-      {/* 課題登録・編集モーダル */}
       {showTaskModal && (
         <div className="modal-overlay">
           <div className="modal-content animate-pop">

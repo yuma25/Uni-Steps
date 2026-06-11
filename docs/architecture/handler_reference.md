@@ -48,6 +48,13 @@ Google での承認後に呼び出されるコールバック窓口である．
 - **パスパラメータ**: `userId`
 - **戻り値**: `200 OK` (部屋リストの配列)
 
+### 🔧 `PATCH /api/groups/:groupId/settings` (`UpdateGroupSettings`)
+部屋の設定（リマインドタイミング等）を更新する．
+- **権限**: オーナーのみ許可される．
+- **パスパラメータ**: `groupId`
+- **ボディ**: `{"remind_intervals": [60, 1440], "user_id": "本人ID"}`
+- **戻り値**: `200 OK` (成功メッセージ)
+
 ---
 
 ## 3. 課題管理 (TaskHandler)

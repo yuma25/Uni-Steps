@@ -44,22 +44,19 @@ HTTP サーバーの本体を管理する構造体である．
 ## 2. データベース ORM (GORM)
 **Package**: `gorm.io/gorm`  
 **Reference**: [pkg.go.dev/gorm.io/gorm](https://pkg.go.dev/gorm.io/gorm)
-
 ### 📦 `type DB struct`
 データベース操作を管理するメインの構造体である．
 *   ⚙️ `func Open(dialector Dialer, config *Config) (*DB, error)`: 接続を開く．
 *   🔧 `func (db *DB) AutoMigrate(dst ...interface{}) error`: テーブルの自動作成・更新を行う．
-*   🔧 `func (db *DB) WithContext(ctx context.Context) *DB`: タイムアウト制御用コンテキストを適用する．
-*   🔧 `func (db *DB) Save(value interface{}) *DB`: レコードの保存（INSERT/UPDATE）を行う．
-*   🔧 `func (db *DB) Create(value interface{}) *DB`: レコードを新規作成する．
-*   🔧 `func (db *DB) Where(query interface{}, args ...interface{}) *DB`: 取得条件を指定する．
-*   🔧 `func (db *DB) First(dest interface{}, conds ...interface{}) *DB`: 条件に一致する最初の1件を取得する．
-*   🔧 `func (db *DB) Find(dest interface{}, conds ...interface{}) *DB`: 条件に一致する全件を取得する．
-*   🔧 `func (db *DB) Model(value interface{}) *DB`: 操作対象のモデルを指定する．
-*   🔧 `func (db *DB) Count(count *int64) *DB`: 件数をカウントする．
 
-### 🏷️ タグ・定数
-*   🏷️ `gorm:"serializer:json"`: Go の複雑な型（スライス等）を JSON 形式で DB 列に保存する．
+### ⚙️ `package postgres`
+PostgreSQL ドライバの設定を行う．
+*   📦 `type Config struct`: 接続の詳細設定を保持する．
+    *   🏷️ `PreferSimpleProtocol bool`: プリペアドステートメントを使用せず，シンプルなプロトコルを強制する設定である．Supabase 等の Transaction プーリング環境でのエラー防止に必須である．
+
+---
+
+## 3. 生成 AI (Google Generative AI)
 *   🏷️ `gorm:"primaryKey"`: 主キーとして指定する．
 *   🏷️ `gorm:"unique"`: ユニーク制約を付与する．
 *   🏷️ `gorm:"many2many:table_name"`: 多対多の関係を中間テーブルとして定義する．
