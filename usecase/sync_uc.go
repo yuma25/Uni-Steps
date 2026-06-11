@@ -90,7 +90,7 @@ func (uc *SyncUsecase) SyncTasks(ctx context.Context, userID string, groupID str
 			for _, up := range task.UserProgress {
 				if !up.IsCompleted {
 					for _, interval := range group.RemindIntervals {
-						_ = uc.scheduler.ScheduleTaskRemind(ctx, task, up.UserID, interval, task.Deadline.Add(-time.Duration(interval)*time.Minute))
+						_ = uc.scheduler.ScheduleTaskRemind(ctx, task, up.UserID, interval, group.AICharacter, task.Deadline.Add(-time.Duration(interval)*time.Minute))
 					}
 				} else {
 					_ = uc.scheduler.CancelTaskReminds(ctx, task.ID, up.UserID)

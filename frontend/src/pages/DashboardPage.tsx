@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { taskApi } from '../api/tasks';
 import { groupApi } from '../api/groups';
+import { notificationApi } from '../api/notifications';
 import type { Task, Group } from '../types';
-import { Bell, RefreshCw, PlusCircle, X, Settings, Plus, Archive, Edit, ChevronDown, ArrowLeft, Users, Calendar, CheckCircle, Clock, Copy, Share2, Trash2 } from 'lucide-react';
+import { Bell, RefreshCw, PlusCircle, X, Settings, Plus, Archive, Edit, ChevronDown, ArrowLeft, Users, Calendar, CheckCircle, Clock, Copy, Share2, Trash2, BellRing, Sparkles } from 'lucide-react';
 
 const DashboardPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -19,6 +20,7 @@ const DashboardPage: React.FC = () => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [showArchive, setShowArchive] = useState(false);
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission>(Notification.permission);
 
   const [taskFormData, setTaskFormData] = useState({
     title: '',
@@ -28,7 +30,8 @@ const DashboardPage: React.FC = () => {
   });
 
   const [settingsFormData, setSettingsFormData] = useState({
-    remind_intervals: [] as number[]
+    remind_intervals: [] as number[],
+    ai_character: 'default'
   });
 
   const [newInterval, setNewInterval] = useState<string>('');
@@ -53,7 +56,10 @@ const DashboardPage: React.FC = () => {
         const currentGroup = groups.find(g => g.id === groupId);
         if (currentGroup) {
           setGroup(currentGroup);
-          setSettingsFormData({ remind_intervals: currentGroup.remind_intervals || [1440, 60] });
+          setSettingsFormData({ 
+            remind_intervals: currentGroup.remind_intervals || [1440, 60],
+            ai_character: currentGroup.ai_character || 'default'
+          });
         }
       }
       setError(null);
@@ -79,6 +85,26 @@ const DashboardPage: React.FC = () => {
       alert(err.response?.data?.error || "同期に失敗した．");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleEnableNotifications = async () => {
+    try {
+      const permission = await Notification.requestPermission();
+      setNotifPermission(permission);
+      
+      if (permission === 'granted') {
+        const registration = await navigator.serviceWorker.register('/sw.js');
+        const subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: 'BDj40a3LAnB-Tyemxggm-wYyuHbE_kadO6CqX6u-Ewyrkqi5ypr-txXJO7jflV_4VGa47paZU7DX_-0OPZy6Bx8'
+        });
+        await notificationApi.subscribe(userId, subscription);
+        alert("通知が有効になりました！AI からのリマインドが届くようになります．");
+      }
+    } catch (err) {
+      console.error("Notification error:", err);
+      alert("通知の設定に失敗しました．");
     }
   };
 
@@ -126,7 +152,7 @@ const DashboardPage: React.FC = () => {
     e.preventDefault();
     try {
       setLoading(true);
-      await groupApi.updateSettings(groupId, settingsFormData.remind_intervals, userId);
+      await groupApi.updateSettings(groupId, settingsFormData.remind_intervals, userId, settingsFormData.ai_character);
       setShowSettingsModal(false);
       await fetchData();
       alert("設定を保存しました．");
@@ -184,10 +210,6 @@ const DashboardPage: React.FC = () => {
     const myStatus = getTaskStatus(task);
     const deadlineDate = new Date(task.deadline);
     const isUndetermined = deadlineDate.getFullYear() <= 1;
-    
-    // 編集ボタン（鉛筆）を出す条件：
-    // 1. 手動登録の課題である (source !== 'google_classroom')
-    // 2. Classroom 課題だが，Google 側で期限が設定されていなかった (!is_lms_deadline_set)
     const canEdit = task.source !== 'google_classroom' || !task.is_lms_deadline_set;
 
     return (
@@ -232,6 +254,12 @@ const DashboardPage: React.FC = () => {
           </div>
         </div>
         <div className="header-actions">
+          {notifPermission !== 'granted' && (
+            <button onClick={handleEnableNotifications} className="icon-button warning-btn">
+              <BellRing size={16} />
+              <span>通知を有効化</span>
+            </button>
+          )}
           <button onClick={handleSync} disabled={loading} className="icon-button"><RefreshCw className={loading ? "animate-spin" : ""} size={16} />同期</button>
           <button onClick={() => { setEditingTask(null); setTaskFormData({ title: '', deadline: '', recurrence_type: 'none', assignees: [userId] }); setShowTaskModal(true); }} className="icon-button primary"><Plus size={16} />課題追加</button>
           {group?.owner_id === userId && (
@@ -254,6 +282,7 @@ const DashboardPage: React.FC = () => {
         )}
       </main>
 
+      {/* 課題登録・編集モーダル */}
       {showTaskModal && (
         <div className="modal-overlay">
           <div className="modal-content animate-pop">
@@ -286,10 +315,25 @@ const DashboardPage: React.FC = () => {
         <div className="modal-overlay">
           <div className="modal-content animate-pop">
             <button onClick={() => setShowSettingsModal(false)} className="close-button"><X size={20} /></button>
-            <div className="modal-header-text"><h2>部屋の設定</h2><p>通知タイミングなどを変更できます．</p></div>
+            <div className="modal-header-text"><h2>部屋の設定</h2><p>通知タイミングや AI の性格を変更できます．</p></div>
             <form onSubmit={handleSaveSettings}>
               <div className="form-group">
-                <label>リマインド通知タイミング（分前）</label>
+                <label>AI のキャラクター設定</label>
+                <select 
+                  className="full-width" 
+                  value={settingsFormData.ai_character} 
+                  onChange={e => setSettingsFormData({...settingsFormData, ai_character: e.target.value})}
+                  style={{padding: '0.8rem', borderRadius: '8px', border: '1px solid var(--neutral-300)'}}
+                >
+                  <option value="default">標準アシスタント</option>
+                  <option value="strict">厳しい教官</option>
+                  <option value="kind">心配性な幼馴染</option>
+                  <option value="cool">冷徹な執事</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>リマインド通知タイミング（分前 / 最大3つ）</label>
                 <div className="interval-list">
                   {settingsFormData.remind_intervals.map(val => (
                     <div key={val} className="interval-tag">

@@ -47,7 +47,7 @@ func (uc *TaskUsecase) RegisterManualTask(ctx context.Context, task *domain.Task
 		for _, up := range task.UserProgress {
 			if !up.IsCompleted {
 				for _, interval := range group.RemindIntervals {
-					_ = uc.scheduler.ScheduleTaskRemind(ctx, task, up.UserID, interval, task.Deadline.Add(-time.Duration(interval)*time.Minute))
+					_ = uc.scheduler.ScheduleTaskRemind(ctx, task, up.UserID, interval, group.AICharacter, task.Deadline.Add(-time.Duration(interval)*time.Minute))
 				}
 			}
 		}
@@ -111,7 +111,7 @@ func (uc *TaskUsecase) UpdateTask(ctx context.Context, taskID string, input *dom
 		for _, up := range existing.UserProgress {
 			if !up.IsCompleted {
 				for _, interval := range group.RemindIntervals {
-					_ = uc.scheduler.ScheduleTaskRemind(ctx, existing, up.UserID, interval, existing.Deadline.Add(-time.Duration(interval)*time.Minute))
+					_ = uc.scheduler.ScheduleTaskRemind(ctx, existing, up.UserID, interval, group.AICharacter, existing.Deadline.Add(-time.Duration(interval)*time.Minute))
 				}
 			} else {
 				_ = uc.scheduler.CancelTaskReminds(ctx, taskID, up.UserID)
@@ -148,7 +148,7 @@ func (uc *TaskUsecase) ToggleUserCompletion(ctx context.Context, taskID, userID 
 				_ = uc.scheduler.CancelTaskReminds(ctx, taskID, userID)
 			} else if group != nil && !task.Deadline.IsZero() {
 				for _, interval := range group.RemindIntervals {
-					_ = uc.scheduler.ScheduleTaskRemind(ctx, task, userID, interval, task.Deadline.Add(-time.Duration(interval)*time.Minute))
+					_ = uc.scheduler.ScheduleTaskRemind(ctx, task, userID, interval, group.AICharacter, task.Deadline.Add(-time.Duration(interval)*time.Minute))
 				}
 			}
 			found = true
@@ -158,7 +158,10 @@ func (uc *TaskUsecase) ToggleUserCompletion(ctx context.Context, taskID, userID 
 
 	if !found {
 		task.UserProgress = append(task.UserProgress, &domain.TaskUserProgress{
-			TaskID: taskID, UserID: userID, IsCompleted: true, UpdatedAt: time.Now(),
+			TaskID:      taskID,
+			UserID:      userID,
+			IsCompleted: true,
+			UpdatedAt:   time.Now(),
 		})
 		_ = uc.scheduler.CancelTaskReminds(ctx, taskID, userID)
 	}

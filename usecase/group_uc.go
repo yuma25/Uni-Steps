@@ -48,6 +48,7 @@ func (uc *GroupUsecase) CreateGroup(ctx context.Context, name string, ownerID st
 		OwnerID:         ownerID,
 		InviteCode:      inviteCode,
 		RemindIntervals: []int{1440, 60}, // デフォルト設定：24時間前と1時間前
+		AICharacter:     domain.AICharacterDefault,
 		Users:           []*domain.User{},
 	}
 
@@ -111,7 +112,7 @@ func (uc *GroupUsecase) ListUserGroups(ctx context.Context, userID string) ([]*d
 }
 
 // UpdateSettings は部屋の設定を更新する．オーナーのみ許可する．
-func (uc *GroupUsecase) UpdateSettings(ctx context.Context, groupID string, userID string, intervals []int) error {
+func (uc *GroupUsecase) UpdateSettings(ctx context.Context, groupID string, userID string, intervals []int, aiCharacter string) error {
 	group, err := uc.groupRepo.FindByID(ctx, groupID)
 	if err != nil {
 		return err
@@ -125,5 +126,6 @@ func (uc *GroupUsecase) UpdateSettings(ctx context.Context, groupID string, user
 	}
 
 	group.RemindIntervals = intervals
+	group.AICharacter = aiCharacter
 	return uc.groupRepo.Save(ctx, group)
 }

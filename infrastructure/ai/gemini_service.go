@@ -25,7 +25,26 @@ func NewGeminiService(client *genai.Client, modelName string) *GeminiService {
 
 // GenerateRemindMessage はタスクの内容に基づいて AI にリマインド文を作らせる．
 func (s *GeminiService) GenerateRemindMessage(ctx context.Context, task *domain.Task, style string) (string, error) {
-	prompt := fmt.Sprintf(`以下の課題について，ユーザーのやる気を引き出すようなリマインドメッセージを作成せよ．スタイル: %s　課題名: %s　期限: %s　短く，心に刺さるメッセージにすること．`, style, task.Title, task.Deadline.Format("1月2日 15時04分"))
+	var characterPrompt string
+	switch style {
+	case domain.AICharacterStrict:
+		characterPrompt = "あなたは非常に厳しい軍隊の指導官です．遅延は一切許されません．"
+	case domain.AICharacterKind:
+		characterPrompt = "あなたはユーザーをいつも心配している，優しくてお節介な幼馴染です．"
+	case domain.AICharacterCool:
+		characterPrompt = "あなたは冷徹で仕事が完璧な執事です．感情を表に出さず，論理的に追い詰めてください．"
+	default:
+		characterPrompt = "あなたは親切なアシスタントです．"
+	}
+
+	prompt := fmt.Sprintf(`%s
+以下の課題について，ユーザーのやる気を引き出すようなリマインドメッセージを作成せよ．
+課題名: %s
+期限: %s
+条件:
+- 100文字以内で，短く心に刺さる言葉にすること．
+- 相手の心拍数が上がるような，切迫感のある表現を含めること．
+- キャラクターの設定を徹底すること．`, characterPrompt, task.Title, task.Deadline.Format("1月2日 15時04分"))
 
 	resp, err := s.model.GenerateContent(ctx, genai.Text(prompt))
 	if err != nil {

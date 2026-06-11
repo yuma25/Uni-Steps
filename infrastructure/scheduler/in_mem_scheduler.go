@@ -28,7 +28,7 @@ func NewInMemScheduler(ai domain.AIService, ns domain.NotificationService) *InMe
 }
 
 // ScheduleTaskRemind は指定された時刻にリマインドを実行するタイマーをセットする．
-func (s *InMemScheduler) ScheduleTaskRemind(ctx context.Context, task *domain.Task, userID string, intervalMinutes int, runAt time.Time) error {
+func (s *InMemScheduler) ScheduleTaskRemind(ctx context.Context, task *domain.Task, userID string, intervalMinutes int, style string, runAt time.Time) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -48,11 +48,6 @@ func (s *InMemScheduler) ScheduleTaskRemind(ctx context.Context, task *domain.Ta
 		runCtx := context.Background()
 
 		// AI メッセージの生成
-		style := "厳しい"
-		if intervalMinutes > 180 {
-			style = "ふつう"
-		}
-
 		msg, err := s.aiService.GenerateRemindMessage(runCtx, task, style)
 		if err != nil {
 			msg = fmt.Sprintf("【リマインド】課題「%s」の期限まであと %d 分です！", task.Title, intervalMinutes)

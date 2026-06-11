@@ -24,7 +24,7 @@ type NotificationService interface {
 // SchedulerService は未来の時刻に特定の処理を予約するためのインターフェースである．
 type SchedulerService interface {
 	// ScheduleTaskRemind は特定の課題に対して，指定されたタイミング（何分前か）でリマインドを予約する．
-	ScheduleTaskRemind(ctx context.Context, task *Task, userID string, intervalMinutes int, runAt time.Time) error
+	ScheduleTaskRemind(ctx context.Context, task *Task, userID string, intervalMinutes int, style string, runAt time.Time) error
 
 	// CancelTaskReminds は予約済みのすべてのリマインドを取り消す．
 	CancelTaskReminds(ctx context.Context, taskID string, userID string) error

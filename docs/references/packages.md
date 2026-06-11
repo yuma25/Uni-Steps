@@ -201,6 +201,12 @@ AI による文章生成を行う構造体である．
 ### 📦 `type Group struct`
 グループ（部屋）の情報を保持する構造体である．
 *   🏷️ `InviteCode string`: 8 桁の参加用招待コードである．
+*   🏷️ `RemindIntervals []int`: リマインド通知を飛ばすタイミング（分前）のリストである．
+*   🏷️ `AICharacter string`: AI の性格設定である．以下の定数を使用する．
+    *   `AICharacterDefault`: 標準アシスタント．
+    *   `AICharacterStrict`: 厳しい教官．
+    *   `AICharacterKind`: 心配性な幼馴染．
+    *   `AICharacterCool`: 冷徹な執事．
 *   🏷️ `Users []*User`: 所属しているメンバーのリストである．
 
 ### 📦 `type User struct`

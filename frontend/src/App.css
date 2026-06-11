@@ -128,9 +128,25 @@ body {
   border: none;
 }
 
-.icon-button.primary:hover { background: #000; box-shadow: var(--shadow-subtle); }
+.icon-button.warning-btn {
+  background-color: var(--warning-bg);
+  color: var(--warning);
+  border-color: var(--warning);
+}
 
-/* Task Cards - Improved Spacing */
+.icon-button.warning-btn:hover {
+  background-color: var(--warning);
+  color: white;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
 .task-section h2 {
   font-size: 0.9rem;
   font-weight: 800;

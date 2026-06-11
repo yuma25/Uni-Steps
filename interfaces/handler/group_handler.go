@@ -31,13 +31,14 @@ func (h *GroupHandler) UpdateGroupSettings(c echo.Context) error {
 	groupID := c.Param("groupId")
 	var req struct {
 		RemindIntervals []int  `json:"remind_intervals"`
+		AICharacter     string `json:"ai_character"`
 		UserID          string `json:"user_id"`
 	}
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "リクエスト形式が不正である"})
 	}
 
-	err := h.groupUsecase.UpdateSettings(c.Request().Context(), groupID, req.UserID, req.RemindIntervals)
+	err := h.groupUsecase.UpdateSettings(c.Request().Context(), groupID, req.UserID, req.RemindIntervals, req.AICharacter)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}

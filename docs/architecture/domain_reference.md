@@ -55,6 +55,7 @@
 | `LMSLastUpdatedAt` | `time.Time` | 外部 LMS 側で最後に更新が検知された時刻 |
 | `InviteCode` | `string` | 8 桁の参加用招待コード (UK) |
 | `RemindIntervals` | `[]int` | リマインド通知を飛ばすタイミング（分前）のリストである．最大 3 つまで保持する． |
+| `AICharacter` | `string` | AI の性格設定 (`default`, `strict`, `kind`, `cool`) である． |
 | `Users` | `[]*User` | 所属メンバーのリスト (M:M) |
 
 ### 📦 `type User struct`

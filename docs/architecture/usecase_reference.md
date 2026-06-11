@@ -43,13 +43,14 @@
   - `[]*domain.Group`: 所属している部屋のリスト．各部屋には `Users` リストが Preload（事前読み込み）されている．
   - `error`: 取得失敗時のエラー．
 
-### 🔧 `func (uc *GroupUsecase) UpdateSettings(ctx, groupID, userID, intervals) error`
-部屋の設定（リマインド間隔など）を更新する手順である．
+### 🔧 `func (uc *GroupUsecase) UpdateSettings(ctx, groupID, userID, intervals, aiCharacter) error`
+部屋の設定（リマインド間隔，AI の性格）を更新する手順である．
 - **権限**: `userID` がその部屋のオーナーである場合のみ実行を許可する．
-- **制約**: フロントエンド側で最大 3 つまでの制限が課されている．
+- **制約**: リマインド間隔は最大 3 つまで設定可能である．
 - **引数**:
   - `userID string`: 設定変更を要求しているユーザーの ID．
   - `intervals []int`: 新しいリマインドタイミングのリスト（分前）．
+  - `aiCharacter string`: 選択された AI のキャラクター（`strict` 等）．
 - **戻り値**:
   - `error`: 権限不足や保存失敗時のエラー．
 

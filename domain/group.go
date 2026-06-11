@@ -2,6 +2,13 @@ package domain
 
 import "time"
 
+const (
+	AICharacterDefault = "default" // 標準的な通知スタイルである．
+	AICharacterStrict  = "strict"  // 厳しい指導官スタイルである．
+	AICharacterKind    = "kind"    // 心配性な幼馴染スタイルである．
+	AICharacterCool    = "cool"    // 冷徹な執事スタイルである．
+)
+
 type Group struct {
 	ID               string    `json:"id" gorm:"primaryKey"`                    // グループの一意識別子である．
 	Name             string    `json:"name"`                                    // グループの名称である．
@@ -12,5 +19,6 @@ type Group struct {
 	LMSLastUpdatedAt time.Time `json:"lms_last_updated_at"`                     // 外部 LMS 側で最後に情報が更新された時刻である（差分検知用）．
 	InviteCode       string    `json:"invite_code" gorm:"uniqueIndex"`          // 参加用の招待コードである．
 	RemindIntervals  []int     `json:"remind_intervals" gorm:"serializer:json"` // 何分前に通知するか（複数設定可）
+	AICharacter      string    `json:"ai_character"`                            // AI の性格設定である．
 	Users            []*User   `json:"users" gorm:"many2many:user_groups;"`     // グループに所属するユーザーのリストである．
 }
