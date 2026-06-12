@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/yuma25/Uni-Steps/domain"
 )
 
@@ -17,17 +18,19 @@ type InMemScheduler struct {
 	groupRepo    domain.GroupRepository
 	aiService    domain.AIService
 	notifService domain.NotificationService
+	logRepo      domain.NotificationLogRepository
 	timers       map[string]*time.Timer // key: "task:taskID:userID:interval" or "wakeup:wakeupID"
 	mu           sync.Mutex
 }
 
 // NewInMemScheduler は InMemScheduler の新しいインスタンスを生成する．
-func NewInMemScheduler(ur domain.UserRepository, gr domain.GroupRepository, ai domain.AIService, ns domain.NotificationService) *InMemScheduler {
+func NewInMemScheduler(ur domain.UserRepository, gr domain.GroupRepository, ai domain.AIService, ns domain.NotificationService, lr domain.NotificationLogRepository) *InMemScheduler {
 	return &InMemScheduler{
 		userRepo:     ur,
 		groupRepo:    gr,
 		aiService:    ai,
 		notifService: ns,
+		logRepo:      lr,
 		timers:       make(map[string]*time.Timer),
 	}
 }
@@ -60,6 +63,16 @@ func (s *InMemScheduler) ScheduleTaskRemind(ctx context.Context, task *domain.Ta
 
 		targetURL := fmt.Sprintf("/dashboard?user_id=%s&group_id=%s", userID, task.GroupID)
 		_ = s.notifService.SendDirectMessage(runCtx, userID, msg, targetURL)
+
+		// 履歴を保存する
+		_ = s.logRepo.Save(runCtx, &domain.NotificationLog{
+			ID:        uuid.New().String(),
+			GroupID:   task.GroupID,
+			UserID:    userID,
+			Type:      domain.NotificationTypeRemind,
+			Message:   msg,
+			CreatedAt: time.Now(),
+		})
 
 		s.mu.Lock()
 		delete(s.timers, key)
@@ -134,6 +147,16 @@ func (s *InMemScheduler) ScheduleWakeupSOS(ctx context.Context, wakeupID string,
 
 		// 4．設定されていれば，LINE グループにも一斉送信する．
 		_ = s.notifService.SendGroupMessage(runCtx, group.ID, alertMsg)
+
+		// 履歴を保存する
+		_ = s.logRepo.Save(runCtx, &domain.NotificationLog{
+			ID:        uuid.New().String(),
+			GroupID:   group.ID,
+			UserID:    userID, // 対象となった（寝坊した）ユーザーのID
+			Type:      domain.NotificationTypeSOS,
+			Message:   alertMsg,
+			CreatedAt: time.Now(),
+		})
 
 		log.Printf("[Scheduler] SOS 発信完了: 対象=%s, 送信先=%d 人（Web Push）\n", user.Name, sentCount)
 

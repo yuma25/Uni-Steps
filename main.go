@@ -82,6 +82,7 @@ func main() {
 		&domain.Task{},
 		&domain.TaskUserProgress{},
 		&domain.WakeupCheck{},
+		&domain.NotificationLog{},
 	)
 	if err != nil {
 		log.Fatalf("マイグレーションに失敗した: %v", err)
@@ -95,6 +96,7 @@ func main() {
 	userRepo := db.NewUserRepository(gormDB)
 	groupRepo := db.NewGroupRepository(gormDB)
 	wakeupRepo := db.NewWakeupRepository(gormDB)
+	logRepo := db.NewNotificationLogRepository(gormDB)
 
 	// Gemini AI の初期化
 	genaiClient, err := genai.NewClient(context.Background(), option.WithAPIKey(os.Getenv("GEMINI_API_KEY")))
@@ -125,12 +127,12 @@ func main() {
 	lmsService := lms.NewGoogleClassroomService(userRepo, oauthCfg)
 
 	// スケジューラー（予約管理）の初期化
-	schService := scheduler.NewInMemScheduler(userRepo, groupRepo, aiService, compositeNotifService)
+	schService := scheduler.NewInMemScheduler(userRepo, groupRepo, aiService, compositeNotifService, logRepo)
 
 	// --- ユースケース（現場監督）の初期化 ---
 	taskUsecase := usecase.NewTaskUsecase(taskRepo, groupRepo, aiService, schService)
 	syncUsecase := usecase.NewSyncUsecase(taskRepo, groupRepo, lmsService, schService)
-	groupUsecase := usecase.NewGroupUsecase(groupRepo, userRepo)
+	groupUsecase := usecase.NewGroupUsecase(groupRepo, userRepo, logRepo)
 	wakeupUsecase := usecase.NewWakeupUsecase(wakeupRepo, schService)
 
 	// 監視プロセス（Goroutine）は，予約方式への移行に伴い廃止された．

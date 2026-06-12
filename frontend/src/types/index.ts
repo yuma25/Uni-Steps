@@ -42,6 +42,15 @@ export interface WakeupCheck {
   created_at: string;
 }
 
+export interface NotificationLog {
+  id: string;
+  group_id: string;
+  user_id: string;
+  type: 'remind' | 'sos';
+  message: string;
+  created_at: string;
+}
+
 export interface Group {
   id: string;                  // グループの一意識別子である．
   name: string;                // グループの名称である．

@@ -54,4 +54,12 @@ export const groupApi = {
       line_group_id: lineGroupId,
     });
   },
+
+  /**
+   * 指定した部屋の通知履歴を取得する．
+   */
+  listNotifications: async (groupId: string): Promise<NotificationLog[]> => {
+    const resp = await client.get<NotificationLog[]>(`/api/groups/${groupId}/notifications`);
+    return resp.data;
+  },
 };

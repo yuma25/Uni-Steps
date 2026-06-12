@@ -51,7 +51,7 @@ func (uc *TaskUsecase) RegisterManualTask(ctx context.Context, task *domain.Task
 
 	// 部屋の設定を取得してリマインドを予約する．
 	group, _ := uc.groupRepo.FindByID(ctx, task.GroupID)
-	if group != nil && !task.Deadline.IsZero() {
+	if group != nil && !task.Deadline.IsZero() && task.Deadline.After(time.Now()) {
 		for _, up := range task.UserProgress {
 			if !up.IsCompleted {
 				for _, interval := range group.RemindIntervals {

@@ -11,15 +11,17 @@ import (
 
 // GroupUsecase はグループ（部屋）の作成や参加に関するビジネスロジックを担当する構造体である．
 type GroupUsecase struct {
-	groupRepo domain.GroupRepository // グループデータの永続化を担うリポジトリである．
-	userRepo  domain.UserRepository  // ユーザー情報を確認するためのリポジトリである．
+	groupRepo domain.GroupRepository           // グループデータの永続化を担うリポジトリである．
+	userRepo  domain.UserRepository            // ユーザー情報を確認するためのリポジトリである．
+	logRepo   domain.NotificationLogRepository // 通知履歴を取得するためのリポジトリである．
 }
 
 // NewGroupUsecase は GroupUsecase の新しいインスタンスを生成する．
-func NewGroupUsecase(gr domain.GroupRepository, ur domain.UserRepository) *GroupUsecase {
+func NewGroupUsecase(gr domain.GroupRepository, ur domain.UserRepository, lr domain.NotificationLogRepository) *GroupUsecase {
 	return &GroupUsecase{
 		groupRepo: gr,
 		userRepo:  ur,
+		logRepo:   lr,
 	}
 }
 
@@ -130,4 +132,9 @@ func (uc *GroupUsecase) UpdateSettings(ctx context.Context, groupID string, user
 	group.LineChannelToken = lineToken
 	group.LineGroupID = lineGroupID
 	return uc.groupRepo.Save(ctx, group)
+}
+
+// GetNotificationLogs は指定されたグループの通知履歴を取得する．
+func (uc *GroupUsecase) GetNotificationLogs(ctx context.Context, groupID string, limit int) ([]*domain.NotificationLog, error) {
+	return uc.logRepo.FindByGroupID(ctx, groupID, limit)
 }

@@ -86,7 +86,8 @@ func (uc *SyncUsecase) SyncTasks(ctx context.Context, userID string, groupID str
 		}
 
 		// 【予約方式】同期した課題のリマインドを予約（部屋の設定に基づく）
-		if !task.Deadline.IsZero() {
+		// 期限が未来の場合のみ予約する
+		if !task.Deadline.IsZero() && task.Deadline.After(time.Now()) {
 			for _, up := range task.UserProgress {
 				if !up.IsCompleted {
 					for _, interval := range group.RemindIntervals {

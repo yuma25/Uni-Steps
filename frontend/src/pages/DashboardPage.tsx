@@ -5,7 +5,7 @@ import { groupApi } from '../api/groups';
 import { notificationApi } from '../api/notifications';
 import { wakeupApi } from '../api/wakeup';
 import { userApi } from '../api/user';
-import type { Task, Group, WakeupCheck } from '../types';
+import type { Task, Group, WakeupCheck, NotificationLog } from '../types';
 import { Bell, RefreshCw, PlusCircle, X, Settings, Plus, Archive, Edit, ChevronDown, ArrowLeft, Users, Calendar, CheckCircle, Clock, Copy, Share2, Trash2, BellRing, Sparkles, Send, Sunrise, Sun, AlertCircle } from 'lucide-react';
 
 /**
@@ -32,6 +32,7 @@ const DashboardPage: React.FC = () => {
   const [group, setGroup] = useState<Group | null>(null);
   const [activeWakeup, setActiveWakeup] = useState<WakeupCheck | null>(null);
   const [groupWakeups, setGroupWakeups] = useState<WakeupCheck[]>([]);
+  const [notificationLogs, setNotificationLogs] = useState<NotificationLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -88,43 +89,48 @@ const DashboardPage: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-// 個別の API コールを並列実行し，失敗しても他を活かすようにする．
-const [taskDataRes, groupsRes, wakeupsRes, userRes, groupWakeupsRes] = await Promise.allSettled([
-  taskApi.listGroupTasks(groupId),
-  groupApi.listMyGroups(userId),
-  wakeupApi.getActive(userId),
-  userApi.getMe(userId),
-  wakeupApi.getActiveByGroup(groupId)
-]);
+      
+      const [taskDataRes, groupsRes, wakeupsRes, userRes, groupWakeupsRes, logsRes] = await Promise.allSettled([
+        taskApi.listGroupTasks(groupId),
+        groupApi.listMyGroups(userId),
+        wakeupApi.getActive(userId),
+        userApi.getMe(userId),
+        wakeupApi.getActiveByGroup(groupId),
+        groupApi.listNotifications(groupId)
+      ]);
 
-if (taskDataRes.status === 'fulfilled') {
-  setTasks(taskDataRes.value || []);
-}
+      if (taskDataRes.status === 'fulfilled') {
+        setTasks(taskDataRes.value || []);
+      }
 
-if (groupsRes.status === 'fulfilled') {
-  const groups = groupsRes.value;
-  if (groups && Array.isArray(groups)) {
-    const currentGroup = groups.find(g => g.id === groupId);
-    if (currentGroup) {
-      setGroup(currentGroup);
-    }
-  }
-}
+      if (groupsRes.status === 'fulfilled') {
+        const groups = groupsRes.value;
+        if (groups && Array.isArray(groups)) {
+          const currentGroup = groups.find(g => g.id === groupId);
+          if (currentGroup) {
+            setGroup(currentGroup);
+          }
+        }
+      }
 
-if (wakeupsRes.status === 'fulfilled') {
-  const wakeups = wakeupsRes.value;
-  const pendingWakeup = wakeups.find(w => w.status === 'pending');
-  setActiveWakeup(pendingWakeup || null);
-}
+      if (wakeupsRes.status === 'fulfilled') {
+        const wakeups = wakeupsRes.value;
+        const pendingWakeup = wakeups.find(w => w.status === 'pending');
+        setActiveWakeup(pendingWakeup || null);
+      }
 
-if (userRes.status === 'fulfilled') {
-  setServerTokenMissing(!userRes.value.has_push_token);
-}
+      if (userRes.status === 'fulfilled') {
+        setServerTokenMissing(!userRes.value.has_push_token);
+      }
 
-if (groupWakeupsRes.status === 'fulfilled') {
-  setGroupWakeups(groupWakeupsRes.value || []);
-}
-} catch (err: any) {
+      if (groupWakeupsRes.status === 'fulfilled') {
+        setGroupWakeups(groupWakeupsRes.value || []);
+      }
+
+      if (logsRes.status === 'fulfilled') {
+        setNotificationLogs(logsRes.value || []);
+      }
+    } catch (err: any) {
       console.error("Fetch error:", err);
       setError("データの取得中に予期せぬエラーが発生した．");
     } finally {
@@ -436,14 +442,13 @@ if (groupWakeupsRes.status === 'fulfilled') {
           )}
         </section>
 
-        {/* メンバーの起床ステータスセクション */}
         {groupWakeups.length > 0 && (
           <section className="group-wakeup-section" style={{marginBottom: '2rem'}}>
             <h3 style={{fontSize: '0.95rem', color: 'var(--text-sub)', marginBottom: '0.8rem'}}>メンバーの起床予定</h3>
             <div className="member-status-list" style={{display: 'flex', flexDirection: 'column', gap: '0.5rem'}}>
               {groupWakeups.map(w => {
                 const member = group?.users?.find(u => u.id === w.user_id);
-                if (!member || member.id === userId) return null; // 自分以外を表示する
+                if (!member || member.id === userId) return null;
                 return (
                   <div key={w.id} style={{display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#f8fafc', padding: '0.6rem', borderRadius: '6px', fontSize: '0.85rem'}}>
                     <span style={{fontWeight: 600}}>{member.name}</span>
@@ -460,6 +465,47 @@ if (groupWakeupsRes.status === 'fulfilled') {
         <section className="task-section">
           <h2>現在の課題</h2>
           {activeTasks.length === 0 ? <p className="empty-state">現在取り組むべき課題はありません．</p> : <div className="task-list">{activeTasks.map(renderTaskCard)}</div>}
+        </section>
+
+        {/* 通知履歴（タイムライン）セクション */}
+        <section className="timeline-section" style={{marginTop: '3rem', borderTop: '1px solid var(--neutral-200)', paddingTop: '2rem'}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem'}}>
+            <Sparkles size={20} color="var(--primary)" />
+            <h2 style={{fontSize: '1.1rem', margin: 0}}>AI ログ ＆ 通知履歴</h2>
+          </div>
+          {notificationLogs.length === 0 ? (
+            <p className="empty-state" style={{padding: '1.5rem'}}>まだ通知の履歴はありません．</p>
+          ) : (
+            <div className="timeline-list" style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
+              {notificationLogs.map(log => {
+                const isSOS = log.type === 'sos';
+                return (
+                  <div key={log.id} style={{
+                    background: isSOS ? '#fff1f2' : 'white',
+                    border: isSOS ? '1px solid #fecaca' : '1px solid var(--neutral-200)',
+                    padding: '1rem',
+                    borderRadius: '12px',
+                    position: 'relative'
+                  }}>
+                    <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem'}}>
+                      <span style={{
+                        fontSize: '0.75rem', 
+                        fontWeight: 700, 
+                        color: isSOS ? '#e11d48' : 'var(--primary)',
+                        textTransform: 'uppercase'
+                      }}>
+                        {isSOS ? '🚨 SOS ALERT' : '🤖 AI REMIND'}
+                      </span>
+                      <span style={{fontSize: '0.75rem', color: 'var(--text-sub)'}}>
+                        {new Date(log.created_at).toLocaleString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <p style={{margin: 0, fontSize: '0.9rem', lineHeight: 1.5, color: 'var(--text-main)'}}>{log.message}</p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </section>
         
         {archivedTasks.length > 0 && (

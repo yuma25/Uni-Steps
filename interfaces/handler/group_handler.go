@@ -24,6 +24,20 @@ func NewGroupHandler(e *echo.Echo, gu *usecase.GroupUsecase, ls domain.LMSServic
 	e.POST("/api/groups/join", h.JoinGroupByInviteCode)
 	e.GET("/api/users/:userId/groups", h.ListUserGroups)
 	e.PATCH("/api/groups/:groupId/settings", h.UpdateGroupSettings)
+	e.GET("/api/groups/:groupId/notifications", h.GetNotificationLogs)
+}
+
+// GetNotificationLogs はグループの通知履歴を取得する．
+func (h *GroupHandler) GetNotificationLogs(c echo.Context) error {
+	groupID := c.Param("groupId")
+	limit := 50 // デフォルトで直近50件を取得
+
+	logs, err := h.groupUsecase.GetNotificationLogs(c.Request().Context(), groupID, limit)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, logs)
 }
 
 // UpdateGroupSettings は部屋の設定（リマインド間隔など）を更新する．
