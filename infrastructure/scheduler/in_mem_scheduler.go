@@ -124,7 +124,7 @@ func (s *InMemScheduler) ScheduleWakeupSOS(ctx context.Context, wakeupID string,
 		// 2．緊急メッセージを作成する．
 		alertMsg := fmt.Sprintf("【緊急】%s さんが起床予定時刻を過ぎてもチェックインしていません！誰か連絡を取ってください！", user.Name)
 
-		// 3．グループメンバー全員（本人を含む）に通知を飛ばす．
+		// 3．Web Push で個人宛に通知を飛ばす（本人を含む）．
 		sentCount := 0
 		for _, member := range group.Users {
 			targetURL := fmt.Sprintf("/dashboard?user_id=%s&group_id=%s", member.ID, group.ID)
@@ -132,7 +132,10 @@ func (s *InMemScheduler) ScheduleWakeupSOS(ctx context.Context, wakeupID string,
 			sentCount++
 		}
 
-		log.Printf("[Scheduler] SOS 発信完了: 対象=%s, 送信先=%d 人（本人含む）\n", user.Name, sentCount)
+		// 4．設定されていれば，LINE グループにも一斉送信する．
+		_ = s.notifService.SendGroupMessage(runCtx, group.ID, alertMsg)
+
+		log.Printf("[Scheduler] SOS 発信完了: 対象=%s, 送信先=%d 人（Web Push）\n", user.Name, sentCount)
 
 		s.mu.Lock()
 		delete(s.timers, key)

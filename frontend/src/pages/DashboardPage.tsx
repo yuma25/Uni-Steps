@@ -4,6 +4,7 @@ import { taskApi } from '../api/tasks';
 import { groupApi } from '../api/groups';
 import { notificationApi } from '../api/notifications';
 import { wakeupApi } from '../api/wakeup';
+import { userApi } from '../api/user';
 import type { Task, Group, WakeupCheck } from '../types';
 import { Bell, RefreshCw, PlusCircle, X, Settings, Plus, Archive, Edit, ChevronDown, ArrowLeft, Users, Calendar, CheckCircle, Clock, Copy, Share2, Trash2, BellRing, Sparkles, Send, Sunrise, Sun, AlertCircle } from 'lucide-react';
 
@@ -39,6 +40,7 @@ const DashboardPage: React.FC = () => {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [showArchive, setShowArchive] = useState(false);
   const [notifPermission, setNotifPermission] = useState<NotificationPermission>(Notification.permission);
+  const [serverTokenMissing, setServerTokenMissing] = useState<boolean>(true);
 
   const [taskFormData, setTaskFormData] = useState({
     title: '',
@@ -54,7 +56,9 @@ const DashboardPage: React.FC = () => {
 
   const [settingsFormData, setSettingsFormData] = useState({
     remind_intervals: [] as number[],
-    ai_character: 'default'
+    ai_character: 'default',
+    line_channel_token: '',
+    line_group_id: ''
   });
 
   const [newInterval, setNewInterval] = useState<string>('');
@@ -64,7 +68,9 @@ const DashboardPage: React.FC = () => {
     if (showSettingsModal && group) {
       setSettingsFormData({
         remind_intervals: group.remind_intervals || [1440, 60],
-        ai_character: group.ai_character || 'default'
+        ai_character: group.ai_character || 'default',
+        line_channel_token: group.line_channel_token || '',
+        line_group_id: group.line_group_id || ''
       });
     }
   }, [showSettingsModal, group]);
@@ -81,33 +87,38 @@ const DashboardPage: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
+// 個別の API コールを並列実行し，失敗しても他を活かすようにする．
+const [taskDataRes, groupsRes, wakeupsRes, userRes] = await Promise.allSettled([
+  taskApi.listGroupTasks(groupId),
+  groupApi.listMyGroups(userId),
+  wakeupApi.getActive(userId),
+  userApi.getMe(userId)
+]);
 
-      const [taskDataRes, groupsRes, wakeupsRes] = await Promise.allSettled([
-        taskApi.listGroupTasks(groupId),
-        groupApi.listMyGroups(userId),
-        wakeupApi.getActive(userId)
-      ]);
+if (taskDataRes.status === 'fulfilled') {
+  setTasks(taskDataRes.value || []);
+}
 
-      if (taskDataRes.status === 'fulfilled') {
-        setTasks(taskDataRes.value || []);
-      }
+if (groupsRes.status === 'fulfilled') {
+  const groups = groupsRes.value;
+  if (groups && Array.isArray(groups)) {
+    const currentGroup = groups.find(g => g.id === groupId);
+    if (currentGroup) {
+      setGroup(currentGroup);
+    }
+  }
+}
 
-      if (groupsRes.status === 'fulfilled') {
-        const groups = groupsRes.value;
-        if (groups && Array.isArray(groups)) {
-          const currentGroup = groups.find(g => g.id === groupId);
-          if (currentGroup) {
-            setGroup(currentGroup);
-          }
-        }
-      }
+if (wakeupsRes.status === 'fulfilled') {
+  const wakeups = wakeupsRes.value;
+  const pendingWakeup = wakeups.find(w => w.status === 'pending');
+  setActiveWakeup(pendingWakeup || null);
+}
 
-      if (wakeupsRes.status === 'fulfilled') {
-        const wakeups = wakeupsRes.value;
-        const pendingWakeup = wakeups.find(w => w.status === 'pending');
-        setActiveWakeup(pendingWakeup || null);
-      }
-    } catch (err: any) {
+if (userRes.status === 'fulfilled') {
+  setServerTokenMissing(!userRes.value.has_push_token);
+}
+} catch (err: any) {
       console.error("Fetch error:", err);
       setError("データの取得中に予期せぬエラーが発生した．");
     } finally {
@@ -147,6 +158,7 @@ const DashboardPage: React.FC = () => {
           applicationServerKey: convertedVapidKey
         });
         await notificationApi.subscribe(userId, subscription);
+        setServerTokenMissing(false);
         alert("通知が有効になりました！AI からのリマインドが届くようになります．");
       }
     } catch (err) {
@@ -236,7 +248,7 @@ const DashboardPage: React.FC = () => {
     e.preventDefault();
     try {
       setLoading(true);
-      await groupApi.updateSettings(groupId, settingsFormData.remind_intervals, userId, settingsFormData.ai_character);
+      await groupApi.updateSettings(groupId, settingsFormData.remind_intervals, userId, settingsFormData.ai_character, settingsFormData.line_channel_token, settingsFormData.line_group_id);
       setShowSettingsModal(false);
       await fetchData();
       alert("設定を保存しました．");
@@ -342,10 +354,10 @@ const DashboardPage: React.FC = () => {
           </div>
         </div>
         <div className="header-actions">
-          {notifPermission === 'granted' && (
+          {notifPermission === 'granted' && !serverTokenMissing && (
             <button onClick={handleSendTestNotification} className="icon-button" title="通知テスト"><Send size={16} /><span>テスト</span></button>
           )}
-          {notifPermission !== 'granted' && (
+          {(notifPermission !== 'granted' || serverTokenMissing) && (
             <button onClick={handleEnableNotifications} className="icon-button warning-btn"><BellRing size={16} /><span>通知を有効化</span></button>
           )}
           <button onClick={handleSync} disabled={loading} className="icon-button"><RefreshCw className={loading ? "animate-spin" : ""} size={16} />同期</button>
@@ -437,7 +449,19 @@ const DashboardPage: React.FC = () => {
             <div className="modal-header-text"><h2>起床見守りをセット</h2><p>もし起きられなかった場合，仲間に SOS 通知が飛びます．</p></div>
             <form onSubmit={handleRequestWakeup}>
               <div className="form-group"><label>起床予定時刻</label><input type="datetime-local" required value={wakeupFormData.target_time} onChange={e => setWakeupFormData({...wakeupFormData, target_time: e.target.value})} /></div>
-              <div className="form-group"><label>猶予時間（分）</label><input type="number" required value={wakeupFormData.grace_minutes} onChange={e => setWakeupFormData({...wakeupFormData, grace_minutes: parseInt(e.target.value)})} placeholder="例：15" /></div>
+              <div className="form-group">
+                <label>猶予時間（分）</label>
+                <input 
+                  type="number" 
+                  required 
+                  value={isNaN(wakeupFormData.grace_minutes) ? '' : wakeupFormData.grace_minutes} 
+                  onChange={e => {
+                    const val = parseInt(e.target.value);
+                    setWakeupFormData({...wakeupFormData, grace_minutes: isNaN(val) ? 0 : val});
+                  }} 
+                  placeholder="例：15" 
+                />
+              </div>
               <div className="alert-info"><AlertCircle size={16} /><span>設定時刻から猶予時間を過ぎてもチェックインがない場合，部屋のメンバー全員に通知が飛びます．</span></div>
               <button type="submit" disabled={loading} className="icon-button primary full-width" style={{marginTop: '1.5rem', background: 'var(--warning)', border: 'none'}}>見守りを開始する</button>
             </form>
@@ -460,6 +484,12 @@ const DashboardPage: React.FC = () => {
                   <option value="kind">心配性な幼馴染</option>
                   <option value="cool">冷徹な執事</option>
                 </select>
+              </div>
+              <div className="form-group">
+                <label>LINE Bot 連携（オプション）</label>
+                <input type="text" className="full-width" style={{marginBottom: '0.5rem'}} value={settingsFormData.line_channel_token} onChange={e => setSettingsFormData({...settingsFormData, line_channel_token: e.target.value})} placeholder="LINE Channel Token" />
+                <input type="text" className="full-width" value={settingsFormData.line_group_id} onChange={e => setSettingsFormData({...settingsFormData, line_group_id: e.target.value})} placeholder="LINE Group ID (例: Cxxxxx...)" />
+                <p style={{fontSize: '0.8rem', color: 'var(--text-sub)', margin: '0.5rem 0 0 0'}}>※設定すると，SOS 通知などが指定した LINE グループにも送信されます．</p>
               </div>
               <div className="form-group">
                 <label>リマインド通知タイミング（分前 / 最大3つ）</label>

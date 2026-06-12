@@ -25,17 +25,16 @@ func NewTaskRepository(db *gorm.DB) domain.TaskRepository {
 
 // Save はタスクをデータベースに保存（新規作成または更新）する．
 func (r *taskRepository) Save(ctx context.Context, task *domain.Task) error {
-	if err := r.db.WithContext(ctx).Save(task).Error; err != nil {
+	// 1. まず Task 本体のみを保存・更新する（GORM の自動保存による外部キー制約エラーを防ぐため Omit する）
+	if err := r.db.WithContext(ctx).Omit("UserProgress").Save(task).Error; err != nil {
 		return err
 	}
-	// UserProgress もあれば保存する．
-	if len(task.UserProgress) > 0 {
-		for _, up := range task.UserProgress {
-			if err := r.db.WithContext(ctx).Save(up).Error; err != nil {
-				return err
-			}
-		}
+
+	// 2. UserProgress（該当者リスト）を完全に同期する．
+	if err := r.db.WithContext(ctx).Model(task).Association("UserProgress").Replace(task.UserProgress); err != nil {
+		return err
 	}
+
 	return nil
 }
 

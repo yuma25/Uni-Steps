@@ -71,8 +71,7 @@ func (s *WebPushService) SendDirectMessage(ctx context.Context, userID string, m
 	if resp.StatusCode >= 400 {
 		// 410 (Gone) や 404 (Not Found) の場合，トークンが無効なので削除する．
 		if resp.StatusCode == 410 || resp.StatusCode == 404 {
-			user.WebPushToken = ""
-			_ = s.userRepo.Save(ctx, user)
+			_ = s.userRepo.UpdateWebPushToken(ctx, userID, "")
 			log.Printf("[WebPush] 無効なトークンを検知したため削除した．UserID: %s, Status: %d\n", userID, resp.StatusCode)
 		}
 		return fmt.Errorf("Web Push サーバーからエラーが返された： ステータスコード %d", resp.StatusCode)

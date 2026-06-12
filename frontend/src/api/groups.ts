@@ -45,11 +45,13 @@ export const groupApi = {
   /**
    * 部屋の設定（リマインド間隔など）を更新する．
    */
-  updateSettings: async (groupId: string, intervals: number[], userId: string, aiCharacter: string): Promise<void> => {
+  updateSettings: async (groupId: string, intervals: number[], userId: string, aiCharacter: string, lineToken: string, lineGroupId: string): Promise<void> => {
     await client.patch(`/api/groups/${groupId}/settings`, {
       remind_intervals: intervals,
       user_id: userId,
       ai_character: aiCharacter,
+      line_channel_token: lineToken,
+      line_group_id: lineGroupId,
     });
   },
 };

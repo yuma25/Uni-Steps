@@ -105,7 +105,7 @@ func main() {
 
 	// 通知サービスの初期化
 	webPushService := webpush.NewWebPushService(userRepo, os.Getenv("VAPID_PUBLIC_KEY"), os.Getenv("VAPID_PRIVATE_KEY"), "mailto:admin@example.com")
-	lineService, _ := line.NewLineService(os.Getenv("LINE_CHANNEL_TOKEN"))
+	lineService := line.NewLineService(groupRepo)
 	compositeNotifService := notification.NewCompositeNotificationService(lineService, webPushService)
 
 	// Google Classroom API 設定
@@ -152,6 +152,7 @@ func main() {
 	handler.NewAuthHandler(e, userRepo, oauthCfg)
 	handler.NewGroupHandler(e, groupUsecase, lmsService)
 	handler.NewWakeupHandler(e, wakeupUsecase)
+	handler.NewUserHandler(e, userRepo)
 
 	log.Println("全てのコンポーネントの初期化が完了した．サーバーを起動する．")
 

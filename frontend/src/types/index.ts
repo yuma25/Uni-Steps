@@ -29,6 +29,7 @@ export interface User {
   id: string;
   name: string;
   email?: string;
+  has_push_token?: boolean; // サーバーに Web Push トークンが保存されているか
 }
 
 export interface WakeupCheck {

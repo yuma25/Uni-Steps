@@ -28,6 +28,11 @@ func (r *userRepository) Save(ctx context.Context, user *domain.User) error {
 	return nil
 }
 
+// UpdateWebPushToken はユーザーの Web Push トークンを明示的に更新する（空文字含む）．
+func (r *userRepository) UpdateWebPushToken(ctx context.Context, userID string, token string) error {
+	return r.db.WithContext(ctx).Model(&domain.User{}).Where("id = ?", userID).Update("web_push_token", token).Error
+}
+
 // FindByID は指定された ID のユーザーをデータベースから取得する．
 func (r *userRepository) FindByID(ctx context.Context, id string) (*domain.User, error) {
 	var user domain.User

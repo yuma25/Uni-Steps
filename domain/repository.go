@@ -19,6 +19,7 @@ type TaskRepository interface {
 // UserRepository はユーザーデータの永続化に関する約束事である．
 type UserRepository interface {
 	Save(ctx context.Context, user *User) error
+	UpdateWebPushToken(ctx context.Context, userID string, token string) error
 	FindByID(ctx context.Context, id string) (*User, error)
 	FindByEmail(ctx context.Context, email string) (*User, error) // メールアドレスでユーザーを検索する．
 }

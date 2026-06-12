@@ -37,6 +37,14 @@ func (uc *TaskUsecase) RegisterManualTask(ctx context.Context, task *domain.Task
 		task.ID = uuid.New().String()
 	}
 
+	// 新規作成時，各ユーザーの進捗データにも親の課題 ID を確実にセットする．
+	for _, up := range task.UserProgress {
+		up.TaskID = task.ID
+		if up.UpdatedAt.IsZero() {
+			up.UpdatedAt = time.Now()
+		}
+	}
+
 	if err := uc.taskRepo.Save(ctx, task); err != nil {
 		return nil, fmt.Errorf("手動タスクの保存に失敗した： %w", err)
 	}

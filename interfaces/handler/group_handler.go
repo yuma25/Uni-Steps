@@ -30,15 +30,17 @@ func NewGroupHandler(e *echo.Echo, gu *usecase.GroupUsecase, ls domain.LMSServic
 func (h *GroupHandler) UpdateGroupSettings(c echo.Context) error {
 	groupID := c.Param("groupId")
 	var req struct {
-		RemindIntervals []int  `json:"remind_intervals"`
-		AICharacter     string `json:"ai_character"`
-		UserID          string `json:"user_id"`
+		RemindIntervals  []int  `json:"remind_intervals"`
+		AICharacter      string `json:"ai_character"`
+		UserID           string `json:"user_id"`
+		LineChannelToken string `json:"line_channel_token"`
+		LineGroupID      string `json:"line_group_id"`
 	}
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "リクエスト形式が不正である"})
 	}
 
-	err := h.groupUsecase.UpdateSettings(c.Request().Context(), groupID, req.UserID, req.RemindIntervals, req.AICharacter)
+	err := h.groupUsecase.UpdateSettings(c.Request().Context(), groupID, req.UserID, req.RemindIntervals, req.AICharacter, req.LineChannelToken, req.LineGroupID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}

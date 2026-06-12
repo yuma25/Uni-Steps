@@ -112,7 +112,7 @@ func (uc *GroupUsecase) ListUserGroups(ctx context.Context, userID string) ([]*d
 }
 
 // UpdateSettings は部屋の設定を更新する．オーナーのみ許可する．
-func (uc *GroupUsecase) UpdateSettings(ctx context.Context, groupID string, userID string, intervals []int, aiCharacter string) error {
+func (uc *GroupUsecase) UpdateSettings(ctx context.Context, groupID string, userID string, intervals []int, aiCharacter string, lineToken string, lineGroupID string) error {
 	group, err := uc.groupRepo.FindByID(ctx, groupID)
 	if err != nil {
 		return err
@@ -127,5 +127,7 @@ func (uc *GroupUsecase) UpdateSettings(ctx context.Context, groupID string, user
 
 	group.RemindIntervals = intervals
 	group.AICharacter = aiCharacter
+	group.LineChannelToken = lineToken
+	group.LineGroupID = lineGroupID
 	return uc.groupRepo.Save(ctx, group)
 }
