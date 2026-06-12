@@ -31,3 +31,12 @@ type GroupRepository interface {
 	FindByInviteCode(ctx context.Context, code string) (*Group, error) // 招待コードでグループを検索する．
 	FindByUserID(ctx context.Context, userID string) ([]*Group, error) // ユーザー ID に紐づくグループ一覧を取得する．
 }
+
+// WakeupRepository は起床確認データの永続化に関する約束事である．
+type WakeupRepository interface {
+	Save(ctx context.Context, check *WakeupCheck) error
+	Delete(ctx context.Context, id string) error
+	FindPendingByTime(ctx context.Context, now time.Time) ([]*WakeupCheck, error)
+	FindActiveByUser(ctx context.Context, userID string) ([]*WakeupCheck, error)
+	FindActiveByGroup(ctx context.Context, groupID string) ([]*WakeupCheck, error) // グループ内の現在進行中の起床確認を取得する．
+}

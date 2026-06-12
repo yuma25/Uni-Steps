@@ -21,9 +21,34 @@ func NewWakeupHandler(e *echo.Echo, uc *usecase.WakeupUsecase) {
 	e.POST("/api/wakeup/request", h.RequestWakeupCheck)
 	e.POST("/api/wakeup/checkin", h.CheckIn)
 	e.GET("/api/wakeup/active", h.GetActiveChecks)
+	e.DELETE("/api/wakeup/cancel", h.CancelWakeup)
+	e.GET("/api/groups/:groupId/wakeups/active", h.GetActiveGroupChecks)
 }
 
-// ... existing RequestWakeupCheck and CheckIn ...
+// GetActiveGroupChecks はグループ内の進行中の起床確認を取得する．
+func (h *WakeupHandler) GetActiveGroupChecks(c echo.Context) error {
+	groupID := c.Param("groupId")
+	checks, err := h.wakeupUsecase.GetActiveGroupChecks(c.Request().Context(), groupID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+	return c.JSON(http.StatusOK, checks)
+}
+
+// CancelWakeup は進行中の見守りをキャンセルする．
+func (h *WakeupHandler) CancelWakeup(c echo.Context) error {
+	userID := c.QueryParam("user_id")
+	if userID == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "user_id が必要である"})
+	}
+
+	err := h.wakeupUsecase.CancelWakeup(c.Request().Context(), userID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{"message": "見守りをキャンセルした"})
+}
 
 // GetActiveChecks は進行中の起床確認を取得する．
 func (h *WakeupHandler) GetActiveChecks(c echo.Context) error {

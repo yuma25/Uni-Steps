@@ -22,10 +22,24 @@ export const wakeupApi = {
 
   /**
    * ユーザーの現在の（進行中の）起床確認を取得する．
-   * ※バックエンドにエンドポイントを後ほど追加する想定である．
    */
   getActive: async (userId: string): Promise<WakeupCheck[]> => {
     const resp = await client.get<WakeupCheck[]>(`/api/wakeup/active?user_id=${userId}`);
     return resp.data;
+  },
+
+  /**
+   * グループ内の全メンバーの進行中の起床確認を取得する．
+   */
+  getActiveByGroup: async (groupId: string): Promise<WakeupCheck[]> => {
+    const resp = await client.get<WakeupCheck[]>(`/api/groups/${groupId}/wakeups/active`);
+    return resp.data;
+  },
+
+  /**
+   * 進行中の起床見守りをキャンセルする．
+   */
+  cancel: async (userId: string): Promise<void> => {
+    await client.delete(`/api/wakeup/cancel?user_id=${userId}`);
   },
 };

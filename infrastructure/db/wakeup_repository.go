@@ -24,6 +24,10 @@ func (r *wakeupRepository) Save(ctx context.Context, check *domain.WakeupCheck) 
 	return r.db.WithContext(ctx).Save(check).Error
 }
 
+func (r *wakeupRepository) Delete(ctx context.Context, id string) error {
+	return r.db.WithContext(ctx).Where("id = ?", id).Delete(&domain.WakeupCheck{}).Error
+}
+
 func (r *wakeupRepository) FindByID(ctx context.Context, id string) (*domain.WakeupCheck, error) {
 	var check domain.WakeupCheck
 	err := r.db.WithContext(ctx).Where("id = ?", id).First(&check).Error
@@ -49,6 +53,14 @@ func (r *wakeupRepository) FindActiveByUser(ctx context.Context, userID string) 
 	checks := []*domain.WakeupCheck{}
 	err := r.db.WithContext(ctx).
 		Where("user_id = ? AND status = ?", userID, domain.WakeupStatusPending).
+		Find(&checks).Error
+	return checks, err
+}
+
+func (r *wakeupRepository) FindActiveByGroup(ctx context.Context, groupID string) ([]*domain.WakeupCheck, error) {
+	checks := []*domain.WakeupCheck{}
+	err := r.db.WithContext(ctx).
+		Where("group_id = ? AND status = ?", groupID, domain.WakeupStatusPending).
 		Find(&checks).Error
 	return checks, err
 }

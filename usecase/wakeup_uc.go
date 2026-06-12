@@ -25,6 +25,9 @@ func NewWakeupUsecase(wr domain.WakeupRepository, sch domain.SchedulerService) *
 
 // RequestWakeup は新しい起床見守りを予約し，同時にスケジューラーに SOS 発信を登録する．
 func (uc *WakeupUsecase) RequestWakeup(ctx context.Context, userID, groupID string, targetTime time.Time, graceMinutes int) (*domain.WakeupCheck, error) {
+	// 既存のアクティブな見守りがあればキャンセルして上書きする（変更機能）
+	_ = uc.CancelWakeup(ctx, userID)
+
 	check := &domain.WakeupCheck{
 		ID:           uuid.New().String(),
 		UserID:       userID,
@@ -47,6 +50,23 @@ func (uc *WakeupUsecase) RequestWakeup(ctx context.Context, userID, groupID stri
 	}
 
 	return check, nil
+}
+
+// CancelWakeup は進行中の見守りをキャンセルし，データベースから削除する．
+func (uc *WakeupUsecase) CancelWakeup(ctx context.Context, userID string) error {
+	checks, err := uc.wakeupRepo.FindActiveByUser(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	for _, check := range checks {
+		// スケジューラーの予約をキャンセル
+		_ = uc.scheduler.CancelWakeupSOS(ctx, check.ID)
+		// データベースから削除
+		_ = uc.wakeupRepo.Delete(ctx, check.ID)
+	}
+
+	return nil
 }
 
 // ConfirmWakeup は本人の起床を確認し，予約されていた SOS 通知をキャンセルする．
@@ -74,4 +94,9 @@ func (uc *WakeupUsecase) ConfirmWakeup(ctx context.Context, userID string) error
 // GetActiveChecks はユーザーの進行中の起床確認を取得する．
 func (uc *WakeupUsecase) GetActiveChecks(ctx context.Context, userID string) ([]*domain.WakeupCheck, error) {
 	return uc.wakeupRepo.FindActiveByUser(ctx, userID)
+}
+
+// GetActiveGroupChecks は指定されたグループの進行中の起床確認一覧を取得する．
+func (uc *WakeupUsecase) GetActiveGroupChecks(ctx context.Context, groupID string) ([]*domain.WakeupCheck, error) {
+	return uc.wakeupRepo.FindActiveByGroup(ctx, groupID)
 }

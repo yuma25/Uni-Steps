@@ -31,6 +31,7 @@ const DashboardPage: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [group, setGroup] = useState<Group | null>(null);
   const [activeWakeup, setActiveWakeup] = useState<WakeupCheck | null>(null);
+  const [groupWakeups, setGroupWakeups] = useState<WakeupCheck[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -88,11 +89,12 @@ const DashboardPage: React.FC = () => {
       setLoading(true);
       setError(null);
 // 個別の API コールを並列実行し，失敗しても他を活かすようにする．
-const [taskDataRes, groupsRes, wakeupsRes, userRes] = await Promise.allSettled([
+const [taskDataRes, groupsRes, wakeupsRes, userRes, groupWakeupsRes] = await Promise.allSettled([
   taskApi.listGroupTasks(groupId),
   groupApi.listMyGroups(userId),
   wakeupApi.getActive(userId),
-  userApi.getMe(userId)
+  userApi.getMe(userId),
+  wakeupApi.getActiveByGroup(groupId)
 ]);
 
 if (taskDataRes.status === 'fulfilled') {
@@ -117,6 +119,10 @@ if (wakeupsRes.status === 'fulfilled') {
 
 if (userRes.status === 'fulfilled') {
   setServerTokenMissing(!userRes.value.has_push_token);
+}
+
+if (groupWakeupsRes.status === 'fulfilled') {
+  setGroupWakeups(groupWakeupsRes.value || []);
 }
 } catch (err: any) {
       console.error("Fetch error:", err);
@@ -209,6 +215,32 @@ if (userRes.status === 'fulfilled') {
       alert("チェックインに失敗しました．");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCancelWakeup = async () => {
+    if (!window.confirm("見守りをキャンセルしますか？")) return;
+    try {
+      setLoading(true);
+      await wakeupApi.cancel(userId);
+      await fetchData();
+      alert("見守りをキャンセルしました．");
+    } catch (err) {
+      alert("キャンセルの実行に失敗しました．");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditWakeup = () => {
+    if (activeWakeup) {
+      const date = new Date(activeWakeup.target_time);
+      const localStr = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+      setWakeupFormData({
+        target_time: localStr,
+        grace_minutes: activeWakeup.grace_minutes
+      });
+      setShowWakeupModal(true);
     }
   };
 
@@ -381,10 +413,14 @@ if (userRes.status === 'fulfilled') {
                   <p>予定時刻: {new Date(activeWakeup.target_time).toLocaleString('ja-JP', { hour: '2-digit', minute: '2-digit' })} (+{activeWakeup.grace_minutes}分猶予)</p>
                 </div>
               </div>
-              <button onClick={handleCheckIn} className="checkin-button">
-                <Sun size={18} />
-                <span>起きました！</span>
-              </button>
+              <div className="wakeup-actions" style={{display: 'flex', gap: '0.5rem'}}>
+                <button onClick={handleEditWakeup} className="icon-button" title="時間を変更" style={{background: 'white', color: 'var(--text-sub)'}}><Edit size={16} /></button>
+                <button onClick={handleCancelWakeup} className="icon-button" title="見守りをやめる" style={{background: 'white', color: 'var(--error)'}}><Trash2 size={16} /></button>
+                <button onClick={handleCheckIn} className="checkin-button">
+                  <Sun size={18} />
+                  <span>起きました！</span>
+                </button>
+              </div>
             </div>
           ) : (
             <div className="wakeup-card empty" onClick={() => {
@@ -399,6 +435,27 @@ if (userRes.status === 'fulfilled') {
             </div>
           )}
         </section>
+
+        {/* メンバーの起床ステータスセクション */}
+        {groupWakeups.length > 0 && (
+          <section className="group-wakeup-section" style={{marginBottom: '2rem'}}>
+            <h3 style={{fontSize: '0.95rem', color: 'var(--text-sub)', marginBottom: '0.8rem'}}>メンバーの起床予定</h3>
+            <div className="member-status-list" style={{display: 'flex', flexDirection: 'column', gap: '0.5rem'}}>
+              {groupWakeups.map(w => {
+                const member = group?.users?.find(u => u.id === w.user_id);
+                if (!member || member.id === userId) return null; // 自分以外を表示する
+                return (
+                  <div key={w.id} style={{display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#f8fafc', padding: '0.6rem', borderRadius: '6px', fontSize: '0.85rem'}}>
+                    <span style={{fontWeight: 600}}>{member.name}</span>
+                    <span style={{color: 'var(--text-sub)'}}>: {new Date(w.target_time).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })} (+{w.grace_minutes}分)</span>
+                    {w.status === 'pending' && <span style={{marginLeft: 'auto', color: 'var(--warning)', fontWeight: 600}}>見守り中</span>}
+                    {w.status === 'alerted' && <span style={{marginLeft: 'auto', color: 'var(--error)', fontWeight: 600}}>寝坊！</span>}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
         
         <section className="task-section">
           <h2>現在の課題</h2>
