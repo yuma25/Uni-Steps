@@ -69,14 +69,12 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
               </button>
             )}
             {(notifPermission !== 'granted' || serverTokenMissing) && (
-              <button onClick={onEnableNotifications} className="btn btn-primary" style={{background: 'var(--warning)'}}>
-                <BellRing size={18} />
-                <span className="hide-mobile">通知を有効化</span>
+              <button onClick={onEnableNotifications} className="btn btn-primary" style={{background: 'var(--warning)', padding: '10px'}} title="通知を有効化">
+                <BellRing size={20} />
               </button>
             )}
-            <button onClick={onAddTask} className="btn btn-primary" title="手動で課題を登録">
-              <Plus size={20} />
-              <span className="hide-mobile">課題登録</span>
+            <button onClick={onAddTask} className="btn btn-primary" style={{padding: '10px'}} title="手動で課題を登録">
+              <Plus size={22} />
             </button>
           </>
         )}

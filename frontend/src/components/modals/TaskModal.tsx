@@ -84,7 +84,12 @@ const TaskModal: React.FC<TaskModalProps> = ({
           
           <div className="form-group">
             <label><User size={14} /> 担当者を編集</label>
-            <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '0.75rem', marginTop: '0.5rem'}}>
+            <div style={{
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fill, minmax(min(140px, 45%), 1fr))', 
+              gap: '0.5rem', 
+              marginTop: '0.5rem'
+            }}>
               {group?.users?.map(member => {
                 const isMe = member.id === operatorId;
                 const canToggle = isAuthorized || isMe;
@@ -104,23 +109,28 @@ const TaskModal: React.FC<TaskModalProps> = ({
                       });
                     }}
                     style={{
-                      display: 'flex', alignItems: 'center', gap: '10px', padding: '12px',
+                      display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px',
                       background: formData.assignees.includes(member.id) ? 'var(--brand-soft)' : '#f8fafc',
                       border: `2px solid ${formData.assignees.includes(member.id) ? 'var(--brand-light)' : '#f1f5f9'}`,
-                      borderRadius: '14px', 
+                      borderRadius: '12px', 
                       cursor: (isLMS || !canToggle) ? 'not-allowed' : 'pointer',
                       opacity: canToggle ? 1 : 0.6,
-                      transition: 'all 0.2s', textAlign: 'left'
+                      transition: 'all 0.2s', textAlign: 'left',
+                      minWidth: 0
                     }}
                   >
                     <div style={{
-                      width: '24px', height: '24px', borderRadius: '50%',
+                      width: '20px', height: '20px', borderRadius: '50%', flexShrink: 0,
                       background: formData.assignees.includes(member.id) ? 'var(--brand)' : 'var(--text-tertiary)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '10px', fontWeight: 900
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '9px', fontWeight: 900
                     }}>
-                      {formData.assignees.includes(member.id) ? <CheckCircle2 size={14} /> : member.name.charAt(0)}
+                      {formData.assignees.includes(member.id) ? <CheckCircle2 size={12} /> : member.name.charAt(0)}
                     </div>
-                    <span style={{fontWeight: 700, fontSize: '0.9rem', color: formData.assignees.includes(member.id) ? 'var(--brand)' : 'var(--text-secondary)'}}>{member.name}</span>
+                    <span style={{
+                      fontWeight: 700, fontSize: '0.85rem', 
+                      color: formData.assignees.includes(member.id) ? 'var(--brand)' : 'var(--text-secondary)',
+                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
+                    }}>{member.name}</span>
                   </button>
                 );
               })}
