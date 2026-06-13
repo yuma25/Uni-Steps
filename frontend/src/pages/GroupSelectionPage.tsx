@@ -1,16 +1,17 @@
-import React, { useEffect, useState } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { groupApi } from '../api/groups';
 import type { Group } from '../types';
 import { Plus, Layout, UserPlus, LogOut, Hash, X } from 'lucide-react';
+import { AxiosError } from 'axios';
+import { useAuth } from '../hooks/useAuth';
 
 /**
  * グループ（部屋）選択画面のコンポーネントである．
  */
 const GroupSelectionPage: React.FC = () => {
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const userId = searchParams.get('user_id') || '';
+  const { userId } = useAuth();
 
   const [groups, setGroups] = useState<Group[]>([]);
   const [newGroupName, setNewGroupName] = useState('');
@@ -19,25 +20,25 @@ const GroupSelectionPage: React.FC = () => {
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  const fetchGroups = useCallback(async () => {
+    try {
+      // 初期状態が loading: true のため，ここでは同期的な設定を避けて警告を回避する
+      const data = await groupApi.listMyGroups(userId);
+      setGroups(data || []);
+    } catch (err) {
+      console.error("GroupSelectionPage: fetchGroups failed", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
+
   useEffect(() => {
     if (!userId) {
       navigate('/login');
       return;
     }
     fetchGroups();
-  }, [userId]);
-
-  const fetchGroups = async () => {
-    try {
-      setLoading(true);
-      const data = await groupApi.listMyGroups(userId);
-      setGroups(data || []);
-    } catch (err) {
-      console.error("グループ一覧の取得に失敗した：", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [userId, navigate, fetchGroups]);
 
   const handleCreateGroup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,8 +49,9 @@ const GroupSelectionPage: React.FC = () => {
       setGroups([...groups, newGroup]);
       setShowCreateModal(false);
       navigate(`/dashboard?user_id=${userId}&group_id=${newGroup.id}`);
-    } catch (err: any) {
-      alert(`エラー：${err.response?.data?.error || "部屋の作成に失敗した．"}`);
+    } catch (err: unknown) {
+      const axiosErr = err as AxiosError<{error: string}>;
+      alert(`エラー：${axiosErr.response?.data?.error || "部屋の作成に失敗した．"}`);
     } finally {
       setLoading(false);
     }
@@ -63,8 +65,9 @@ const GroupSelectionPage: React.FC = () => {
       const joinedGroup = await groupApi.joinGroup(inviteCode, userId);
       setShowJoinModal(false);
       navigate(`/dashboard?user_id=${userId}&group_id=${joinedGroup.id}`);
-    } catch (err: any) {
-      alert(`エラー：${err.response?.data?.error || "部屋への参加に失敗した．招待コードを確認してほしい．"}`);
+    } catch (err: unknown) {
+      const axiosErr = err as AxiosError<{error: string}>;
+      alert(`エラー：${axiosErr.response?.data?.error || "部屋への参加に失敗した．招待コードを確認してほしい．"}`);
     } finally {
       setLoading(false);
     }
