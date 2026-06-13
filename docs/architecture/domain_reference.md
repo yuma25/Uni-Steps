@@ -9,14 +9,14 @@
 ### 🔹 `type AIService interface`
 AI による文章生成の窓口である．具体的なモデル（Gemini 等）への接続はインフラ層で行う．
 
-*   **`GenerateRemindMessage(ctx, task, style) (string, error)`**
+*   🔧 **メソッド: `GenerateRemindMessage(ctx, task, style) (string, error)`**
     *   **概要**: 課題の内容と期限に基づき，ユーザーのやる気を引き出す（あるいは焦らせる）個別の励ましメッセージを作成する．
     *   **引数**:
         *   `ctx`: コンテキスト（タイムアウトやキャンセル管理）．
         *   `task`: `*domain.Task` 型．通知対象の課題データ（タイトルや期限）．
         *   `style`: `string` 型．AI の性格設定（`strict`, `kind` 等）．
-    *   **戻り値**: AI が生成した，ユーザーの心に刺さるリマインド文，およびエラー．
-*   **`GenerateGroupSummaryMessage(ctx, workloadSummary, style) (string, error)`**
+    *   **戻り値**: AI が生成したリマインド文，およびエラー．
+*   🔧 **メソッド: `GenerateGroupSummaryMessage(ctx, workloadSummary, style) (string, error)`**
     *   **概要**: チーム全体の未完了課題の溜まり具合を鳥瞰し，朝や夜に配信するための「現状報告と応援」の要約メッセージを作成する．
     *   **引数**:
         *   `ctx`: コンテキスト．
@@ -65,26 +65,26 @@ AI の振る舞いやサマリーのモードを切り替えるために使用�
 ### 🔹 `type LMSService interface`
 外部学習管理システム（LMS）との連携を抽象化する．具体的な API 通信はインフラ層で実装される．
 
-*   **`FetchTasks(ctx, userID) ([]*Task, error)`**
+*   🔧 **メソッド: `FetchTasks(ctx, userID) ([]*Task, error)`**
     *   **概要**: ユーザーに紐づくすべての有効なコースを巡回し，未完了課題の情報と提出ステータスを最新の状態で引き抜く．
     *   **引数**: `userID` (`string`)．課題を取得したいユーザーの ID．
     *   **戻り値**: 取得した課題データのスライス（ドメインモデル変換済み），およびエラー．
-*   **`GetProviderName() string`**
+*   🔧 **メソッド: `GetProviderName() string`**
     *   **概要**: 連携先の識別名を取得する．
     *   **戻り値**: プロバイダの識別名（例: "google_classroom"）．課題の出典（Source フィールド）として記録される．
 
 ---
 
-## 4. domain/notification.go (通知・予約の定義)
+## 4. domain/notification.go (通知・予約의定義)
 
 ### 🔹 `type NotificationService interface`
-外部（LINE や Web Push）への通知送信を抽象化する窓口である．
+外部への通知送信を抽象化する窓口である．
 
-*   **`SendGroupMessage(ctx, targetID, message) error`**
+*   🔧 **メソッド: `SendGroupMessage(ctx, targetID, message) error`**
     *   **概要**: LINE グループなどの「共有された空間」に対してメッセージを投稿する．
     *   **引数**: `targetID` (送信先ID)，`message` (本文)．
     *   **戻り値**: 成功時は nil，失敗時は error を返す．
-*   **`SendDirectMessage(ctx, userID, message, targetURL) error`**
+*   🔧 **メソッド: `SendDirectMessage(ctx, userID, message, targetURL) error`**
     *   **概要**: 特定の個人に対し，Web Push などの非公開な手段で通知を届ける．
     *   **引数**: `userID` (宛先ID)，`message` (本文)，`targetURL` (通知クリック時の遷移先相対パス)．
     *   **戻り値**: 成功時は nil，失敗時は error を返す．
@@ -103,16 +103,16 @@ AI の振る舞いやサマリーのモードを切り替えるために使用�
 ### 🔹 `type SchedulerService interface`
 未来の特定の時刻に処理を予約する機能を抽象化する．Uni-Steps の「見守り」機能の核心を担う．
 
-*   **`ScheduleTaskRemind(ctx, task, userID, interval, style, runAt) error`**
+*   🔧 **メソッド: `ScheduleTaskRemind(ctx, task, userID, interval, style, runAt) error`**
     *   **概要**: 課題の締切前（例えば1時間前）に自動的にリマインドが飛ぶよう，未来のタイマーを仕掛ける．
     *   **引数**: `task` (対象課題)，`userID` (宛先)，`interval` (何分前か)，`style` (AI性格)，`runAt` (実行時刻)．
-*   **`CancelTaskReminds(ctx, taskID, userID) error`**
+*   🔧 **メソッド: `CancelTaskReminds(ctx, taskID, userID) error`**
     *   **概要**: 課題を終わらせた場合などに，不要になった未来のリマインド予約をすべて解除する．
     *   **引数**: `taskID` (課題ID)，`userID` (ユーザーID)．
-*   **`ScheduleWakeupSOS(ctx, checkID, userID, groupID, runAt) error`**
+*   🔧 **メソッド: `ScheduleWakeupSOS(ctx, checkID, userID, groupID, runAt) error`**
     *   **概要**: 起床予定時刻を過ぎてもチェックインがない場合に，グループへ SOS を発信する予約を仕掛ける．
     *   **引数**: `checkID` (起床確認ID)，`userID` (本人)，`groupID` (通知先)，`runAt` (SOS発信時刻)．
-*   **`CancelWakeupSOS(ctx, checkID) error`**
+*   🔧 **メソッド: `CancelWakeupSOS(ctx, checkID) error`**
     *   **概要**: 無事に起きた場合などに，予約されていた SOS 通知の送信を取り消す．
     *   **引数**: `checkID` (起床確認ID)．
 
@@ -134,10 +134,10 @@ AI の振る舞いやサマリーのモードを切り替えるために使用�
 ### 🔹 `type NotificationLogRepository interface`
 通知履歴の保存と取得に関する契約を定義する．
 
-*   **`Save(ctx, log) error`**
+*   🔧 **メソッド: `Save(ctx, log) error`**
     *   **概要**: 送信されたメッセージの内容とタイミングをデータベースに永続化する．
     *   **引数**: `log` (`*domain.NotificationLog`)．保存したいログオブジェクト．
-*   **`FindByGroupID(ctx, groupID, limit) ([]*NotificationLog, error)`**
+*   🔧 **メソッド: `FindByGroupID(ctx, groupID, limit) ([]*NotificationLog, error)`**
     *   **概要**: ダッシュボードのタイムラインに表示するために，特定の部屋で発生した最新の通知履歴を時系列で取得する．
     *   **引数**: `groupID` (対象部屋)，`limit` (最大取得件数)．
     *   **戻り値**: ログリスト（日付降順），およびエラー．
@@ -153,37 +153,37 @@ AI の振る舞いやサマリーのモードを切り替えるために使用�
 データベースに対する操作の「約束事」を定義する．具体的な実装はインフラ層（GORM 等）で行われる．
 
 ### 🔹 `type TaskRepository interface`
-*   **`Save(ctx, task) error`**
+*   🔧 **メソッド: `Save(ctx, task) error`**
     *   **概要**: 課題の基本情報と，紐づく全メンバーの個別の進捗状況（`UserProgress`）をセットで保存または更新する．
     *   **引数**:
         *   `ctx`: コンテキスト．
         *   `task`: `*domain.Task` 型．保存・更新対象の課題データ．
     *   **戻り値**: 成功時は nil，失敗時は error を返す．
-*   **`FindByID(ctx, id) (*Task, error)`**
+*   🔧 **メソッド: `FindByID(ctx, id) (*Task, error)`**
     *   **概要**: 指定された内部 ID を持つ課題を 1 件取得する．
     *   **引数**:
         *   `ctx`: コンテキスト．
         *   `id`: `string` 型．取得したい課題の UUID．
     *   **戻り値**: 取得した課題データ，およびエラー．
-*   **`FindByExternalID(ctx, extID) (*Task, error)`**
+*   🔧 **メソッド: `FindByExternalID(ctx, extID) (*Task, error)`**
     *   **概要**: Google Classroom などの外部 ID をキーに検索し，課題が既に登録済みかチェックする．
     *   **引数**:
         *   `ctx`: コンテキスト．
         *   `extID`: `string` 型．外部 LMS 側の一意な課題 ID．
     *   **戻り値**: 取得した課題データ，およびエラー．
-*   **`FindByGroupID(ctx, groupID) ([]*Task, error)`**
+*   🔧 **メソッド: `FindByGroupID(ctx, groupID) ([]*Task, error)`**
     *   **概要**: 特定の部屋に属するすべての課題を，期限の近い順に並べて取得する．
     *   **引数**:
         *   `ctx`: コンテキスト．
         *   `groupID`: `string` 型．対象となるグループの ID．
     *   **戻り値**: 課題データのリスト，およびエラー．
-*   **`FindApproachingDeadlines(ctx, until) ([]*Task, error)`**
+*   🔧 **メソッド: `FindApproachingDeadlines(ctx, until) ([]*Task, error)`**
     *   **概要**: 現時刻から指定された時刻までの間に期限を迎える，未完了の課題をバッチ処理用に抽出する．
     *   **引数**:
         *   `ctx`: コンテキスト．
         *   `until`: `time.Time` 型．期限の検索終了時刻．
     *   **戻り値**: 条件に合致する課題リスト，およびエラー．
-*   **`Delete(ctx, id) error`**
+*   🔧 **メソッド: `Delete(ctx, id) error`**
     *   **概要**: 課題本体と，それに関連付けられたメンバーの進捗データを物理的に削除する．
     *   **引数**:
         *   `ctx`: コンテキスト．
@@ -191,26 +191,26 @@ AI の振る舞いやサマリーのモードを切り替えるために使用�
     *   **戻り値**: 成功時は nil，失敗時は error を返す．
 
 ### 🔹 `type UserRepository interface`
-*   **`Save(ctx, user) error`**
+*   🔧 **メソッド: `Save(ctx, user) error`**
     *   **概要**: ユーザー情報やアクセストークンの情報を新規作成または更新する．
     *   **引数**:
         *   `ctx`: コンテキスト．
         *   `user`: `*domain.User` 型．保存・更新対象のユーザーデータ．
     *   **戻り値**: 成功時は nil，失敗時は error を返す．
-*   **`UpdateWebPushToken(ctx, userID, token) error`**
+*   🔧 **メソッド: `UpdateWebPushToken(ctx, userID, token) error`**
     *   **概要**: 頻繁に更新される可能性があるブラウザの通知用トークンのみをピンポイントで更新する．
     *   **引数**:
         *   `ctx`: コンテキスト．
         *   `userID`: `string` 型．対象ユーザーの ID．
         *   `token`: `string` 型．Web Push 用の JSON トークン文字列．
     *   **戻り値**: 成功時は nil，失敗時は error を返す．
-*   **`FindByID(ctx, id) (*User, error)`**
+*   🔧 **メソッド: `FindByID(ctx, id) (*User, error)`**
     *   **概要**: ユーザー ID をキーに 1 名の情報を取得する．
     *   **引数**:
         *   `ctx`: コンテキスト．
         *   `id`: `string` 型．取得したいユーザーの ID．
     *   **戻り値**: 取得したユーザーデータ，およびエラー．
-*   **`FindByEmail(ctx, email) (*User, error)`**
+*   🔧 **メソッド: `FindByEmail(ctx, email) (*User, error)`**
     *   **概要**: ログイン時のメールアドレスをキーにユーザーを特定する．登録済みかどうかの判定に使われる．
     *   **引数**:
         *   `ctx`: コンテキスト．
@@ -218,43 +218,43 @@ AI の振る舞いやサマリーのモードを切り替えるために使用�
     *   **戻り値**: 取得したユーザーデータ，およびエラー．
 
 ### 🔹 `type GroupRepository interface`
-*   **`Save(ctx, group) error`**
+*   🔧 **メソッド: `Save(ctx, group) error`**
     *   **概要**: 部屋の名前，AI性格設定，LINE連携情報などの設定を保存または更新する．
     *   **引数**:
         *   `ctx`: コンテキスト．
         *   `group`: `*domain.Group` 型．保存・更新対象の部屋データ．
     *   **戻り値**: 成功時は nil，失敗時は error を返す．
-*   **`FindByID(ctx, id) (*Group, error)`**
+*   🔧 **メソッド: `FindByID(ctx, id) (*Group, error)`**
     *   **概要**: 部屋 ID をキーに 1 件の部屋情報を取得する（所属メンバーも含む）．
     *   **引数**:
         *   `ctx`: コンテキスト．
         *   `id`: `string` 型．取得したい部屋の ID．
     *   **戻り値**: 取得した部屋データ，およびエラー．
-*   **`FindAllGroups(ctx) ([]*Group, error)`**
+*   🔧 **メソッド: `FindAllGroups(ctx) ([]*Group, error)`**
     *   **概要**: システム内のすべての有効な部屋をスキャンする．定期サマリーの配信対象を探すために使われる．
     *   **引数**:
         *   `ctx`: コンテキスト．
     *   **戻り値**: 全ての部屋データのリスト，およびエラー．
-*   **`FindByInviteCode(ctx, code) (*Group, error)`**
+*   🔧 **メソッド: `FindByInviteCode(ctx, code) (*Group, error)`**
     *   **概要**: 8 桁の招待コードに基づき，特定の部屋を特定する．参加機能の入り口となる．
     *   **引数**:
         *   `ctx`: コンテキスト．
         *   `code`: `string` 型．検索したい招待コード．
     *   **戻り値**: 一致する部屋データ，およびエラー．
-*   **`FindByUserID(ctx, userID) ([]*Group, error)`**
+*   🔧 **メソッド: `FindByUserID(ctx, userID) ([]*Group, error)`**
     *   **概要**: 指定したユーザーが所属しているすべての部屋を一覧で取得する．
     *   **引数**:
         *   `ctx`: コンテキスト．
         *   `userID`: `string` 型．検索対象となるユーザーの ID．
     *   **戻り値**: 所属している部屋リスト，およびエラー．
-*   **`RemoveUser(ctx, groupID, userID) error`**
+*   🔧 **メソッド: `RemoveUser(ctx, groupID, userID) error`**
     *   **概要**: ユーザーと部屋の紐付けを解除する（退出処理）．
     *   **引数**:
         *   `ctx`: コンテキスト．
         *   `groupID`: `string` 型．対象の部屋 ID．
         *   `userID`: `string` 型．脱退させるユーザーの ID．
     *   **戻り値**: 成功時は nil，失敗時は error を返す．
-*   **`Delete(ctx, id) error`**
+*   🔧 **メソッド: `Delete(ctx, id) error`**
     *   **概要**: 部屋を完全に削除し，紐づく全メンバーとの関係性（中間テーブル）も解消する．
     *   **引数**:
         *   `ctx`: コンテキスト．
@@ -262,31 +262,31 @@ AI の振る舞いやサマリーのモードを切り替えるために使用�
     *   **戻り値**: 成功時は nil，失敗時は error を返す．
 
 ### 🔹 `type WakeupRepository interface`
-*   **`Save(ctx, check) error`**
+*   🔧 **メソッド: `Save(ctx, check) error`**
     *   **概要**: 起床見守りスケジュールを新規作成または状態更新する．
     *   **引数**:
         *   `ctx`: コンテキスト．
         *   `check`: `*domain.WakeupCheck` 型．保存・更新対象の起床確認データ．
     *   **戻り値**: 成功時は nil，失敗時は error を返す．
-*   **`Delete(ctx, id) error`**
+*   🔧 **メソッド: `Delete(ctx, id) error`**
     *   **概要**: 起床見守り予約を物理的に削除する（キャンセルの際など）．
     *   **引数**:
         *   `ctx`: コンテキスト．
         *   `id`: `string` 型．削除したい起床確認データの ID．
     *   **戻り値**: 成功時は nil，失敗時は error を返す．
-*   **`FindPendingByTime(ctx, now) ([]*WakeupCheck, error)`**
+*   🔧 **メソッド: `FindPendingByTime(ctx, now) ([]*WakeupCheck, error)`**
     *   **概要**: 指定時刻を過ぎても status が `pending` のままの（起きた報告がない）予約を抽出し，SOS 発信のトリガーとする．
     *   **引数**:
         *   `ctx`: コンテキスト．
         *   `now`: `time.Time` 型．判定の基準となる現在時刻．
     *   **戻り値**: 条件に合致する起床確認リスト，およびエラー．
-*   **`FindActiveByUser(ctx, userID) ([]*WakeupCheck, error)`**
+*   🔧 **メソッド: `FindActiveByUser(ctx, userID) ([]*WakeupCheck, error)`**
     *   **概要**: 指定ユーザーの，現在進行中（未完了）の見守り予約を 1 件取得する．
     *   **引数**:
         *   `ctx`: コンテキスト．
         *   `userID`: `string` 型．対象ユーザーの ID．
     *   **戻り値**: 起床確認データのリスト（通常は1件），およびエラー．
-*   **`FindActiveByGroup(ctx, groupID) ([]*WakeupCheck, error)`**
+*   🔧 **メソッド: `FindActiveByGroup(ctx, groupID) ([]*WakeupCheck, error)`**
     *   **概要**: 指定グループの本日分の起床状況を全メンバー分スキャンし，ダッシュボード表示用に取得する．
     *   **引数**:
         *   `ctx`: コンテキスト．
