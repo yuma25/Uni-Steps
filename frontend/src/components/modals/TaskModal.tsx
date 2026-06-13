@@ -144,7 +144,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
               {loading ? "保存中..." : (editingTask ? "更新を保存する" : "課題を登録する")}
             </button>
 
-            {editingTask && isAuthorized && (
+            {editingTask && isAuthorized && !isLMS && (
               <button
                 type="button"
                 onClick={() => onDelete(editingTask.id)}

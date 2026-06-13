@@ -121,6 +121,16 @@ const DashboardPage: React.FC = () => {
     }
   }, [group]);
 
+  // モーダル表示時に背景のスクロールを禁止する．
+  useEffect(() => {
+    if (showTaskModal || showWakeupModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [showTaskModal, showWakeupModal]);
+
   const onEnableNotif = () => handleEnableNotifications(() => setServerTokenMissing(false));
   const onTestNotif = () => handleSendTestNotification(settingsFormData.ai_character, () => setServerTokenMissing(true));
 
@@ -415,7 +425,7 @@ const DashboardPage: React.FC = () => {
       <div className="dashboard-view">
         {activeTab === 'tasks' && (
           <section>
-            <HomeOverview tasks={activeTasks} group={group} userName={user?.name || ''} userId={userId} />
+            <HomeOverview tasks={tasks} group={group} userName={user?.name || ''} userId={userId} />
 
             <div className="section-header-rich">
               <h2><ListTodo size={22} color="var(--brand)" />取り組むべき課題</h2>

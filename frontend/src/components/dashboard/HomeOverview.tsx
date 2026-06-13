@@ -19,10 +19,22 @@ const HomeOverview: React.FC<HomeOverviewProps> = ({ tasks, userName, userId }) 
     return d > now && d <= todayEnd;
   });
 
-  // 自分の未完了の課題
+  // 自分の未完了かつ期限内の課題
   const myTasks = tasks.filter(t => {
+    const deadlineDate = new Date(t.deadline);
+    const isUndetermined = deadlineDate.getFullYear() <= 1;
+    const isPast = !isUndetermined && deadlineDate < now;
     const myProgress = t.user_progress?.find(p => p.user_id === userId);
-    return myProgress && !myProgress.is_completed;
+    return myProgress && !myProgress.is_completed && !isPast;
+  });
+
+  // 現在取り組むべき課題（全員未完了かつ期限内）
+  const activeTasks = tasks.filter(t => {
+    const deadlineDate = new Date(t.deadline);
+    const isUndetermined = deadlineDate.getFullYear() <= 1;
+    const isPast = !isUndetermined && deadlineDate < now;
+    const allCompleted = t.user_progress && t.user_progress.length > 0 && t.user_progress.every(p => p.is_completed);
+    return !allCompleted && !isPast;
   });
 
   const hour = now.getHours();
@@ -63,8 +75,8 @@ const HomeOverview: React.FC<HomeOverviewProps> = ({ tasks, userName, userId }) 
             <CheckCircle2 size={20} />
           </div>
           <div className="stat-info">
-            <span className="stat-label">全体の全課題</span>
-            <span className="stat-value">{tasks.length} <small>件</small></span>
+            <span className="stat-label">取り組むべき全課題</span>
+            <span className="stat-value">{activeTasks.length} <small>件</small></span>
           </div>
         </div>
       </div>

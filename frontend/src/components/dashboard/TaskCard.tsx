@@ -18,7 +18,11 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, userId, onEdit, onToggleCompl
 
   const getStatus = () => {
     if (myProgress?.is_completed) return { label: "完了", className: "status-completed" };
-    if (isPast) return { label: "提出遅れ", className: "status-overdue" };
+    if (isPast) {
+      return myProgress 
+        ? { label: "提出遅れ", className: "status-overdue" } 
+        : { label: "終了", className: "status-closed" };
+    }
     return { label: "未完了", className: "status-pending" };
   };
 
