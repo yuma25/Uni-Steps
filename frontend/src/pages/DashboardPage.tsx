@@ -487,39 +487,29 @@ const DashboardPage: React.FC = () => {
         </section>
 
         {/* 通知履歴（タイムライン）セクション */}
-        <section className="timeline-section" style={{marginTop: '3rem', borderTop: '1px solid var(--neutral-200)', paddingTop: '2rem'}}>
-          <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem'}}>
-            <Sparkles size={20} color="var(--primary)" />
-            <h2 style={{fontSize: '1.1rem', margin: 0}}>AI ログ ＆ 通知履歴</h2>
-          </div>
+        <section className="timeline-section">
+          <h2><Sparkles size={20} color="var(--primary)" />AI ログ ＆ 通知履歴</h2>
           {notificationLogs.length === 0 ? (
-            <p className="empty-state" style={{padding: '1.5rem'}}>まだ通知の履歴はありません．</p>
+            <p className="empty-state">まだ通知の履歴はありません．</p>
           ) : (
-            <div className="timeline-list" style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
+            <div className="timeline-list">
               {notificationLogs.map(log => {
                 const isSOS = log.type === 'sos';
+                const isSummary = log.type === 'summary';
+                let label = '🤖 AI REMIND';
+                let badgeClass = 'remind';
+                if (isSOS) { label = '🚨 SOS ALERT'; badgeClass = 'sos'; }
+                if (isSummary) { label = '📅 DAILY SUMMARY'; badgeClass = 'summary'; }
+
                 return (
-                  <div key={log.id} style={{
-                    background: isSOS ? '#fff1f2' : 'white',
-                    border: isSOS ? '1px solid #fecaca' : '1px solid var(--neutral-200)',
-                    padding: '1rem',
-                    borderRadius: '12px',
-                    position: 'relative'
-                  }}>
-                    <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem'}}>
-                      <span style={{
-                        fontSize: '0.75rem', 
-                        fontWeight: 700, 
-                        color: isSOS ? '#e11d48' : 'var(--primary)',
-                        textTransform: 'uppercase'
-                      }}>
-                        {isSOS ? '🚨 SOS ALERT' : '🤖 AI REMIND'}
-                      </span>
-                      <span style={{fontSize: '0.75rem', color: 'var(--text-sub)'}}>
+                  <div key={log.id} className="timeline-item">
+                    <div className="timeline-header">
+                      <span className={`timeline-badge ${badgeClass}`}>{label}</span>
+                      <span className="timeline-time">
                         {new Date(log.created_at).toLocaleString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
-                    <p style={{margin: 0, fontSize: '0.9rem', lineHeight: 1.5, color: 'var(--text-main)'}}>{log.message}</p>
+                    <p className="timeline-message">{log.message}</p>
                   </div>
                 );
               })}
