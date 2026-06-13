@@ -82,7 +82,12 @@ const DashboardPage: React.FC = () => {
       navigate('/login');
       return;
     }
-    fetchData();
+    const initialize = async () => {
+      await fetchData();
+      // ページを開いた時に自動的に同期（サイレント実行）
+      handleSync(true);
+    };
+    initialize();
   }, [userId, groupId]);
 
   const fetchData = async () => {
@@ -138,20 +143,21 @@ const DashboardPage: React.FC = () => {
     }
   };
 
-  const handleSync = async () => {
+  const handleSync = async (silent: boolean = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const result = await taskApi.syncTasks(userId, groupId);
       if (result && result.tasks && result.tasks.length > 0) {
         await fetchData();
-        alert(`同期が完了した．${result.tasks.length} 件の課題を更新した．`);
-      } else {
-        alert("更新された情報はなかった．");
+        if (!silent) alert(`同期が完了した．${result.tasks.length} 件の課題を更新した．`);
       }
     } catch (err: any) {
-      alert(err.response?.data?.error || "同期に失敗した．");
+      if (!silent) {
+        alert(err.response?.data?.error || "同期に失敗した．");
+      }
+      console.error("Auto-sync error:", err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -185,6 +191,10 @@ const DashboardPage: React.FC = () => {
       await notificationApi.sendTestNotification(userId, settingsFormData.ai_character, groupId);
       alert("テスト通知を送信しました．数秒以内に届くはずです．");
     } catch (err: any) {
+      // サーバー側でトークンが削除された（または存在しない）場合，即座にボタンを再表示させる
+      if (err.response?.data?.error?.includes("トークンが存在しない")) {
+        setServerTokenMissing(true);
+      }
       alert(`テスト通知の送信に失敗しました：${err.response?.data?.error || err.message}`);
     } finally {
       setLoading(false);
@@ -398,7 +408,6 @@ const DashboardPage: React.FC = () => {
           {(notifPermission !== 'granted' || serverTokenMissing) && (
             <button onClick={handleEnableNotifications} className="icon-button warning-btn"><BellRing size={16} /><span>通知を有効化</span></button>
           )}
-          <button onClick={handleSync} disabled={loading} className="icon-button"><RefreshCw className={loading ? "animate-spin" : ""} size={16} />同期</button>
           <button onClick={() => { setEditingTask(null); setTaskFormData({ title: '', deadline: '', recurrence_type: 'none', assignees: [userId] }); setShowTaskModal(true); }} className="icon-button primary"><Plus size={16} />課題追加</button>
           {group?.owner_id === userId && (
             <button onClick={() => setShowSettingsModal(true)} className="icon-button" title="設定"><Settings size={18} /></button>
