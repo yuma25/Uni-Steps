@@ -6,8 +6,9 @@ import (
 )
 
 const (
-	NotificationTypeRemind = "remind" // 通常の課題リマインド
-	NotificationTypeSOS    = "sos"    // 起床見守り失敗時の SOS
+	NotificationTypeRemind  = "remind"  // 通常の課題リマインド
+	NotificationTypeSOS     = "sos"     // 起床見守り失敗時の SOS
+	NotificationTypeSummary = "summary" // 朝夕の課題サマリー
 )
 
 // NotificationLog は送信された通知の履歴を保持するエンティティである．

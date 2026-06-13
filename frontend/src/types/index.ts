@@ -46,7 +46,7 @@ export interface NotificationLog {
   id: string;
   group_id: string;
   user_id: string;
-  type: 'remind' | 'sos';
+  type: 'remind' | 'sos' | 'summary';
   message: string;
   created_at: string;
 }
@@ -62,5 +62,7 @@ export interface Group {
   lms_last_updated_at?: string; // LMS 側の最終更新時刻である．
   remind_intervals: number[];   // リマインド通知のタイミングである．
   ai_character: string;        // AI の性格設定である．
+  summary_morning_time?: string; // 朝のサマリー時刻
+  summary_evening_time?: string; // 夜のサマリー時刻
   users?: User[];              // 所属メンバー
 }

@@ -136,22 +136,19 @@ func main() {
 	wakeupUsecase := usecase.NewWakeupUsecase(wakeupRepo, schService)
 	summaryUsecase := usecase.NewSummaryUsecase(groupRepo, taskRepo, aiService, compositeNotifService, logRepo)
 
-	// 毎朝 8:00 にサマリーを送るバックグラウンド処理の起動
+	// 毎分，全グループのサマリー送信設定を確認するバックグラウンド処理
 	go func() {
+		ticker := time.NewTicker(1 * time.Minute)
+		defer ticker.Stop()
+		log.Println("[System] 朝夕サマリー監視ワーカーを起動した．")
+
 		for {
-			now := time.Now()
-			// 次の 8:00 を計算
-			next := time.Date(now.Year(), now.Month(), now.Day(), 8, 0, 0, 0, time.Local)
-			if now.After(next) {
-				next = next.Add(24 * time.Hour)
-			}
-
-			log.Printf("[System] 次回の朝刊サマリー送信予定: %v\n", next)
-			time.Sleep(time.Until(next))
-
-			ctx := context.Background()
-			if err := summaryUsecase.SendDailyGroupSummary(ctx); err != nil {
-				log.Printf("[Summary] 朝刊送信エラー: %v\n", err)
+			select {
+			case now := <-ticker.C:
+				ctx := context.Background()
+				if err := summaryUsecase.SendAllSummaries(ctx, now); err != nil {
+					log.Printf("[Summary] サマリー一括送信エラー: %v\n", err)
+				}
 			}
 		}
 	}()

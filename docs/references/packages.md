@@ -202,12 +202,15 @@ AI による文章生成を行う構造体である．
 グループ（部屋）の情報を保持する構造体である．
 *   🏷️ `InviteCode string`: 8 桁の参加用招待コードである．
 *   🏷️ `RemindIntervals []int`: リマインド通知を飛ばすタイミング（分前）のリストである．
-*   🏷️ `AICharacter string`: AI の性格設定である．以下の定数を使用する．
-    *   `AICharacterDefault`: 標準アシスタント．
-    *   `AICharacterStrict`: 厳しい教官．
-    *   `AICharacterKind`: 心配性な幼馴染．
-    *   `AICharacterCool`: 冷徹な執事．
+*   🏷️ `AICharacter string`: AI の性格設定である．
+*   🏷️ `SummaryMorningTime string`: 朝のサマリー送信時刻（HH:mm）である．
+*   🏷️ `SummaryEveningTime string`: 夜のサマリー送信時刻（HH:mm）である．
 *   🏷️ `Users []*User`: 所属しているメンバーのリストである．
+
+### 📦 `type NotificationLog struct`
+送信された通知の履歴を保持する構造体である．
+*   🏷️ `Type string`: 通知の種別（`remind`, `sos`, `summary`）である．
+*   🏷️ `Message string`: 通知されたメッセージの本文である．
 
 ### 📦 `type User struct`
 システム利用者（個人）の情報である．
@@ -231,8 +234,16 @@ AI による文章生成を行う構造体である．
 ### 🔹 `type AIService interface`
 AI による文章生成の窓口である．
 *   🔧 `func GenerateRemindMessage(ctx, task, style) (string, error)`: 課題内容に応じたリマインド文を生成する．
+*   🔧 `func GenerateGroupSummaryMessage(ctx, workload, style) (string, error)`: グループ全体の課題状況を要約するメッセージを生成する．
 
 ### 🔹 `type NotificationService interface`
 LINE や Web Push などの通知手段を抽象化する．
 *   🔧 `func SendGroupMessage(ctx, targetID, message) error`: グループ全体へ通知する．
-*   🔧 `func SendDirectMessage(ctx, userID, message) error`: 個人へ直接通知する．
+*   🔧 `func SendDirectMessage(ctx, userID, message, targetURL) error`: 個人へ直接通知し，クリック時の遷移先を指定する．
+
+### 🔹 `type GroupRepository interface`
+*   🔧 `func FindAllGroups(ctx context.Context) ([]*Group, error)`: 全てのグループを取得する（定期サマリー用）．
+
+### 🔹 `type NotificationLogRepository interface`
+*   🔧 `func Save(ctx context.Context, log *NotificationLog) error`: 通知ログを保存する．
+*   🔧 `func FindByGroupID(ctx, groupID, limit) ([]*NotificationLog, error)`: 履歴を取得する．

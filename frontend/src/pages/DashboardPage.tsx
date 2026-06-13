@@ -1,12 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { taskApi } from '../api/tasks';
 import { groupApi } from '../api/groups';
 import { notificationApi } from '../api/notifications';
 import { wakeupApi } from '../api/wakeup';
 import { userApi } from '../api/user';
-import type { Task, Group, WakeupCheck, NotificationLog } from '../types';
-import { Bell, RefreshCw, PlusCircle, X, Settings, Plus, Archive, Edit, ChevronDown, ArrowLeft, Users, Calendar, CheckCircle, Clock, Copy, Share2, Trash2, BellRing, Sparkles, Send, Sunrise, Sun, AlertCircle } from 'lucide-react';
+import type { Task, Group, WakeupCheck, NotificationLog, TaskUserProgress } from '../types';
+import { X, Settings, Plus, Edit, ChevronDown, ArrowLeft, Users, Calendar, Share2, Trash2, BellRing, Sparkles, Send, Sunrise, Sun, AlertCircle } from 'lucide-react';
+import { AxiosError } from 'axios';
 
 /**
  * Base64 URL 形式の文字列を Uint8Array に変換するヘルパー関数である．
@@ -60,37 +61,14 @@ const DashboardPage: React.FC = () => {
     remind_intervals: [] as number[],
     ai_character: 'default',
     line_channel_token: '',
-    line_group_id: ''
+    line_group_id: '',
+    summary_morning_time: '08:00',
+    summary_evening_time: '21:00'
   });
 
   const [newInterval, setNewInterval] = useState<string>('');
 
-  // モーダルが開いた時に最新のグループ設定をフォームに反映する．
-  useEffect(() => {
-    if (showSettingsModal && group) {
-      setSettingsFormData({
-        remind_intervals: group.remind_intervals || [1440, 60],
-        ai_character: group.ai_character || 'default',
-        line_channel_token: group.line_channel_token || '',
-        line_group_id: group.line_group_id || ''
-      });
-    }
-  }, [showSettingsModal, group]);
-
-  useEffect(() => {
-    if (!userId || !groupId) {
-      navigate('/login');
-      return;
-    }
-    const initialize = async () => {
-      await fetchData();
-      // ページを開いた時に自動的に同期（サイレント実行）
-      handleSync(true);
-    };
-    initialize();
-  }, [userId, groupId]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -135,15 +113,15 @@ const DashboardPage: React.FC = () => {
       if (logsRes.status === 'fulfilled') {
         setNotificationLogs(logsRes.value || []);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Fetch error:", err);
       setError("データの取得中に予期せぬエラーが発生した．");
     } finally {
       setLoading(false);
     }
-  };
+  }, [groupId, userId]);
 
-  const handleSync = async (silent: boolean = false) => {
+  const handleSync = useCallback(async (silent: boolean = false) => {
     try {
       if (!silent) setLoading(true);
       const result = await taskApi.syncTasks(userId, groupId);
@@ -151,15 +129,44 @@ const DashboardPage: React.FC = () => {
         await fetchData();
         if (!silent) alert(`同期が完了した．${result.tasks.length} 件の課題を更新した．`);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (!silent) {
-        alert(err.response?.data?.error || "同期に失敗した．");
+        const axiosErr = err as AxiosError<{error: string}>;
+        alert(axiosErr.response?.data?.error || "同期に失敗した．");
       }
       console.error("Auto-sync error:", err);
     } finally {
       if (!silent) setLoading(false);
     }
-  };
+  }, [userId, groupId, fetchData]);
+
+  // モーダルが開く時に設定を初期化する（useEffect 内での直接更新を避けるため，関数として定義）
+  const openSettings = useCallback(() => {
+    if (group) {
+      setSettingsFormData({
+        remind_intervals: group.remind_intervals || [1440, 60],
+        ai_character: group.ai_character || 'default',
+        line_channel_token: group.line_channel_token || '',
+        line_group_id: group.line_group_id || '',
+        summary_morning_time: group.summary_morning_time || '08:00',
+        summary_evening_time: group.summary_evening_time || '21:00'
+      });
+      setShowSettingsModal(true);
+    }
+  }, [group]);
+
+  useEffect(() => {
+    if (!userId || !groupId) {
+      navigate('/login');
+      return;
+    }
+    const initialize = async () => {
+      await fetchData();
+      // ページを開いた時に自動的に同期（サイレント実行）
+      handleSync(true);
+    };
+    initialize();
+  }, [userId, groupId, navigate, fetchData, handleSync]);
 
   const handleEnableNotifications = async () => {
     try {
@@ -190,12 +197,13 @@ const DashboardPage: React.FC = () => {
       setLoading(true);
       await notificationApi.sendTestNotification(userId, settingsFormData.ai_character, groupId);
       alert("テスト通知を送信しました．数秒以内に届くはずです．");
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const axiosErr = err as AxiosError<{error: string}>;
       // サーバー側でトークンが削除された（または存在しない）場合，即座にボタンを再表示させる
-      if (err.response?.data?.error?.includes("トークンが存在しない")) {
+      if (axiosErr.response?.data?.error?.includes("トークンが存在しない")) {
         setServerTokenMissing(true);
       }
-      alert(`テスト通知の送信に失敗しました：${err.response?.data?.error || err.message}`);
+      alert(`テスト通知の送信に失敗しました：${axiosErr.response?.data?.error || axiosErr.message}`);
     } finally {
       setLoading(false);
     }
@@ -214,7 +222,8 @@ const DashboardPage: React.FC = () => {
       setShowWakeupModal(false);
       await fetchData();
       alert("起床見守りを開始しました．明日の朝，忘れずにチェックインしてください！");
-    } catch (err: any) {
+    } catch (err) {
+      console.error(err);
       alert("見守り予約に失敗しました．");
     } finally {
       setLoading(false);
@@ -228,6 +237,7 @@ const DashboardPage: React.FC = () => {
       await fetchData();
       alert("おはようございます！起床を確認しました．SOS 通知を解除しました．");
     } catch (err) {
+      console.error(err);
       alert("チェックインに失敗しました．");
     } finally {
       setLoading(false);
@@ -242,6 +252,7 @@ const DashboardPage: React.FC = () => {
       await fetchData();
       alert("見守りをキャンセルしました．");
     } catch (err) {
+      console.error(err);
       alert("キャンセルの実行に失敗しました．");
     } finally {
       setLoading(false);
@@ -265,7 +276,7 @@ const DashboardPage: React.FC = () => {
     try {
       setLoading(true);
       const deadline = taskFormData.deadline ? new Date(taskFormData.deadline).toISOString() : "0001-01-01T00:00:00Z";
-      const userProgress = taskFormData.assignees.map(id => {
+      const userProgress: TaskUserProgress[] = taskFormData.assignees.map(id => {
         const member = group?.users?.find(u => u.id === id);
         const existingProgress = editingTask?.user_progress?.find(p => p.user_id === id);
         return {
@@ -276,7 +287,7 @@ const DashboardPage: React.FC = () => {
           updated_at: existingProgress?.updated_at || new Date().toISOString()
         };
       });
-      const taskData = { title: taskFormData.title, deadline: deadline, recurrence: { type: taskFormData.recurrence_type, custom_dates: [] }, user_progress: userProgress as any };
+      const taskData = { title: taskFormData.title, deadline: deadline, recurrence: { type: taskFormData.recurrence_type, custom_dates: [] }, user_progress: userProgress };
       if (editingTask) {
         if (!editingTask.id) throw new Error("課題 ID が見つからないため更新できない．");
         await taskApi.updateTask(editingTask.id, taskData);
@@ -285,23 +296,33 @@ const DashboardPage: React.FC = () => {
       }
       setShowTaskModal(false);
       await fetchData();
-    } catch (err: any) {
-      alert(`課題の保存に失敗した：${err.response?.data?.error || err.message}`);
+    } catch (err: unknown) {
+      const axiosErr = err as AxiosError<{error: string}>;
+      alert(`課題の保存に失敗した：${axiosErr.response?.data?.error || axiosErr.message}`);
     } finally {
       setLoading(false);
     }
   };
-
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       setLoading(true);
-      await groupApi.updateSettings(groupId, settingsFormData.remind_intervals, userId, settingsFormData.ai_character, settingsFormData.line_channel_token, settingsFormData.line_group_id);
+      await groupApi.updateSettings(
+        groupId, 
+        settingsFormData.remind_intervals, 
+        userId, 
+        settingsFormData.ai_character, 
+        settingsFormData.line_channel_token, 
+        settingsFormData.line_group_id,
+        settingsFormData.summary_morning_time,
+        settingsFormData.summary_evening_time
+      );
       setShowSettingsModal(false);
       await fetchData();
       alert("設定を保存しました．");
-    } catch (err: any) {
-      alert(err.response?.data?.error || "設定の保存に失敗しました．");
+    } catch (err: unknown) {
+      const axiosErr = err as AxiosError<{error: string}>;
+      alert(axiosErr.response?.data?.error || "設定の保存に失敗しました．");
     } finally {
       setLoading(false);
     }
@@ -410,7 +431,7 @@ const DashboardPage: React.FC = () => {
           )}
           <button onClick={() => { setEditingTask(null); setTaskFormData({ title: '', deadline: '', recurrence_type: 'none', assignees: [userId] }); setShowTaskModal(true); }} className="icon-button primary"><Plus size={16} />課題追加</button>
           {group?.owner_id === userId && (
-            <button onClick={() => setShowSettingsModal(true)} className="icon-button" title="設定"><Settings size={18} /></button>
+            <button onClick={openSettings} className="icon-button" title="設定"><Settings size={18} /></button>
           )}
         </div>
       </header>
@@ -602,6 +623,16 @@ const DashboardPage: React.FC = () => {
                 <input type="text" className="full-width" style={{marginBottom: '0.5rem'}} value={settingsFormData.line_channel_token} onChange={e => setSettingsFormData({...settingsFormData, line_channel_token: e.target.value})} placeholder="LINE Channel Token" />
                 <input type="text" className="full-width" value={settingsFormData.line_group_id} onChange={e => setSettingsFormData({...settingsFormData, line_group_id: e.target.value})} placeholder="LINE Group ID (例: Cxxxxx...)" />
                 <p style={{fontSize: '0.8rem', color: 'var(--text-sub)', margin: '0.5rem 0 0 0'}}>※設定すると，SOS 通知などが指定した LINE グループにも送信されます．</p>
+              </div>
+              <div className="form-group" style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem'}}>
+                <div>
+                  <label>朝のサマリー時刻</label>
+                  <input type="time" className="full-width" value={settingsFormData.summary_morning_time} onChange={e => setSettingsFormData({...settingsFormData, summary_morning_time: e.target.value})} />
+                </div>
+                <div>
+                  <label>夜のサマリー時刻</label>
+                  <input type="time" className="full-width" value={settingsFormData.summary_evening_time} onChange={e => setSettingsFormData({...settingsFormData, summary_evening_time: e.target.value})} />
+                </div>
               </div>
               <div className="form-group">
                 <label>リマインド通知タイミング（分前 / 最大3つ）</label>

@@ -43,16 +43,21 @@
   - `[]*domain.Group`: 所属している部屋のリスト．各部屋には `Users` リストが Preload（事前読み込み）されている．
   - `error`: 取得失敗時のエラー．
 
-### 🔧 `func (uc *GroupUsecase) UpdateSettings(ctx, groupID, userID, intervals, aiCharacter) error`
-部屋の設定（リマインド間隔，AI の性格）を更新する手順である．
+### 🔧 `func (uc *GroupUsecase) UpdateSettings(ctx, groupID, userID, intervals, aiCharacter, lineToken, lineGroupID, morningTime, eveningTime) error`
+部屋の設定（リマインド間隔，AI の性格，LINE 連携，サマリー時刻）を更新する手順である．
 - **権限**: `userID` がその部屋のオーナーである場合のみ実行を許可する．
 - **制約**: リマインド間隔は最大 3 つまで設定可能である．
 - **引数**:
   - `userID string`: 設定変更を要求しているユーザーの ID．
   - `intervals []int`: 新しいリマインドタイミングのリスト（分前）．
   - `aiCharacter string`: 選択された AI のキャラクター（`strict` 等）．
+  - `morningTime string`: 朝のサマリー送信時刻（HH:mm）．
+  - `eveningTime string`: 夜のサマリー送信時刻（HH:mm）．
 - **戻り値**:
   - `error`: 権限不足や保存失敗時のエラー．
+
+### 🔧 `func (uc *GroupUsecase) GetNotificationLogs(ctx, groupID, limit) ([]*domain.NotificationLog, error)`
+特定の部屋の過去の通知履歴（AI リマインド，SOS，サマリー）を取得する手順である．
 
 ---
 
@@ -71,7 +76,7 @@
 
 ### 🔧 `func (uc *TaskUsecase) RegisterManualTask(ctx, task) (*domain.Task, error)`
 ユーザーが UI から入力した情報に基づき，新しい課題を登録する手順である．
-- **リマインド予約**: 登録完了後，部屋の `RemindIntervals` 設定に基づき，複数のリマインド通知を自動的に予約する．
+- **リマインド予約**: 登録完了後，部屋の `RemindIntervals` 設定に基づき，複数のリマインド通知を自動的に予約する．期限が過去の場合は予約をスキップする．
 - **引数**:
   - `task *domain.Task`: 登録する課題のプロトタイプ．
 - **戻り値**:
@@ -98,6 +103,7 @@
 
 ### 🔧 `func (uc *TaskUsecase) ToggleUserCompletion(ctx, taskID, userID) error`
 特定のユーザーの課題完了状態を「完了 ↔ 未完了」で反転させる手順である．
+- **予約の自動管理**: 状態が「完了」になった場合，そのユーザー宛の該当課題の予約済み通知を全て自動的にキャンセルする．再度「未完了」に戻した場合は，期限に基づき（未来であれば）再予約を行う．
 - **引数**:
   - `taskID string`: 対象の課題 ID．
   - `userID string`: 操作を行うユーザーの ID．
@@ -154,9 +160,26 @@ Google Classroom 等の外部システムから情報を統合するロジック
 - **戻り値**:
   - `*domain.WakeupCheck`: 作成された起床確認オブジェクト．
 
-### 🔧 `func (uc *WakeupUsecase) ConfirmWakeup(ctx, userID) error`
-本人の起床を確認し，予約されていた SOS 通知をキャンセルする手順である．
-- **処理**: ステータスを `confirmed` に更新し，スケジューラーから該当する SOS 予約を削除する．
+### 🔧 `func (uc *WakeupUsecase) GetActiveGroupChecks(ctx, groupID) ([]*domain.WakeupCheck, error)`
+特定のグループ内で進行中の（まだ起きていない）全メンバーの起床確認一覧を取得する手順である．
+
+---
+
+## 5. 状況要約 (SummaryUsecase)
+グループ全体の課題状況を集計し，定期的に通知するロジックである．
+
+### 📦 `type SummaryUsecase struct`
+サマリーの生成と送信を管理する構造体である．
+- **フィールド**:
+  - `groupRepo domain.GroupRepository`: グループ情報の取得を担当する．
+  - `taskRepo domain.TaskRepository`: 課題状況の集計を担当する．
+  - `aiService domain.AIService`: サマリー文章の生成を担当する．
+  - `notifService domain.NotificationService`: 送信を担当する．
+
+### 🔧 `func (uc *SummaryUsecase) SendAllSummaries(ctx, now) error`
+現在時刻（`now`）をチェックし，設定時刻に達したグループに対してサマリー送信（朝刊・夕刊）を実行する手順である．
+- **送信対象**: 設定された `SummaryMorningTime` または `SummaryEveningTime` と現在時刻が一致したグループ．
+- **送信先**: 連携済みの LINE グループおよびメンバー全員への Web Push．
 
 ---
 *最終更新日: 2026年6月11日*

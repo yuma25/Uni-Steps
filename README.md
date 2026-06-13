@@ -28,17 +28,19 @@ AIと仲間が支える，次世代の課題管理・生活リズム支援プラ
 ユーザーがやりたいこと（物語）の手順を組み立てるレイヤーである．
 *   `task_uc.go`: 手動による課題の登録や一覧取得の手順である．
 *   `sync_uc.go`: 外部 LMS から課題を同期するインテリジェントな手順である．
-*   `group_uc.go`: 部屋の作成，参加，LMS 紐付けの手順である．
-*   `monitor_uc.go`: 定期的な監視（課題リマインド，生存確認）の実行手順である．
+*   `group_uc.go`: 部屋の作成，参加，設定変更の手順である．
+*   `wakeup_uc.go`: 起床確認の予約とチェックインの判定手順である．
+*   `summary_uc.go`: 朝夕の課題状況を集計・要約して通知する手順である．
 
 ### 📁 interfaces/ (インターフェース層)
 外部（HTTP リクエスト等）との入出力を制御するレイヤーである．
 *   `handler/`: Echo フレームワークを用いた HTTP ハンドラー群である．
     *   `auth_handler.go`: Google OAuth 2.0 認証（ログイン・コールバック）を管理する．
-    *   `group_handler.go`: 部屋の作成，一覧取得，LMS 同期トリガーを管理する．
+    *   `group_handler.go`: 部屋の作成，一覧取得，設定（AI性格，LINE連携）を管理する．
     *   `task_handler.go`: 課題の手動登録や取得を管理する．
     *   `wakeup_handler.go`: 起床予約とチェックイン（起床報告）を管理する．
-    *   `notification_handler.go`: Web Push の購読情報の登録を管理する．
+    *   `notification_handler.go`: Web Push の購読情報の登録やテスト送信を管理する．
+    *   `user_handler.go`: ユーザー情報の取得や通知トークン状態の確認を管理する．
 
 ### 📁 infrastructure/ (インフラ層)
 外部サービスやデータベースとの具体的な通信を担う最外周のレイヤーである．

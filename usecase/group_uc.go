@@ -45,13 +45,15 @@ func (uc *GroupUsecase) CreateGroup(ctx context.Context, name string, ownerID st
 	inviteCode := uuid.New().String()[:8]
 
 	group := &domain.Group{
-		ID:              uuid.New().String(),
-		Name:            name,
-		OwnerID:         ownerID,
-		InviteCode:      inviteCode,
-		RemindIntervals: []int{1440, 60}, // デフォルト設定：24時間前と1時間前
-		AICharacter:     domain.AICharacterDefault,
-		Users:           []*domain.User{},
+		ID:                 uuid.New().String(),
+		Name:               name,
+		OwnerID:            ownerID,
+		InviteCode:         inviteCode,
+		RemindIntervals:    []int{1440, 60}, // デフォルト設定：24時間前と1時間前
+		AICharacter:        domain.AICharacterDefault,
+		SummaryMorningTime: "08:00",
+		SummaryEveningTime: "21:00",
+		Users:              []*domain.User{},
 	}
 
 	// 3．まずデータベースに「部屋」だけを保存する．
@@ -114,7 +116,7 @@ func (uc *GroupUsecase) ListUserGroups(ctx context.Context, userID string) ([]*d
 }
 
 // UpdateSettings は部屋の設定を更新する．オーナーのみ許可する．
-func (uc *GroupUsecase) UpdateSettings(ctx context.Context, groupID string, userID string, intervals []int, aiCharacter string, lineToken string, lineGroupID string) error {
+func (uc *GroupUsecase) UpdateSettings(ctx context.Context, groupID string, userID string, intervals []int, aiCharacter string, lineToken string, lineGroupID string, morningTime string, eveningTime string) error {
 	group, err := uc.groupRepo.FindByID(ctx, groupID)
 	if err != nil {
 		return err
@@ -131,6 +133,8 @@ func (uc *GroupUsecase) UpdateSettings(ctx context.Context, groupID string, user
 	group.AICharacter = aiCharacter
 	group.LineChannelToken = lineToken
 	group.LineGroupID = lineGroupID
+	group.SummaryMorningTime = morningTime
+	group.SummaryEveningTime = eveningTime
 	return uc.groupRepo.Save(ctx, group)
 }
 

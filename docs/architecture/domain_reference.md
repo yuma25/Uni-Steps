@@ -56,7 +56,20 @@
 | `InviteCode` | `string` | 8 桁の参加用招待コード (UK) |
 | `RemindIntervals` | `[]int` | リマインド通知を飛ばすタイミング（分前）のリストである．最大 3 つまで保持する． |
 | `AICharacter` | `string` | AI の性格設定 (`default`, `strict`, `kind`, `cool`) である． |
+| `SummaryMorningTime` | `string` | 朝のサマリー送信時刻（HH:mm形式）である． |
+| `SummaryEveningTime` | `string` | 夜のサマリー送信時刻（HH:mm形式）である． |
 | `Users` | `[]*User` | 所属メンバーのリスト (M:M) |
+
+### 📦 `type NotificationLog struct`
+送信された通知の履歴を記録するエンティティである．
+| フィールド | 型 | 説明 |
+| :--- | :--- | :--- |
+| `ID` | `string` | ログの一意識別子 (PK) |
+| `GroupID` | `string` | 発生元のグループ ID |
+| `UserID` | `string` | 対象ユーザー（または原因となったユーザー）の ID |
+| `Type` | `string` | 通知の種別 (`remind`, `sos`, `summary`) |
+| `Message` | `string` | 送信されたメッセージの本文 |
+| `CreatedAt` | `time.Time` | 送信日時 |
 
 ### 📦 `type User struct`
 システム利用者（個人）の情報．

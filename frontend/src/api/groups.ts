@@ -1,5 +1,5 @@
 import client from './client';
-import type { Group } from '../types';
+import type { Group, NotificationLog } from '../types';
 
 /**
  * グループ（部屋）管理に関連する API 通信を担当するモジュールである．
@@ -45,13 +45,24 @@ export const groupApi = {
   /**
    * 部屋の設定（リマインド間隔など）を更新する．
    */
-  updateSettings: async (groupId: string, intervals: number[], userId: string, aiCharacter: string, lineToken: string, lineGroupId: string): Promise<void> => {
+  updateSettings: async (
+    groupId: string, 
+    intervals: number[], 
+    userId: string, 
+    aiCharacter: string, 
+    lineToken: string, 
+    lineGroupId: string,
+    morningTime: string,
+    eveningTime: string
+  ): Promise<void> => {
     await client.patch(`/api/groups/${groupId}/settings`, {
       remind_intervals: intervals,
       user_id: userId,
       ai_character: aiCharacter,
       line_channel_token: lineToken,
       line_group_id: lineGroupId,
+      summary_morning_time: morningTime,
+      summary_evening_time: eveningTime,
     });
   },
 

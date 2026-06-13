@@ -49,11 +49,16 @@ Google での承認後に呼び出されるコールバック窓口である．
 - **戻り値**: `200 OK` (部屋リストの配列)
 
 ### 🔧 `PATCH /api/groups/:groupId/settings` (`UpdateGroupSettings`)
-部屋の設定（リマインドタイミング，AI の性格等）を更新する．
+部屋の設定（リマインドタイミング，AI の性格，LINE 連携，サマリー時刻等）を更新する．
 - **権限**: `user_id` がその部屋のオーナーである場合のみ許可される．
 - **パスパラメータ**: `groupId`
-- **ボディ**: `{"remind_intervals": [60, 1440], "ai_character": "strict", "user_id": "本人ID"}`
+- **ボディ**: `{"remind_intervals": [60, 1440], "ai_character": "strict", "line_channel_token": "...", "line_group_id": "...", "summary_morning_time": "08:00", "summary_evening_time": "21:00", "user_id": "本人ID"}`
 - **戻り値**: `200 OK` (成功メッセージ)
+
+### 🔧 `GET /api/groups/:groupId/notifications` (`GetNotificationLogs`)
+特定の部屋で送信された過去の通知履歴（AI リマインド，SOS，サマリー等）を取得する．
+- **パスパラメータ**: `groupId`
+- **戻り値**: `200 OK` (通知ログの配列)
 
 ---
 
@@ -112,14 +117,34 @@ Web Push 等の購読情報を管理する．
 起床確認のスケジュール登録とチェックインを管理する．
 
 ### 🔧 `POST /api/wakeup/request` (`RequestWakeupCheck`)
-新しい起床確認を予約する．
-- **ボディ**: `{"user_id": "ID", "group_id": "ID", "target_time": "時刻", "grace_minutes": 分}`
+新しい起床見守りを予約する．既存の予約がある場合は上書きされる．
+- **ボディ**: `{"user_id": "本人ID", "group_id": "部屋ID", "target_time": "時刻", "grace_minutes": 分}`
 - **戻り値**: `201 Created`
 
 ### 🔧 `POST /api/wakeup/checkin` (`CheckIn`)
 ユーザーが起床したことを報告する．
 - **ボディ**: `{"user_id": "本人ID"}`
 - **戻り値**: `200 OK` (進行中の全スケジュールを `confirmed` に更新)
+
+### 🔧 `DELETE /api/wakeup/cancel` (`CancelWakeup`)
+進行中の起床見守りを手動でキャンセルする．
+- **クエリパラメータ**: `user_id`
+- **戻り値**: `200 OK`
+
+### 🔧 `GET /api/groups/:groupId/wakeups/active` (`GetActiveGroupChecks`)
+特定の部屋の全メンバーの「見守り中」の予定一覧を取得する．
+- **パスパラメータ**: `groupId`
+- **戻り値**: `200 OK`
+
+---
+
+## 6. ユーザー管理 (UserHandler)
+ユーザー情報の取得や更新を管理する．
+
+### 🔧 `GET /api/users/:id` (`GetUser`)
+ユーザーの基本情報を取得する．
+- **詳細**: フロントエンドでの「通知ボタン」の表示制御のため，`has_push_token`（サーバーにトークンがあるか）というフラグを含む．
+- **戻り値**: `200 OK`
 
 ---
 *最終更新日: 2026年6月11日*
