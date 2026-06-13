@@ -28,6 +28,12 @@ func (r *groupRepository) Save(ctx context.Context, group *domain.Group) error {
 	return nil
 }
 
+func (r *groupRepository) FindAllGroups(ctx context.Context) ([]*domain.Group, error) {
+	var groups []*domain.Group
+	err := r.db.WithContext(ctx).Preload("Users").Find(&groups).Error
+	return groups, err
+}
+
 // FindByID は指定された ID のグループ情報を取得する．
 func (r *groupRepository) FindByID(ctx context.Context, id string) (*domain.Group, error) {
 	var group domain.Group

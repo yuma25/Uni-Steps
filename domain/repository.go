@@ -28,6 +28,7 @@ type UserRepository interface {
 type GroupRepository interface {
 	Save(ctx context.Context, group *Group) error
 	FindByID(ctx context.Context, id string) (*Group, error)
+	FindAllGroups(ctx context.Context) ([]*Group, error)               // 全てのグループを取得する．
 	FindByInviteCode(ctx context.Context, code string) (*Group, error) // 招待コードでグループを検索する．
 	FindByUserID(ctx context.Context, userID string) ([]*Group, error) // ユーザー ID に紐づくグループ一覧を取得する．
 }

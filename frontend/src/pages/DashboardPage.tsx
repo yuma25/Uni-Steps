@@ -448,10 +448,20 @@ const DashboardPage: React.FC = () => {
             <div className="member-status-list" style={{display: 'flex', flexDirection: 'column', gap: '0.5rem'}}>
               {groupWakeups.map(w => {
                 const member = group?.users?.find(u => u.id === w.user_id);
-                if (!member || member.id === userId) return null;
+                if (!member) return null;
+                const isMe = member.id === userId;
                 return (
-                  <div key={w.id} style={{display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#f8fafc', padding: '0.6rem', borderRadius: '6px', fontSize: '0.85rem'}}>
-                    <span style={{fontWeight: 600}}>{member.name}</span>
+                  <div key={w.id} style={{
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '0.5rem', 
+                    background: isMe ? 'var(--primary-soft)' : '#f8fafc', 
+                    border: isMe ? '1px solid var(--primary-light)' : '1px solid transparent',
+                    padding: '0.6rem', 
+                    borderRadius: '6px', 
+                    fontSize: '0.85rem'
+                  }}>
+                    <span style={{fontWeight: 600}}>{member.name}{isMe ? ' (自分)' : ''}</span>
                     <span style={{color: 'var(--text-sub)'}}>: {new Date(w.target_time).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })} (+{w.grace_minutes}分)</span>
                     {w.status === 'pending' && <span style={{marginLeft: 'auto', color: 'var(--warning)', fontWeight: 600}}>見守り中</span>}
                     {w.status === 'alerted' && <span style={{marginLeft: 'auto', color: 'var(--error)', fontWeight: 600}}>寝坊！</span>}

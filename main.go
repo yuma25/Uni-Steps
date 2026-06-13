@@ -134,9 +134,27 @@ func main() {
 	syncUsecase := usecase.NewSyncUsecase(taskRepo, groupRepo, lmsService, schService)
 	groupUsecase := usecase.NewGroupUsecase(groupRepo, userRepo, logRepo)
 	wakeupUsecase := usecase.NewWakeupUsecase(wakeupRepo, schService)
+	summaryUsecase := usecase.NewSummaryUsecase(groupRepo, taskRepo, aiService, compositeNotifService, logRepo)
 
-	// 監視プロセス（Goroutine）は，予約方式への移行に伴い廃止された．
-	// go monitorUsecase.StartMonitoring(context.Background())
+	// 毎朝 8:00 にサマリーを送るバックグラウンド処理の起動
+	go func() {
+		for {
+			now := time.Now()
+			// 次の 8:00 を計算
+			next := time.Date(now.Year(), now.Month(), now.Day(), 8, 0, 0, 0, time.Local)
+			if now.After(next) {
+				next = next.Add(24 * time.Hour)
+			}
+
+			log.Printf("[System] 次回の朝刊サマリー送信予定: %v\n", next)
+			time.Sleep(time.Until(next))
+
+			ctx := context.Background()
+			if err := summaryUsecase.SendDailyGroupSummary(ctx); err != nil {
+				log.Printf("[Summary] 朝刊送信エラー: %v\n", err)
+			}
+		}
+	}()
 
 	// Echo サーバーの初期化
 	e := echo.New()

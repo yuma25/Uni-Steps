@@ -57,3 +57,38 @@ func (s *GeminiService) GenerateRemindMessage(ctx context.Context, task *domain.
 
 	return fmt.Sprint(resp.Candidates[0].Content.Parts[0]), nil
 }
+
+// GenerateGroupSummaryMessage はグループ全体の状況を要約したメッセージを生成する．
+func (s *GeminiService) GenerateGroupSummaryMessage(ctx context.Context, workloadSummary string, style string) (string, error) {
+	var characterPrompt string
+	switch style {
+	case domain.AICharacterStrict:
+		characterPrompt = "あなたは非常に厳しい軍隊の指導官です．部下たちの不甲斐なさを叱責しつつ，奮起させてください．"
+	case domain.AICharacterKind:
+		characterPrompt = "あなたは仲間思いでお節介な幼馴染です．みんなの体調を気遣いつつ，優しく背中を押してください．"
+	case domain.AICharacterCool:
+		characterPrompt = "あなたは冷徹で論理的な執事です．淡々と状況を報告し，最善の行動を促してください．"
+	default:
+		characterPrompt = "あなたは親切なチームアシスタントです．"
+	}
+
+	prompt := fmt.Sprintf(`%s
+以下のグループ全体の今日の課題状況を見て，朝の挨拶とまとめのメッセージを作成してください．
+状況:
+%s
+条件:
+- 150文字以内で，簡潔かつ印象的にまとめること．
+- メンバー全員の名前を呼びかける必要はなく，チーム全体へのメッセージにすること．
+- キャラクター設定を徹底すること．`, characterPrompt, workloadSummary)
+
+	resp, err := s.model.GenerateContent(ctx, genai.Text(prompt))
+	if err != nil {
+		return "", fmt.Errorf("Gemini へのサマリー生成依頼に失敗した： %w", err)
+	}
+
+	if len(resp.Candidates) == 0 || resp.Candidates[0].Content == nil {
+		return "", fmt.Errorf("AI からの応答が空である")
+	}
+
+	return fmt.Sprint(resp.Candidates[0].Content.Parts[0]), nil
+}
