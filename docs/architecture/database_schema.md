@@ -25,7 +25,10 @@ erDiagram
         string email "メールアドレス"
         string google_access_token "Google 認証トークン"
         string google_refresh_token "Google リフレッシュトークン"
+        timestamp google_token_expiry "Google トークン有効期限"
         string web_push_token "Web Push 購読情報 (JSON)"
+        timestamp last_check_in_at "最終チェックイン時刻"
+        json groups "所属グループ一覧 (M:M)"
     }
 
     GROUPS {
@@ -41,6 +44,7 @@ erDiagram
         json remind_intervals "通知タイミングの配列 (JSON)"
         timestamp last_synced_at "最終同期時刻"
         timestamp lms_last_updated_at "LMS 側の最終更新時刻"
+        json users "所属メンバー一覧 (M:M)"
     }
 
     USER_GROUPS {
@@ -54,8 +58,11 @@ erDiagram
         string source "入力元 (manual / google_classroom)"
         string creator_id "手動課題の作成者 ID"
         string external_id UK "外部 LMS 側の課題 ID"
+        string raw_text "AI 解析用原文"
         string title "課題のタイトル"
-        timestamp deadline "提出期限 (1/1/1 は未定扱い"
+        timestamp deadline "提出期限 (1/1/1 は未定扱い)"
+        bool is_lms_deadline_set "LMS 側に期限があったか"
+        timestamp lms_update_time "LMS 側の更新日時"
         json recurrence "繰り返し設定 (type, custom_dates 含む JSON)"
     }
 
