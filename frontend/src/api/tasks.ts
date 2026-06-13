@@ -43,8 +43,15 @@ export const taskApi = {
   /**
    * 課題の情報を更新する．
    */
-  updateTask: async (taskId: string, task: Partial<Task>): Promise<Task> => {
-    const resp = await client.put<Task>(`/api/tasks/${taskId}`, task);
+  updateTask: async (taskId: string, task: Partial<Task>, userId: string): Promise<Task> => {
+    const resp = await client.put<Task>(`/api/tasks/${taskId}?user_id=${userId}`, task);
     return resp.data;
   },
+
+  /**
+   * 課題を完全に削除する．
+   */
+  deleteTask: async (taskId: string, userId: string): Promise<void> => {
+    await client.delete(`/api/tasks/${taskId}?user_id=${userId}`);
+  }
 };

@@ -116,7 +116,7 @@ func (uc *GroupUsecase) ListUserGroups(ctx context.Context, userID string) ([]*d
 }
 
 // UpdateSettings は部屋の設定を更新する．オーナーのみ許可する．
-func (uc *GroupUsecase) UpdateSettings(ctx context.Context, groupID string, userID string, intervals []int, aiCharacter string, lineToken string, lineGroupID string, morningTime string, eveningTime string) error {
+func (uc *GroupUsecase) UpdateSettings(ctx context.Context, groupID string, userID string, name string, intervals []int, aiCharacter string, lineToken string, lineGroupID string, morningTime string, eveningTime string) error {
 	group, err := uc.groupRepo.FindByID(ctx, groupID)
 	if err != nil {
 		return err
@@ -129,6 +129,9 @@ func (uc *GroupUsecase) UpdateSettings(ctx context.Context, groupID string, user
 		return fmt.Errorf("この部屋の設定を変更する権限がない（オーナーのみ可能）")
 	}
 
+	if name != "" {
+		group.Name = name
+	}
 	group.RemindIntervals = intervals
 	group.AICharacter = aiCharacter
 	group.LineChannelToken = lineToken
@@ -136,6 +139,74 @@ func (uc *GroupUsecase) UpdateSettings(ctx context.Context, groupID string, user
 	group.SummaryMorningTime = morningTime
 	group.SummaryEveningTime = eveningTime
 	return uc.groupRepo.Save(ctx, group)
+}
+
+// LeaveGroup はユーザーを部屋から退出させる．
+func (uc *GroupUsecase) LeaveGroup(ctx context.Context, groupID string, userID string) error {
+	// 1．部屋が存在するか確認する．
+	group, err := uc.groupRepo.FindByID(ctx, groupID)
+	if err != nil {
+		return err
+	}
+	if group == nil {
+		return fmt.Errorf("グループが見つからない")
+	}
+
+	// オーナーが退出する場合は，事前に権譲譲が必要であることを伝える（Usecase レベルではエラーを返す）．
+	if group.OwnerID == userID && len(group.Users) > 1 {
+		return fmt.Errorf("オーナーは退出前に次のオーナーを指名する必要がある")
+	}
+
+	// 2．リポジトリ経由で紐付けを削除する．
+	return uc.groupRepo.RemoveUser(ctx, groupID, userID)
+}
+
+// TransferOwnership は部屋のオーナー権限を別のユーザーに譲渡する．
+func (uc *GroupUsecase) TransferOwnership(ctx context.Context, groupID string, currentOwnerID string, newOwnerID string) error {
+	group, err := uc.groupRepo.FindByID(ctx, groupID)
+	if err != nil {
+		return err
+	}
+	if group == nil {
+		return fmt.Errorf("グループが見つからない")
+	}
+
+	// 現在のオーナーであるか確認する．
+	if group.OwnerID != currentOwnerID {
+		return fmt.Errorf("オーナー権限の譲渡は現在のオーナーのみ可能である")
+	}
+
+	// 新しいオーナーがグループに所属しているか確認する．
+	found := false
+	for _, u := range group.Users {
+		if u.ID == newOwnerID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return fmt.Errorf("新しいオーナーはグループのメンバーである必要がある")
+	}
+
+	group.OwnerID = newOwnerID
+	return uc.groupRepo.Save(ctx, group)
+}
+
+// DeleteGroup は部屋を完全に削除する．オーナーのみ許可する．
+func (uc *GroupUsecase) DeleteGroup(ctx context.Context, groupID string, userID string) error {
+	group, err := uc.groupRepo.FindByID(ctx, groupID)
+	if err != nil {
+		return err
+	}
+	if group == nil {
+		return fmt.Errorf("グループが見つからない")
+	}
+
+	if group.OwnerID != userID {
+		return fmt.Errorf("この部屋を削除する権限がない（オーナーのみ可能）")
+	}
+
+	return uc.groupRepo.Delete(ctx, groupID)
 }
 
 // GetNotificationLogs は指定されたグループの通知履歴を取得する．

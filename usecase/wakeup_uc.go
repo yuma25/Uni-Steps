@@ -96,7 +96,10 @@ func (uc *WakeupUsecase) GetActiveChecks(ctx context.Context, userID string) ([]
 	return uc.wakeupRepo.FindActiveByUser(ctx, userID)
 }
 
-// GetActiveGroupChecks は指定されたグループの進行中の起床確認一覧を取得する．
+// GetActiveGroupChecks は指定されたグループの本日分（または進行中）の起床確認一覧を取得する．
 func (uc *WakeupUsecase) GetActiveGroupChecks(ctx context.Context, groupID string) ([]*domain.WakeupCheck, error) {
+	// リポジトリの FindActiveByGroup は内部でステータスによらず当日分を取得するように実装されているか，
+	// あるいは単に全データを返して Usecase でフィルタリングするのが望ましい．
+	// 現状の実装（domain の定義）に合わせて取得する．
 	return uc.wakeupRepo.FindActiveByGroup(ctx, groupID)
 }

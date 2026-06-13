@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Users, Share2, Send, BellRing, Plus, Settings } from 'lucide-react';
+import { ArrowLeft, Users, Share2, Send, BellRing, Plus } from 'lucide-react';
 import type { Group } from '../../types';
 
 interface DashboardHeaderProps {
@@ -9,70 +9,76 @@ interface DashboardHeaderProps {
   onSendTestNotification: () => void;
   onEnableNotifications: () => void;
   onAddTask: () => void;
-  onOpenSettings: () => void;
   notifPermission: NotificationPermission;
   serverTokenMissing: boolean;
+  loading: boolean;
 }
 
 const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   group,
-  userId,
   onBack,
   onSendTestNotification,
   onEnableNotifications,
   onAddTask,
-  onOpenSettings,
   notifPermission,
-  serverTokenMissing
+  serverTokenMissing,
+  loading
 }) => {
   const copyInviteCode = () => {
     if (group?.invite_code) {
       navigator.clipboard.writeText(group.invite_code);
-      alert("コピーしました！");
+      alert("招待コードをコピーしました！");
     }
   };
+
+  // メンバー名をカンマ区切りで生成する（最大 3 名まで表示，それ以上は「ほか X 名」）
+  const memberNames = group?.users?.map(u => u.name) || [];
+  const displayMembers = memberNames.length > 3 
+    ? `${memberNames.slice(0, 3).join(', ')} ほか ${memberNames.length - 3} 名`
+    : memberNames.join(', ');
 
   return (
     <header className="dashboard-header">
       <div className="header-left">
-        <button onClick={onBack} className="back-button"><ArrowLeft size={20} /></button>
-        <div className="title-group">
-          <div className="title-row">
-            <h1>{group?.name || "Uni-Steps"}</h1>
+        <button onClick={onBack} className="back-button" title="部屋選択へ戻る">
+          <ArrowLeft size={22} />
+        </button>
+        <div>
+          <h1>{group?.name || "Uni-Steps"}</h1>
+          <div className="group-info">
             {group?.invite_code && (
-              <button onClick={copyInviteCode} className="invite-badge">
-                <Share2 size={12} />コード: {group.invite_code}
+              <button onClick={copyInviteCode} className="invite-code-pill">
+                <Share2 size={12} /> {group.invite_code}
               </button>
             )}
-          </div>
-          <div className="group-info">
             {group?.users && (
-              <div className="member-list-summary">
-                <Users size={12} style={{marginRight: '4px'}} />
-                {group.users.map(u => u.name).join(', ')}
+              <div style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
+                <Users size={14} color="var(--text-tertiary)" />
+                <span style={{fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)'}}>{displayMembers}</span>
               </div>
             )}
           </div>
         </div>
       </div>
       <div className="header-actions">
-        {notifPermission === 'granted' && !serverTokenMissing && (
-          <button onClick={onSendTestNotification} className="icon-button" title="通知テスト">
-            <Send size={16} /><span>テスト</span>
-          </button>
-        )}
-        {(notifPermission !== 'granted' || serverTokenMissing) && (
-          <button onClick={onEnableNotifications} className="icon-button warning-btn">
-            <BellRing size={16} /><span>通知を有効化</span>
-          </button>
-        )}
-        <button onClick={onAddTask} className="icon-button primary">
-          <Plus size={16} />課題追加
-        </button>
-        {group?.owner_id === userId && (
-          <button onClick={onOpenSettings} className="icon-button" title="設定">
-            <Settings size={18} />
-          </button>
+        {!loading && (
+          <>
+            {notifPermission === 'granted' && !serverTokenMissing && (
+              <button onClick={onSendTestNotification} className="btn btn-ghost" title="通知テスト">
+                <Send size={18} />
+              </button>
+            )}
+            {(notifPermission !== 'granted' || serverTokenMissing) && (
+              <button onClick={onEnableNotifications} className="btn btn-primary" style={{background: 'var(--warning)'}}>
+                <BellRing size={18} />
+                <span className="hide-mobile">通知を有効化</span>
+              </button>
+            )}
+            <button onClick={onAddTask} className="btn btn-primary" title="手動で課題を登録">
+              <Plus size={20} />
+              <span className="hide-mobile">課題登録</span>
+            </button>
+          </>
         )}
       </div>
     </header>

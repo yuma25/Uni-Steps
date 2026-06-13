@@ -24,6 +24,7 @@ type Task struct {
 	Source           string             `json:"source"`                            // 課題の入力元（manual, ai, google_classroom 等）である．
 	ExternalID       string             `json:"external_id" gorm:"uniqueIndex"`    // 外部 LMS における課題の ID である（重複登録防止用）．
 	RawText          string             `json:"raw_text"`                          // ユーザーが入力した生の文章である（AI 解析時のみ）．
+	CreatorID        string             `json:"creator_id"`                        // 課題の作成者のユーザー ID である（手動課題のみ）．
 	Title            string             `json:"title"`                             // 課題のタイトルである．
 	Deadline         time.Time          `json:"deadline"`                          // 課題の期限（単発または初回）である．
 	IsLMSDeadlineSet bool               `json:"is_lms_deadline_set"`               // 外部 LMS 側で期限があらかじめ設定されていたか．

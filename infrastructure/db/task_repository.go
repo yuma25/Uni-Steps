@@ -10,35 +10,38 @@ import (
 )
 
 // taskRepository は domain.TaskRepository インターフェースを実装する構造体である．
-// GORM を使用して PostgreSQL (Supabase) との通信を行う．
 type taskRepository struct {
-	db *gorm.DB // データベース接続を保持する GORM クライアントである．
+	db *gorm.DB
 }
 
-// NewTaskRepository は taskRepository の新しいインスタンスを生成する．
-// 引数として確立済みのデータベース接続（gorm.DB）を受け取る．
 func NewTaskRepository(db *gorm.DB) domain.TaskRepository {
-	return &taskRepository{
-		db: db,
-	}
+	return &taskRepository{db: db}
 }
 
-// Save はタスクをデータベースに保存（新規作成または更新）する．
+// Save はタスクを保存または更新し，その進捗状況（UserProgress）を完全に同期する．
 func (r *taskRepository) Save(ctx context.Context, task *domain.Task) error {
-	// 1. まず Task 本体のみを保存・更新する（GORM の自動保存による外部キー制約エラーを防ぐため Omit する）
-	if err := r.db.WithContext(ctx).Omit("UserProgress").Save(task).Error; err != nil {
-		return err
-	}
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// 1. Task 本体を保存（UserProgress は除外）．
+		if err := tx.Omit("UserProgress").Save(task).Error; err != nil {
+			return err
+		}
 
-	// 2. UserProgress（該当者リスト）を完全に同期する．
-	if err := r.db.WithContext(ctx).Model(task).Association("UserProgress").Replace(task.UserProgress); err != nil {
-		return err
-	}
+		// 2. UserProgress（該当者リスト）を同期する．
+		// 以前の Upsert 方式では削除に対応できなかったため，一度全削除してから再登録する方式を採用する．
+		// Usecase 側で既存の完了状態を保持したオブジェクトを作成しているため，この方式で安全に同期できる．
+		if err := tx.Where("task_id = ?", task.ID).Delete(&domain.TaskUserProgress{}).Error; err != nil {
+			return err
+		}
 
-	return nil
+		if len(task.UserProgress) > 0 {
+			if err := tx.Create(task.UserProgress).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
-// FindByID は指定された ID のタスクをデータベースから取得する．
 func (r *taskRepository) FindByID(ctx context.Context, id string) (*domain.Task, error) {
 	var task domain.Task
 	err := r.db.WithContext(ctx).Preload("UserProgress").Where("id = ?", id).First(&task).Error
@@ -51,7 +54,6 @@ func (r *taskRepository) FindByID(ctx context.Context, id string) (*domain.Task,
 	return &task, nil
 }
 
-// FindByExternalID は外部 LMS の ID をキーにしてタスクを取得する．
 func (r *taskRepository) FindByExternalID(ctx context.Context, externalID string) (*domain.Task, error) {
 	var task domain.Task
 	err := r.db.WithContext(ctx).Preload("UserProgress").Where("external_id = ?", externalID).First(&task).Error
@@ -64,32 +66,23 @@ func (r *taskRepository) FindByExternalID(ctx context.Context, externalID string
 	return &task, nil
 }
 
-// FindByGroupID は指定されたグループ ID に紐づくタスク一覧を取得する．
 func (r *taskRepository) FindByGroupID(ctx context.Context, groupID string) ([]*domain.Task, error) {
-	tasks := []*domain.Task{}
-	// Preload で進捗状況も取得し，期限順に並べる．
-	err := r.db.WithContext(ctx).
-		Preload("UserProgress").
-		Where("group_id = ?", groupID).
-		Order("deadline ASC").
-		Find(&tasks).Error
-	if err != nil {
-		return nil, err
-	}
-	return tasks, nil
+	var tasks []*domain.Task
+	err := r.db.WithContext(ctx).Preload("UserProgress").Where("group_id = ?", groupID).Order("deadline ASC").Find(&tasks).Error
+	return tasks, err
 }
 
-// FindApproachingDeadlines は指定された日時までに期限を迎える，未完了のタスクを取得する．
 func (r *taskRepository) FindApproachingDeadlines(ctx context.Context, until time.Time) ([]*domain.Task, error) {
-	tasks := []*domain.Task{}
-	// 全員の完了状態ではなく，個別の通知ロジックが必要になるため，ここでは Preload しつつ取得する．
-	err := r.db.WithContext(ctx).
-		Preload("UserProgress").
-		Where("deadline <= ?", until).
-		Order("deadline ASC").
-		Find(&tasks).Error
-	if err != nil {
-		return nil, err
-	}
-	return tasks, nil
+	var tasks []*domain.Task
+	err := r.db.WithContext(ctx).Preload("UserProgress").Where("deadline <= ?", until).Order("deadline ASC").Find(&tasks).Error
+	return tasks, err
+}
+
+func (r *taskRepository) Delete(ctx context.Context, id string) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("task_id = ?", id).Delete(&domain.TaskUserProgress{}).Error; err != nil {
+			return err
+		}
+		return tx.Where("id = ?", id).Delete(&domain.Task{}).Error
+	})
 }

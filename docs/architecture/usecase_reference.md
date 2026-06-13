@@ -1,6 +1,6 @@
 # Uni-Steps ユースケース層 リファレンスマニュアル
 
-本ドキュメントは，`usecase/` 配下で定義されている構造体，コンストラクタ（関数），およびメソッドの全ての仕様を網羅したものである．ビジネスロジックの実行手順を確認する際に参照すること．
+本ドキュメントは，`usecase/` 配下で定義されている構造体，コンストラクタ（関数），およびメソッドの全ての仕様を網羅したものである．
 
 ---
 
@@ -8,56 +8,22 @@
 
 ### 📦 `type GroupUsecase struct`
 部屋の作成や参加に関するロジックを保持する構造体である．
-- **フィールド**:
-  - `groupRepo domain.GroupRepository`: 部屋データの保存・検索を担当する．
-  - `userRepo domain.UserRepository`: オーナーや参加者の存在確認を担当する．
 
-### ⚙️ `func NewGroupUsecase(gr, ur) *GroupUsecase`
-`GroupUsecase` の新しいインスタンスを生成するコンストラクタである．
+### 🔧 `func (uc *GroupUsecase) UpdateSettings(ctx, groupID, userID, name, intervals, aiCharacter, ...) error`
+部屋の設定（名称，リマインド間隔，AI 性格，LINE 連携，サマリー時刻）を更新する手順である．
+- **権限**: 部屋のオーナーのみ許可される．
 
-### 🔧 `func (uc *GroupUsecase) CreateGroup(ctx, name, ownerID) (*domain.Group, error)`
-新しい部屋を作成し，作成者をオーナーとして登録する手順である．
-- **引数**:
-  - `ctx context.Context`: 中断制御用のコンテキスト．
-  - `name string`: 作成する部屋の名称．
-  - `ownerID string`: 作成者（オーナー）のユーザー ID．
-- **戻り値**:
-  - `*domain.Group`: 作成された部屋のオブジェクト．自動生成された 8 桁の `InviteCode` を含む．
-  - `error`: 保存失敗やオーナー不在時のエラー．
+### 🔧 `func (uc *GroupUsecase) TransferOwnership(ctx, groupID, currentOwnerID, newOwnerID) error`
+オーナー権限を別のメンバーに譲渡する．
+- **仕様**: 譲渡先のユーザーがグループに所属している必要がある．
 
-### 🔧 `func (uc *GroupUsecase) JoinGroupByInviteCode(ctx, code, userID) (*domain.Group, error)`
-8 桁の招待コードを用いて，既存の部屋に参加する手順である．
-- **引数**:
-  - `ctx context.Context`: コンテキスト．
-  - `code string`: 参加対象の部屋に設定された招待コード．
-  - `userID string`: 参加しようとしているユーザーの ID．
-- **戻り値**:
-  - `*domain.Group`: 参加に成功した部屋のオブジェクト．
-  - `error`: コード無効，ユーザー不在，または保存失敗時のエラー．
+### 🔧 `func (uc *GroupUsecase) LeaveGroup(ctx, groupID, userID) error`
+ユーザーを部屋から退出させる手順である．
+- **制限**: オーナーが退出する場合は，事前に `TransferOwnership` で後継者を指名している必要がある（メンバーが他にいる場合）．メンバーが自分一人の場合は削除を推奨する．
 
-### 🔧 `func (uc *GroupUsecase) ListUserGroups(ctx, userID) ([]*domain.Group, error)`
-ユーザーが現在所属している部屋の一覧を取得する手順である．
-- **引数**:
-  - `userID string`: 取得対象のユーザー ID．
-- **戻り値**:
-  - `[]*domain.Group`: 所属している部屋のリスト．各部屋には `Users` リストが Preload（事前読み込み）されている．
-  - `error`: 取得失敗時のエラー．
-
-### 🔧 `func (uc *GroupUsecase) UpdateSettings(ctx, groupID, userID, intervals, aiCharacter, lineToken, lineGroupID, morningTime, eveningTime) error`
-部屋の設定（リマインド間隔，AI の性格，LINE 連携，サマリー時刻）を更新する手順である．
-- **権限**: `userID` がその部屋のオーナーである場合のみ実行を許可する．
-- **制約**: リマインド間隔は最大 3 つまで設定可能である．
-- **引数**:
-  - `userID string`: 設定変更を要求しているユーザーの ID．
-  - `intervals []int`: 新しいリマインドタイミングのリスト（分前）．
-  - `aiCharacter string`: 選択された AI のキャラクター（`strict` 等）．
-  - `morningTime string`: 朝のサマリー送信時刻（HH:mm）．
-  - `eveningTime string`: 夜のサマリー送信時刻（HH:mm）．
-- **戻り値**:
-  - `error`: 権限不足や保存失敗時のエラー．
-
-### 🔧 `func (uc *GroupUsecase) GetNotificationLogs(ctx, groupID, limit) ([]*domain.NotificationLog, error)`
-特定の部屋の過去の通知履歴（AI リマインド，SOS，サマリー）を取得する手順である．
+### 🔧 `func (uc *GroupUsecase) DeleteGroup(ctx, groupID, userID) error`
+部屋を完全に削除する．
+- **権限**: オーナーのみ可能．
 
 ---
 
@@ -65,121 +31,38 @@
 
 ### 📦 `type TaskUsecase struct`
 手動での課題操作や進捗更新を管理する構造体である．
-- **フィールド**:
-  - `taskRepo domain.TaskRepository`: 課題データの保存・検索を担当する．
-  - `groupRepo domain.GroupRepository`: 部屋の設定（通知タイミング等）を確認するために使用する．
-  - `aiService domain.AIService`: メッセージ生成を担当する．
-  - `scheduler domain.SchedulerService`: リマインド予約を管理する．
-
-### ⚙️ `func NewTaskUsecase(tr, gr, ai, sch) *TaskUsecase`
-`TaskUsecase` の新しいインスタンスを生成するコンストラクタである．新たに部屋リポジトリ（`gr`）を必要とする．
 
 ### 🔧 `func (uc *TaskUsecase) RegisterManualTask(ctx, task) (*domain.Task, error)`
-ユーザーが UI から入力した情報に基づき，新しい課題を登録する手順である．
-- **リマインド予約**: 登録完了後，部屋の `RemindIntervals` 設定に基づき，複数のリマインド通知を自動的に予約する．期限が過去の場合は予約をスキップする．
-- **引数**:
-  - `task *domain.Task`: 登録する課題のプロトタイプ．
-- **戻り値**:
-  - `*domain.Task`: 保存された課題オブジェクト．
-  - `error`: バリデーション違反や保存失敗時のエラー．
+新しい課題を登録する．
 
-### 🔧 `func (uc *TaskUsecase) ListGroupTasks(ctx, groupID) ([]*domain.Task, error)`
-特定の部屋に属する課題一覧を取得する手順である．
-- **引数**:
-  - `groupID string`: 取得対象の部屋 ID．
-- **戻り値**:
-  - `[]*domain.Task`: 期限の近い順（昇順）に並んだ課題のリスト．
+### 🔧 `func (uc *TaskUsecase) UpdateTask(ctx, taskID, input, operatorID) (*domain.Task, error)`
+既存の課題情報を更新する手順である．
+- **権限管理**:
+  - **タイトル・期限の変更**: 作成者（`CreatorID`）または「部屋のオーナー」のみ可能．
+  - **該当者の変更**: 誰でも可能（自分自身や他人の追加・削除）．
+- **自動クリーンアップ**: 更新の結果，担当者が 0 人になった場合，その課題は自動的にデータベースから削除される．
 
-### 🔧 `func (uc *TaskUsecase) UpdateTask(ctx context.Context, taskID string, input *domain.Task) (*domain.Task, error)`
-既存の課題の内容や該当者リストを更新する手順である．
-- **UI レベルの制限**: データの正確性を守るため，Google Classroom 由来の課題のうち「最初から期限が決まっているもの」は編集不可である．一方で，期限が「未定」だった Classroom 課題および手動課題は，期限の編集が何度でも可能である．
-- **引数**:
-  - `taskID string`: 更新対象の内部課題 ID．
-  - `input *domain.Task`: 更新後の情報（タイトル，期限，該当者リスト）を持つオブジェクト．
-- **戻り値**:
-  - `*domain.Task`: 更新後の課題オブジェクト．既存メンバーの完了状態は維持される．
-  - `error`: 対象不在や保存失敗時のエラー．
-
+### 🔧 `func (uc *TaskUsecase) DeleteTask(ctx, taskID, operatorID) error`
+課題を削除する．
+- **権限**: 作成者または「部屋のオーナー」のみ可能．
 
 ### 🔧 `func (uc *TaskUsecase) ToggleUserCompletion(ctx, taskID, userID) error`
-特定のユーザーの課題完了状態を「完了 ↔ 未完了」で反転させる手順である．
-- **予約の自動管理**: 状態が「完了」になった場合，そのユーザー宛の該当課題の予約済み通知を全て自動的にキャンセルする．再度「未完了」に戻した場合は，期限に基づき（未来であれば）再予約を行う．
-- **引数**:
-  - `taskID string`: 対象の課題 ID．
-  - `userID string`: 操作を行うユーザーの ID．
-- **戻り値**:
-  - `error`: 保存失敗時のエラー．
+個人の完了状態を切り替える．
+- **修正点**: データベースの Upsert ロジック（`infrastructure/db`）により，確実に状態が永続化されるようになった．
 
 ---
 
-## 3. LMS 同期 (SyncUsecase)
-
-### 📦 `type SyncUsecase struct`
-Google Classroom 等の外部システムから情報を統合するロジックを保持する．
-- **フィールド**:
-  - `taskRepo domain.TaskRepository`: 同期した課題の保存を担当する．
-  - `groupRepo domain.GroupRepository`: 部屋の同期ステータス更新を担当する．
-  - `lmsService domain.LMSService`: 外部 API との通信を担当する．
-
-### ⚙️ `func NewSyncUsecase(tr, gr, lms) *SyncUsecase`
-`SyncUsecase` のコンストラクタである．
+## 3. LMS 同期 & 起床確認 & 状況要約
 
 ### 🔧 `func (uc *SyncUsecase) SyncTasks(ctx, userID, groupID) ([]*domain.Task, error)`
-外部 LMS から最新の課題と提出状況を取得し，特定の部屋へ保存・更新する手順である．
-- **処理のこだわり**:
-  - **差分同期**: `LMSLastUpdatedAt` を用いて，更新があった課題のみを処理する．
-  - **進捗のマージ**: 自分の完了状態は LMS に合わせるが，他のメンバーの進捗データは破壊せず維持する．
-  - **期限の保護**: Uni-Steps 側ですでに手動で期限が設定されている場合，LMS 側が「未定」であっても既存の期限を優先して保持する．
-- **引数**:
-  - `userID string`: 同期に使用する OAuth トークンを持つユーザーの ID．
-  - `groupID string`: 課題を流し込む先の部屋 ID．
-- **戻り値**:
-  - `[]*domain.Task`: 今回の同期で新規作成または更新された課題のリスト．
-  - `error`: 通信失敗やデータ不整合時のエラー．
-
----
-
-## 4. 起床確認 (WakeupUsecase)
-生活リズムの改善を支援する起床見守りロジックを管理する．
-
-### 📦 `type WakeupUsecase struct`
-起床確認の登録や判定を行う構造体である．
-- **フィールド**:
-  - `wakeupRepo domain.WakeupRepository`: 起床記録の保存を担当する．
-  - `scheduler domain.SchedulerService`: SOS 通知の予約を担当する．
-
-### ⚙️ `func NewWakeupUsecase(wr, sch) *WakeupUsecase`
-`WakeupUsecase` のコンストラクタである．
-
-### 🔧 `func (uc *WakeupUsecase) RequestWakeup(ctx, userID, groupID, targetTime, graceMinutes) (*domain.WakeupCheck, error)`
-新しい起床見守りを予約し，同時にスケジューラーに SOS 発信を登録する手順である．
-- **SOS 予約**: 起床予定時刻に猶予時間（`graceMinutes`）を加えた時刻に，自動的に SOS 通知が走るよう予約を行う．
-- **引数**:
-  - `targetTime time.Time`: 起床を約束した時刻．
-  - `graceMinutes int`: 寝坊と判定するまでの猶予時間．
-- **戻り値**:
-  - `*domain.WakeupCheck`: 作成された起床確認オブジェクト．
+外部 LMS（Google Classroom）から課題を同期する．
 
 ### 🔧 `func (uc *WakeupUsecase) GetActiveGroupChecks(ctx, groupID) ([]*domain.WakeupCheck, error)`
-特定のグループ内で進行中の（まだ起きていない）全メンバーの起床確認一覧を取得する手順である．
-
----
-
-## 5. 状況要約 (SummaryUsecase)
-グループ全体の課題状況を集計し，定期的に通知するロジックである．
-
-### 📦 `type SummaryUsecase struct`
-サマリーの生成と送信を管理する構造体である．
-- **フィールド**:
-  - `groupRepo domain.GroupRepository`: グループ情報の取得を担当する．
-  - `taskRepo domain.TaskRepository`: 課題状況の集計を担当する．
-  - `aiService domain.AIService`: サマリー文章の生成を担当する．
-  - `notifService domain.NotificationService`: 送信を担当する．
+メンバー全員の起床状況を取得する．
+- **表示仕様**: 「本日分」であれば，すでに起きた人（`confirmed`）の情報も返却され，画面に「起きた！」と表示し続けられる．
 
 ### 🔧 `func (uc *SummaryUsecase) SendAllSummaries(ctx, now) error`
-現在時刻（`now`）をチェックし，設定時刻に達したグループに対してサマリー送信（朝刊・夕刊）を実行する手順である．
-- **送信対象**: 設定された `SummaryMorningTime` または `SummaryEveningTime` と現在時刻が一致したグループ．
-- **送信先**: 連携済みの LINE グループおよびメンバー全員への Web Push．
+設定時刻に達したグループへ朝夕のサマリーを送信する．
 
 ---
-*最終更新日: 2026年6月11日*
+*最終更新日: 2026年6月14日*

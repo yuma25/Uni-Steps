@@ -11,16 +11,12 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <div className="app-container">
-          <main>
-            <Routes>
-              <Route path="/" element={<LoginPage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/select-group" element={<GroupSelectionPage />} />
-              <Route path="/dashboard" element={<DashboardPage />} />
-            </Routes>
-          </main>
-        </div>
+        <Routes>
+          <Route path="/" element={<LoginPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/select-group" element={<GroupSelectionPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+        </Routes>
       </AuthProvider>
     </Router>
   );

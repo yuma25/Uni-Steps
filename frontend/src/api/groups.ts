@@ -43,10 +43,11 @@ export const groupApi = {
     return resp.data;
   },
   /**
-   * 部屋の設定（リマインド間隔など）を更新する．
+   * 部屋の設定（名称，リマインド間隔，AI 性格，LINE 連携等）を更新する．
    */
   updateSettings: async (
     groupId: string, 
+    name: string,
     intervals: number[], 
     userId: string, 
     aiCharacter: string, 
@@ -56,6 +57,7 @@ export const groupApi = {
     eveningTime: string
   ): Promise<void> => {
     await client.patch(`/api/groups/${groupId}/settings`, {
+      name: name,
       remind_intervals: intervals,
       user_id: userId,
       ai_character: aiCharacter,
@@ -64,6 +66,30 @@ export const groupApi = {
       summary_morning_time: morningTime,
       summary_evening_time: eveningTime,
     });
+  },
+
+  /**
+   * 部屋のオーナー権限を別のユーザーに譲渡する．
+   */
+  transferOwnership: async (groupId: string, currentOwnerId: string, newOwnerId: string): Promise<void> => {
+    await client.put(`/api/groups/${groupId}/owner`, {
+      current_owner_id: currentOwnerId,
+      new_owner_id: newOwnerId,
+    });
+  },
+
+  /**
+   * 部屋（グループ）を完全に削除する．オーナーのみ可能．
+   */
+  deleteGroup: async (groupId: string, userId: string): Promise<void> => {
+    await client.delete(`/api/groups/${groupId}?user_id=${userId}`);
+  },
+
+  /**
+   * 指定した部屋から退出する．
+   */
+  leaveGroup: async (groupId: string, userId: string): Promise<void> => {
+    await client.delete(`/api/groups/${groupId}/users/${userId}`);
   },
 
   /**

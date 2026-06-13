@@ -37,6 +37,8 @@ func (uc *TaskUsecase) RegisterManualTask(ctx context.Context, task *domain.Task
 		task.ID = uuid.New().String()
 	}
 
+	// 作成者 ID はドメインモデルにセットされた状態で渡される（Handler でセット）．
+
 	// 新規作成時，各ユーザーの進捗データにも親の課題 ID を確実にセットする．
 	for _, up := range task.UserProgress {
 		up.TaskID = task.ID
@@ -69,7 +71,7 @@ func (uc *TaskUsecase) ListGroupTasks(ctx context.Context, groupID string) ([]*d
 }
 
 // UpdateTask は課題の情報を更新するユースケースである．
-func (uc *TaskUsecase) UpdateTask(ctx context.Context, taskID string, input *domain.Task) (*domain.Task, error) {
+func (uc *TaskUsecase) UpdateTask(ctx context.Context, taskID string, input *domain.Task, operatorID string) (*domain.Task, error) {
 	existing, err := uc.taskRepo.FindByID(ctx, taskID)
 	if err != nil {
 		return nil, err
@@ -78,13 +80,26 @@ func (uc *TaskUsecase) UpdateTask(ctx context.Context, taskID string, input *dom
 		return nil, fmt.Errorf("更新対象の課題が見つからない")
 	}
 
-	existing.Title = input.Title
-	existing.Deadline = input.Deadline
-
 	// 部屋の設定を取得
 	group, _ := uc.groupRepo.FindByID(ctx, existing.GroupID)
+	if group == nil {
+		return nil, fmt.Errorf("所属グループが見つからない")
+	}
 
-	// 進捗状況（該当者）の更新
+	// 権限チェック
+	// タイトルや期限の変更は，作成者 または グループオーナーのみ可能である．
+	isCreator := existing.CreatorID == operatorID
+	isOwner := group.OwnerID == operatorID
+
+	if input.Title != existing.Title || !input.Deadline.Equal(existing.Deadline) {
+		if !isCreator && !isOwner {
+			return nil, fmt.Errorf("タイトルや期限の変更は，作成者またはオーナーのみ可能である")
+		}
+		existing.Title = input.Title
+		existing.Deadline = input.Deadline
+	}
+
+	// 進捗状況（該当者）の更新は，グループメンバーであれば誰でも可能とする（仕様）．
 	if input.UserProgress != nil {
 		inputUserIDs := make(map[string]*domain.TaskUserProgress)
 		for _, up := range input.UserProgress {
@@ -110,12 +125,18 @@ func (uc *TaskUsecase) UpdateTask(ctx context.Context, taskID string, input *dom
 		existing.UserProgress = newProgress
 	}
 
+	// 担当者が一人もいなくなった場合は，課題を自動的に削除する．
+	if len(existing.UserProgress) == 0 {
+		_ = uc.taskRepo.Delete(ctx, taskID)
+		return nil, nil // 削除されたことを示すため nil を返す．
+	}
+
 	if err := uc.taskRepo.Save(ctx, existing); err != nil {
 		return nil, err
 	}
 
 	// リマインドの再予約
-	if group != nil && !existing.Deadline.IsZero() {
+	if !existing.Deadline.IsZero() {
 		for _, up := range existing.UserProgress {
 			if !up.IsCompleted {
 				for _, interval := range group.RemindIntervals {
@@ -132,6 +153,33 @@ func (uc *TaskUsecase) UpdateTask(ctx context.Context, taskID string, input *dom
 	}
 
 	return existing, nil
+}
+
+// DeleteTask は課題を削除する．作成者またはオーナーのみ可能である．
+func (uc *TaskUsecase) DeleteTask(ctx context.Context, taskID string, operatorID string) error {
+	task, err := uc.taskRepo.FindByID(ctx, taskID)
+	if err != nil {
+		return err
+	}
+	if task == nil {
+		return fmt.Errorf("課題が見つからない")
+	}
+
+	group, _ := uc.groupRepo.FindByID(ctx, task.GroupID)
+	if group == nil {
+		return fmt.Errorf("所属グループが見つからない")
+	}
+
+	if task.CreatorID != operatorID && group.OwnerID != operatorID {
+		return fmt.Errorf("課題の削除は作成者またはオーナーのみ可能である")
+	}
+
+	// 全員の通知をキャンセル
+	for _, up := range task.UserProgress {
+		_ = uc.scheduler.CancelTaskReminds(ctx, taskID, up.UserID)
+	}
+
+	return uc.taskRepo.Delete(ctx, taskID)
 }
 
 // ToggleUserCompletion は特定のユーザーの課題完了状態を反転させる．

@@ -17,7 +17,8 @@ export interface Task {
   id: string;              // 課題の一意識別子である．
   group_id: string;        // 所属するグループの ID である．
   source: string;          // 課題の入力元（manual, google_classroom 等）である．
-  external_id: string;     // 外部 LMS における課題의 ID である．
+  creator_id?: string;     // 手動課題の場合の作成者 ID である．
+  external_id: string;     // 外部 LMS における課題 ID である．
   title: string;           // 課題のタイトルである．
   deadline: string;        // 課題の期限である（ISO8601 形式）．
   is_lms_deadline_set: boolean; // 外部 LMS 側で最初から期限があったか

@@ -25,19 +25,36 @@ func NewTaskHandler(e *echo.Echo, tu *usecase.TaskUsecase, su *usecase.SyncUseca
 	e.POST("/api/tasks/sync", h.SyncTasks)
 	e.PATCH("/api/tasks/:id/toggle-completion", h.ToggleTaskCompletion)
 	e.PUT("/api/tasks/:id", h.UpdateTask)
+	e.DELETE("/api/tasks/:id", h.DeleteTask)
+}
+
+// DeleteTask は課題を削除する．
+func (h *TaskHandler) DeleteTask(c echo.Context) error {
+	taskID := c.Param("id")
+	userID := c.QueryParam("user_id")
+
+	err := h.taskUsecase.DeleteTask(c.Request().Context(), taskID, userID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+	return c.JSON(http.StatusOK, map[string]string{"message": "課題を削除した"})
 }
 
 // UpdateTask は課題の情報を更新する．
 func (h *TaskHandler) UpdateTask(c echo.Context) error {
 	taskID := c.Param("id")
+	userID := c.QueryParam("user_id")
 	task := new(domain.Task)
 	if err := c.Bind(task); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "リクエスト形式が不正である"})
 	}
 
-	updatedTask, err := h.taskUsecase.UpdateTask(c.Request().Context(), taskID, task)
+	updatedTask, err := h.taskUsecase.UpdateTask(c.Request().Context(), taskID, task, userID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+	if updatedTask == nil {
+		return c.JSON(http.StatusOK, map[string]string{"message": "担当者がいなくなったため，課題を自動削除した"})
 	}
 	return c.JSON(http.StatusOK, updatedTask)
 }
@@ -75,6 +92,9 @@ func (h *TaskHandler) CreateManualTask(c echo.Context) error {
 	if err := c.Bind(task); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "リクエスト形式が不正である"})
 	}
+
+	// フロントエンドから CreatorID が送られていない場合，または明示的に上書きする場合．
+	// ここではリクエストボディに含まれているものを使用する（フロントでセットして送る仕様）．
 
 	createdTask, err := h.taskUsecase.RegisterManualTask(c.Request().Context(), task)
 	if err != nil {

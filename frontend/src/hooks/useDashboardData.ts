@@ -16,7 +16,8 @@ export const useDashboardData = (userId: string, groupId: string) => {
   const [notificationLogs, setNotificationLogs] = useState<NotificationLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [serverTokenMissing, setServerTokenMissing] = useState<boolean>(true);
+  // 初期状態での UI 崩れを防ぐため，デフォルトは false（トークンあり）としておく
+  const [serverTokenMissing, setServerTokenMissing] = useState<boolean>(false);
 
   const fetchData = useCallback(async () => {
     if (!userId || !groupId) return;

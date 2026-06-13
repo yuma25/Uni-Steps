@@ -155,7 +155,12 @@ func main() {
 
 	// Echo サーバーの初期化
 	e := echo.New()
-	e.Use(middleware.Logger())
+
+	// ログ出力を人間が読みやすい形式（インデント付き JSON 風）にカスタマイズ
+	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
+		Format: "{\n  \"time\": \"${time_rfc3339}\",\n  \"method\": \"${method}\",\n  \"uri\": \"${uri}\",\n  \"status\": ${status},\n  \"latency\": \"${latency_human}\"\n}\n",
+	}))
+
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORS())
 

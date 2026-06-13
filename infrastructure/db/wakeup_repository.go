@@ -51,6 +51,7 @@ func (r *wakeupRepository) FindPendingByTime(ctx context.Context, now time.Time)
 
 func (r *wakeupRepository) FindActiveByUser(ctx context.Context, userID string) ([]*domain.WakeupCheck, error) {
 	checks := []*domain.WakeupCheck{}
+	// 本人分は，現在進行中（pending）のものを探す．
 	err := r.db.WithContext(ctx).
 		Where("user_id = ? AND status = ?", userID, domain.WakeupStatusPending).
 		Find(&checks).Error
@@ -59,8 +60,11 @@ func (r *wakeupRepository) FindActiveByUser(ctx context.Context, userID string) 
 
 func (r *wakeupRepository) FindActiveByGroup(ctx context.Context, groupID string) ([]*domain.WakeupCheck, error) {
 	checks := []*domain.WakeupCheck{}
+	// グループ一覧用は，「今日」の日付分をすべて取得する（ステータス不問）．
+	// これにより「起きました！」後の表示も維持できる．
+	today := time.Now().Local().Format("2006-01-02")
 	err := r.db.WithContext(ctx).
-		Where("group_id = ? AND status = ?", groupID, domain.WakeupStatusPending).
+		Where("group_id = ? AND target_time >= ?", groupID, today+" 00:00:00").
 		Find(&checks).Error
 	return checks, err
 }

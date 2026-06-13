@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -24,7 +25,55 @@ func NewGroupHandler(e *echo.Echo, gu *usecase.GroupUsecase, ls domain.LMSServic
 	e.POST("/api/groups/join", h.JoinGroupByInviteCode)
 	e.GET("/api/users/:userId/groups", h.ListUserGroups)
 	e.PATCH("/api/groups/:groupId/settings", h.UpdateGroupSettings)
+	e.PUT("/api/groups/:groupId/owner", h.TransferOwnership)
+	e.DELETE("/api/groups/:groupId", h.DeleteGroup)
+	e.DELETE("/api/groups/:groupId/users/:userId", h.LeaveGroup)
 	e.GET("/api/groups/:groupId/notifications", h.GetNotificationLogs)
+}
+
+// TransferOwnership はオーナー権限の譲渡リクエストを処理する．
+func (h *GroupHandler) TransferOwnership(c echo.Context) error {
+	groupID := c.Param("groupId")
+	var req struct {
+		CurrentOwnerID string `json:"current_owner_id"`
+		NewOwnerID     string `json:"new_owner_id"`
+	}
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "リクエスト形式が不正である"})
+	}
+
+	err := h.groupUsecase.TransferOwnership(c.Request().Context(), groupID, req.CurrentOwnerID, req.NewOwnerID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{"message": "オーナー権限を譲渡した"})
+}
+
+// DeleteGroup は部屋の削除リクエストを処理する．
+func (h *GroupHandler) DeleteGroup(c echo.Context) error {
+	groupID := c.Param("groupId")
+	userID := c.QueryParam("user_id") // オーナー確認用
+
+	err := h.groupUsecase.DeleteGroup(c.Request().Context(), groupID, userID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{"message": "部屋を完全に削除した"})
+}
+
+// LeaveGroup はユーザーの部屋退出リクエストを処理する．
+func (h *GroupHandler) LeaveGroup(c echo.Context) error {
+	groupID := c.Param("groupId")
+	userID := c.Param("userId")
+
+	err := h.groupUsecase.LeaveGroup(c.Request().Context(), groupID, userID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{"message": "部屋を退出した"})
 }
 
 // GetNotificationLogs はグループの通知履歴を取得する．
@@ -44,6 +93,7 @@ func (h *GroupHandler) GetNotificationLogs(c echo.Context) error {
 func (h *GroupHandler) UpdateGroupSettings(c echo.Context) error {
 	groupID := c.Param("groupId")
 	var req struct {
+		Name               string `json:"name"`
 		RemindIntervals    []int  `json:"remind_intervals"`
 		AICharacter        string `json:"ai_character"`
 		UserID             string `json:"user_id"`
@@ -56,7 +106,9 @@ func (h *GroupHandler) UpdateGroupSettings(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "リクエスト形式が不正である"})
 	}
 
-	err := h.groupUsecase.UpdateSettings(c.Request().Context(), groupID, req.UserID, req.RemindIntervals, req.AICharacter, req.LineChannelToken, req.LineGroupID, req.SummaryMorningTime, req.SummaryEveningTime)
+	log.Printf("[DEBUG] UpdateGroupSettings: GroupID=%s, Name=%s, Intervals=%v\n", groupID, req.Name, req.RemindIntervals)
+
+	err := h.groupUsecase.UpdateSettings(c.Request().Context(), groupID, req.UserID, req.Name, req.RemindIntervals, req.AICharacter, req.LineChannelToken, req.LineGroupID, req.SummaryMorningTime, req.SummaryEveningTime)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
