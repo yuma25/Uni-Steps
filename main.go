@@ -103,7 +103,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("Gemini クライアントの初期化に失敗した: %v", err)
 	}
-	aiService := ai.NewGeminiService(genaiClient, "gemini-2.0-flash")
+	modelName := os.Getenv("GEMINI_MODEL")
+	if modelName == "" {
+		modelName = "gemini-1.5-flash" // 無料枠で最も安定しているモデル
+	}
+	aiService := ai.NewGeminiService(genaiClient, modelName)
 
 	// 通知サービスの初期化
 	webPushService := webpush.NewWebPushService(userRepo, os.Getenv("VAPID_PUBLIC_KEY"), os.Getenv("VAPID_PRIVATE_KEY"), "mailto:admin@example.com")
