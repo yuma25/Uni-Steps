@@ -51,8 +51,8 @@ func (uc *GroupUsecase) CreateGroup(ctx context.Context, name string, ownerID st
 		InviteCode:         inviteCode,
 		RemindIntervals:    []int{1440, 60}, // デフォルト設定：24時間前と1時間前
 		AICharacter:        domain.AICharacterDefault,
-		SummaryMorningTime: "08:00",
-		SummaryEveningTime: "21:00",
+		SummaryMorningTime: "06:00",
+		SummaryEveningTime: "22:00",
 		Users:              []*domain.User{},
 	}
 

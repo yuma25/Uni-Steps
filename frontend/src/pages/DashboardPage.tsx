@@ -40,8 +40,16 @@ const DashboardPage: React.FC = () => {
   } = useDashboardData(userId, groupId);
 
   const { 
-    notifPermission, handleEnableNotifications, handleSendTestNotification 
+    notifPermission, handleEnableNotifications, handleSilentResubscribe, handleSendTestNotification 
   } = useWebPush(userId, groupId);
+
+  // 通知の自動復旧ロジック：許可済みだがサーバーにトークンがない場合，サイレントに再登録する．
+  useEffect(() => {
+    if (serverTokenMissing && notifPermission === 'granted') {
+      console.log("DashboardPage: 通知トークンの自動復旧を開始する...");
+      handleSilentResubscribe(() => setServerTokenMissing(false));
+    }
+  }, [serverTokenMissing, notifPermission, handleSilentResubscribe, setServerTokenMissing]);
 
   // View state
   const [activeTab, setActiveTab] = useState('tasks');

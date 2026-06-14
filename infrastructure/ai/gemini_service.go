@@ -37,14 +37,7 @@ func (s *GeminiService) GenerateRemindMessage(ctx context.Context, task *domain.
 		characterPrompt = "あなたは親切なアシスタントです．"
 	}
 
-	prompt := fmt.Sprintf(`%s
-以下の課題について，ユーザーのやる気を引き出すようなリマインドメッセージを作成せよ．
-課題名: %s
-期限: %s
-条件:
-- 100文字以内で，短く心に刺さる言葉にすること．
-- 相手の心拍数が上がるような，切迫感のある表現を含めること．
-- キャラクターの設定を徹底すること．`, characterPrompt, task.Title, task.Deadline.Format("1月2日 15時04分"))
+	prompt := fmt.Sprintf(`%s以下の課題について，ユーザーのやる気を引き出すようなリマインドメッセージを作成せよ．　課題名: %s　期限: %s条件:　- 100文字以内で，短く心に刺さる言葉にすること．　- 相手の心拍数が上がるような，切迫感のある表現を含めること．　- キャラクターの設定を徹底すること．`, characterPrompt, task.Title, task.Deadline.Format("1月2日 15時04分"))
 
 	resp, err := s.model.GenerateContent(ctx, genai.Text(prompt))
 	if err != nil {
@@ -72,14 +65,7 @@ func (s *GeminiService) GenerateGroupSummaryMessage(ctx context.Context, workloa
 		characterPrompt = "あなたは親切なチームアシスタントです．"
 	}
 
-	prompt := fmt.Sprintf(`%s
-以下のグループ全体の今日の課題状況を見て，朝の挨拶とまとめのメッセージを作成してください．
-状況:
-%s
-条件:
-- 150文字以内で，簡潔かつ印象的にまとめること．
-- メンバー全員の名前を呼びかける必要はなく，チーム全体へのメッセージにすること．
-- キャラクター設定を徹底すること．`, characterPrompt, workloadSummary)
+	prompt := fmt.Sprintf(`%s　以下のグループ全体の今日の課題状況を見て，朝の挨拶とまとめのメッセージを作成してください．　状況:%s　条件:　- 150文字以内で，簡潔かつ印象的にまとめること．　- メンバー全員の名前を呼びかける必要はなく，チーム全体へのメッセージにすること．　- キャラクター設定を徹底すること．`, characterPrompt, workloadSummary)
 
 	resp, err := s.model.GenerateContent(ctx, genai.Text(prompt))
 	if err != nil {

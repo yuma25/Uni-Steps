@@ -3,6 +3,7 @@ package lms
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/yuma25/Uni-Steps/domain"
@@ -63,59 +64,74 @@ func (s *GoogleClassroomService) FetchTasks(ctx context.Context, userID string) 
 		return nil, fmt.Errorf("コース一覧の取得に失敗した： %w", err)
 	}
 
-	tasks := []*domain.Task{}
+	var allTasks []*domain.Task
+	var mu sync.Mutex
+	var wg sync.WaitGroup
 
 	for _, course := range coursesResp.Courses {
-		resp, err := srv.Courses.CourseWork.List(course.Id).Context(ctx).Do()
-		if err != nil {
-			continue
-		}
+		wg.Add(1)
+		go func(c *classroom.Course) {
+			defer wg.Done()
 
-		submissionsResp, err := srv.Courses.CourseWork.StudentSubmissions.List(course.Id, "-").Context(ctx).Do()
-		submissionStatus := make(map[string]bool)
-		if err == nil {
-			for _, sub := range submissionsResp.StudentSubmissions {
-				if sub.State == "TURNED_IN" || sub.State == "RETURNED" {
-					submissionStatus[sub.CourseWorkId] = true
-				}
-			}
-		}
-
-		for _, cw := range resp.CourseWork {
-			var deadline time.Time
-			if cw.DueDate != nil {
-				hour, min := 23, 59
-				if cw.DueTime != nil {
-					hour, min = int(cw.DueTime.Hours), int(cw.DueTime.Minutes)
-				}
-				deadlineUTC := time.Date(int(cw.DueDate.Year), time.Month(cw.DueDate.Month), int(cw.DueDate.Day),
-					hour, min, 0, 0, time.UTC)
-				deadline = deadlineUTC.Local()
+			// 1. 指定コースの課題一覧を取得
+			resp, err := srv.Courses.CourseWork.List(c.Id).Context(ctx).Do()
+			if err != nil {
+				return
 			}
 
-			lmsUpdateTime, _ := time.Parse(time.RFC3339, cw.UpdateTime)
-			lmsUpdateTime = lmsUpdateTime.Local()
+			// 2. ユーザーの提出状況を一括取得
+			submissionsResp, err := srv.Courses.CourseWork.StudentSubmissions.List(c.Id, "-").Context(ctx).Do()
+			submissionStatus := make(map[string]bool)
+			if err == nil {
+				for _, sub := range submissionsResp.StudentSubmissions {
+					if sub.State == "TURNED_IN" || sub.State == "RETURNED" {
+						submissionStatus[sub.CourseWorkId] = true
+					}
+				}
+			}
 
-			task := &domain.Task{
-				Title:            cw.Title,
-				ExternalID:       cw.Id,
-				Deadline:         deadline,
-				IsLMSDeadlineSet: cw.DueDate != nil,
-				LMSUpdateTime:    lmsUpdateTime,
-				UserProgress: []*domain.TaskUserProgress{
-					{
-						UserID:      userID,
-						UserName:    user.Name,
-						IsCompleted: submissionStatus[cw.Id],
-						UpdatedAt:   time.Now(),
+			var courseTasks []*domain.Task
+			for _, cw := range resp.CourseWork {
+				var deadline time.Time
+				if cw.DueDate != nil {
+					hour, min := 23, 59
+					if cw.DueTime != nil {
+						hour, min = int(cw.DueTime.Hours), int(cw.DueTime.Minutes)
+					}
+					deadlineUTC := time.Date(int(cw.DueDate.Year), time.Month(cw.DueDate.Month), int(cw.DueDate.Day),
+						hour, min, 0, 0, time.UTC)
+					deadline = deadlineUTC.Local()
+				}
+
+				lmsUpdateTime, _ := time.Parse(time.RFC3339, cw.UpdateTime)
+				lmsUpdateTime = lmsUpdateTime.Local()
+
+				task := &domain.Task{
+					Title:            cw.Title,
+					ExternalID:       cw.Id,
+					Deadline:         deadline,
+					IsLMSDeadlineSet: cw.DueDate != nil,
+					LMSUpdateTime:    lmsUpdateTime,
+					UserProgress: []*domain.TaskUserProgress{
+						{
+							UserID:      userID,
+							UserName:    user.Name,
+							IsCompleted: submissionStatus[cw.Id],
+							UpdatedAt:   time.Now(),
+						},
 					},
-				},
+				}
+				courseTasks = append(courseTasks, task)
 			}
-			tasks = append(tasks, task)
-		}
-	}
 
-	return tasks, nil
+			mu.Lock()
+			allTasks = append(allTasks, courseTasks...)
+			mu.Unlock()
+		}(course)
+	}
+	wg.Wait()
+
+	return allTasks, nil
 }
 
 // persistentTokenSource は oauth2.TokenSource をラップし，

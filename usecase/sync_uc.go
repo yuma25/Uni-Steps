@@ -42,6 +42,18 @@ func (uc *SyncUsecase) SyncTasks(ctx context.Context, userID string, groupID str
 		return nil, fmt.Errorf("LMS からの課題取得に失敗した： %w", err)
 	}
 
+	// N+1 問題の解消：グループ内の既存課題を一括取得してマップ化する．
+	existingTasks, err := uc.taskRepo.FindByGroupID(ctx, groupID)
+	if err != nil {
+		return nil, fmt.Errorf("既存課題の取得に失敗した： %w", err)
+	}
+	existingMap := make(map[string]*domain.Task)
+	for _, t := range existingTasks {
+		if t.ExternalID != "" {
+			existingMap[t.ExternalID] = t
+		}
+	}
+
 	var maxLMSUpdate time.Time
 	for _, t := range tasks {
 		if t.LMSUpdateTime.After(maxLMSUpdate) {
@@ -54,7 +66,8 @@ func (uc *SyncUsecase) SyncTasks(ctx context.Context, userID string, groupID str
 		task.GroupID = groupID
 		task.Source = uc.lmsService.GetProviderName()
 
-		existing, _ := uc.taskRepo.FindByExternalID(ctx, task.ExternalID)
+		// マップから既存の課題を検索（DB への問い合わせをループ内で行わない）．
+		existing := existingMap[task.ExternalID]
 		if existing != nil {
 			task.ID = existing.ID
 			existing.IsLMSDeadlineSet = task.IsLMSDeadlineSet

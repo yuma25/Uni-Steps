@@ -232,6 +232,7 @@ Google Classroom API を使用して，ドメイン層の `LMSService` インタ
     *   **戻り値**: 生成された `*GoogleClassroomService`．
 *   🔧 **メソッド: `FetchTasks(ctx, userID) ([]*Task, error)`**
     *   **概要**: ユーザーのアクセストークンを用いて Google Classroom API を叩き，全コースの課題（CourseWork）と提出状況（StudentSubmissions）を取得・変換する．
+    *   **パフォーマンス最適化**: Goroutine と WaitGroup を用いて，各コースのデータ取得を並列化している．これによりコース数が多い場合でも同期時間が劇的に短縮される．
     *   **自動リフレッシュ**: トークンが期限切れの場合，内部の `persistentTokenSource` が自動的にリフレッシュを行い，新しいトークンをデータベースへ再保存する．
     *   **引数**: `ctx`, `userID` (`string`)．
     *   **戻り値**: 取得した `domain.Task` リスト（進捗状況含む），およびエラー．
@@ -326,7 +327,10 @@ Google Classroom API を使用して，ドメイン層の `LMSService` インタ
     *   **引数**: `ur`, `pubKey`, `privKey`, `contact`．
     *   **戻り値**: 生成された `*WebPushService`．
 *   🔧 **メソッド: `SendDirectMessage(ctx, userID, message, targetURL) error`**
-    *   **概要**: ユーザーのトークンを JSON デコードして送信を実行する．410/404 受信時には自動的に DB から無効トークンを削除する自己修復機能を備える．
+    *   **概要**: ユーザーのトークンを JSON デコードして送信を実行する．
+    *   **自己修復（Auto-Healing）**: 
+        *   **サーバー側**: 410 (Gone) や 404 を受信した場合，トークンが無効であると判断し，即座にデータベースからそのトークンを削除（空文字に更新）する．
+        *   **フロントエンド連携**: フロントエンド側はトークン消滅を検知すると，ブラウザの権限がある場合に限り「サイレント再登録（handleSilentResubscribe）」を試みるため，通知機能は自動的に復旧する．
     *   **引数**: `ctx`, `userID` (`string`), `message` (`string`), `targetURL` (`string`)．
     *   **戻り値**: 成功時は nil，失敗時はエラー．
 

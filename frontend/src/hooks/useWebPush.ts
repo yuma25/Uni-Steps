@@ -14,17 +14,20 @@ export const useWebPush = (userId: string, groupId: string) => {
       setNotifPermission(permission);
       
       if (permission === 'granted') {
-        const registration = await navigator.serviceWorker.register('/sw.js');
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (!registration) await navigator.serviceWorker.register('/sw.js');
+        
+        const reg = await navigator.serviceWorker.ready;
         
         // 既存の購読があれば解除
-        const existingSub = await registration.pushManager.getSubscription();
+        const existingSub = await reg.pushManager.getSubscription();
         if (existingSub) await existingSub.unsubscribe();
 
         // 公開鍵の変換
         const vapidPublicKey = 'BDj40a3LAnB-Tyemxggm-wYyuHbE_kadO6CqX6u-Ewyrkqi5ypr-txXJO7jflV_4VGa47paZU7DX_-0OPZy6Bx8';
         const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
 
-        const subscription = await registration.pushManager.subscribe({
+        const subscription = await reg.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: convertedVapidKey
         });
@@ -36,6 +39,32 @@ export const useWebPush = (userId: string, groupId: string) => {
     } catch (err) {
       console.error("useWebPush: Notification error:", err);
       alert("通知の設定に失敗しました．");
+    }
+  }, [userId]);
+
+  const handleSilentResubscribe = useCallback(async (onSuccess: () => void) => {
+    if (Notification.permission !== 'granted') return;
+    try {
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (!registration) await navigator.serviceWorker.register('/sw.js');
+      
+      const reg = await navigator.serviceWorker.ready;
+      const existingSub = await reg.pushManager.getSubscription();
+      if (existingSub) await existingSub.unsubscribe();
+
+      const vapidPublicKey = 'BDj40a3LAnB-Tyemxggm-wYyuHbE_kadO6CqX6u-Ewyrkqi5ypr-txXJO7jflV_4VGa47paZU7DX_-0OPZy6Bx8';
+      const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
+
+      const subscription = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: convertedVapidKey
+      });
+      
+      await notificationApi.subscribe(userId, subscription);
+      onSuccess();
+      console.log("useWebPush: Silent resubscribe successful.");
+    } catch (err) {
+      console.error("useWebPush: Silent resubscribe failed:", err);
     }
   }, [userId]);
 
@@ -54,6 +83,7 @@ export const useWebPush = (userId: string, groupId: string) => {
   return {
     notifPermission,
     handleEnableNotifications,
+    handleSilentResubscribe,
     handleSendTestNotification
   };
 };
