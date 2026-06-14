@@ -421,7 +421,7 @@ const DashboardPage: React.FC = () => {
       onTabChange={setActiveTab}
       header={
         <DashboardHeader 
-          group={group} userId={userId}
+          group={group}
           onBack={() => navigate(`/select-group?user_id=${userId}`)}
           onEnableNotifications={onEnableNotif}
           onSync={() => handleSync(false)}
