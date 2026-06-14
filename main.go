@@ -38,8 +38,14 @@ func main() {
 		time.Local = loc
 	}
 
-	// 1. 環境変数の読み込み
-	_ = godotenv.Load()
+	// 1. 環境変数の読み込み（環境に応じてファイルを切り替える）
+	env := os.Getenv("GO_ENV")
+	if env == "production" {
+		_ = godotenv.Load(".env.production")
+	} else if env == "development" {
+		_ = godotenv.Load(".env.development")
+	}
+	_ = godotenv.Load() // デフォルトの .env も読み込む
 
 	// 2. データベース接続の確立
 	dbURL := os.Getenv("DATABASE_URL")
@@ -73,9 +79,7 @@ func main() {
 	if err := sqlDB.PingContext(ctx); err != nil {
 		log.Fatalf("データベースへの Ping に失敗した: %v", err)
 	}
-	log.Println("データベースの接続に成功した．")
 
-	log.Println("データベースのマイグレーションを実行中...")
 	err = gormDB.AutoMigrate(
 		&domain.User{},
 		&domain.Group{},
@@ -87,9 +91,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("マイグレーションに失敗した: %v", err)
 	}
-	log.Println("マイグレーションが完了した．")
-
-	log.Println("各サービスの初期化と依存性の注入を開始中...")
 
 	// --- インフラ層（道具）の初期化 ---
 	taskRepo := db.NewTaskRepository(gormDB)
@@ -105,7 +106,7 @@ func main() {
 	}
 	modelName := os.Getenv("GEMINI_MODEL")
 	if modelName == "" {
-		modelName = "models/gemini-2.5-flash" // 無料枠で最も安定しているモデル
+		modelName = "gemini-2.0-flash" // デフォルトモデル
 	}
 	aiService := ai.NewGeminiService(genaiClient, modelName)
 
@@ -144,7 +145,6 @@ func main() {
 	go func() {
 		ticker := time.NewTicker(1 * time.Minute)
 		defer ticker.Stop()
-		log.Println("[System] 朝夕サマリー監視ワーカーを起動した．")
 
 		for {
 			select {
@@ -182,8 +182,6 @@ func main() {
 	handler.NewGroupHandler(e, groupUsecase, lmsService)
 	handler.NewWakeupHandler(e, wakeupUsecase)
 	handler.NewUserHandler(e, userRepo)
-
-	log.Println("全てのコンポーネントの初期化が完了した．サーバーを起動する．")
 
 	port := os.Getenv("PORT")
 	if port == "" {

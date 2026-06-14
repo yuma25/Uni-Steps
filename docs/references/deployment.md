@@ -10,11 +10,14 @@
 1.  [Render](https://render.com/) にログインし，**"New + Web Service"** を選択する．
 2.  Uni-Steps の GitHub リポジトリを接続する．
 3.  設定を以下のように入力する：
+    *   **Name**: `uni-steps-[ユニークな名前]` (例: `uni-steps-yuma25`)
+        *   ※ `uni-steps` は既に使用されている可能性があるため，自分だけの名前を付けてください．
     *   **Runtime**: `Go`
     *   **Build Command**: `go build -o main .`
     *   **Start Command**: `./main`
 4.  **"Advanced"** をクリックし，以下の環境変数を設定する：
     *   `DATABASE_URL`: Supabase の接続文字列
+    *   `GO_ENV`: `production` (重要：本番用設定の読み込みに使用)
     *   `GEMINI_API_KEY`: Google AI Studio のキー
     *   `GEMINI_MODEL`: `models/gemini-1.5-flash` 等
     *   `FRONTEND_URL`: `https://[あなたのアプリ名].vercel.app`
