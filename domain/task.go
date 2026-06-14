@@ -19,17 +19,17 @@ type RecurrenceSettings struct {
 
 // Task は課題の基本情報を保持する構造体である．
 type Task struct {
-	ID               string             `json:"id" gorm:"primaryKey"`              // 課題の一意識別子である．
-	GroupID          string             `json:"group_id"`                          // 所属するグループの ID である．
-	Source           string             `json:"source"`                            // 課題の入力元（manual, ai, google_classroom 等）である．
-	ExternalID       string             `json:"external_id" gorm:"uniqueIndex"`    // 外部 LMS における課題の ID である（重複登録防止用）．
-	RawText          string             `json:"raw_text"`                          // ユーザーが入力した生の文章である（AI 解析時のみ）．
-	CreatorID        string             `json:"creator_id"`                        // 課題の作成者のユーザー ID である（手動課題のみ）．
-	Title            string             `json:"title"`                             // 課題のタイトルである．
-	Deadline         time.Time          `json:"deadline"`                          // 課題の期限（単発または初回）である．
-	IsLMSDeadlineSet bool               `json:"is_lms_deadline_set"`               // 外部 LMS 側で期限があらかじめ設定されていたか．
-	LMSUpdateTime    time.Time          `json:"lms_update_time"`                   // 外部 LMS 側での最終更新日時である．
-	Recurrence       RecurrenceSettings `json:"recurrence" gorm:"serializer:json"` // 繰り返しの設定（JSON 形式で統合管理）．
+	ID               string             `json:"id" gorm:"primaryKey"`                              // 課題の一意識別子である．
+	GroupID          string             `json:"group_id" gorm:"uniqueIndex:idx_group_external"`    // 所属するグループの ID である．
+	Source           string             `json:"source"`                                            // 課題の入力元（manual, ai, google_classroom 等）である．
+	ExternalID       string             `json:"external_id" gorm:"uniqueIndex:idx_group_external"` // 外部 LMS における課題の ID である（重複登録防止用）．
+	RawText          string             `json:"raw_text"`                                          // ユーザーが入力した生の文章である（AI 解析時のみ）．
+	CreatorID        string             `json:"creator_id"`                                        // 課題の作成者のユーザー ID である（手動課題のみ）．
+	Title            string             `json:"title"`                                             // 課題のタイトルである．
+	Deadline         time.Time          `json:"deadline"`                                          // 課題の期限（単発または初回）である．
+	IsLMSDeadlineSet bool               `json:"is_lms_deadline_set"`                               // 外部 LMS 側で期限があらかじめ設定されていたか．
+	LMSUpdateTime    time.Time          `json:"lms_update_time"`                                   // 外部 LMS 側での最終更新日時である．
+	Recurrence       RecurrenceSettings `json:"recurrence" gorm:"serializer:json"`                 // 繰り返しの設定（JSON 形式で統合管理）．
 
 	// Has-Many 関係：タスクごとの各ユーザーの進捗状況
 	UserProgress []*TaskUserProgress `json:"user_progress" gorm:"foreignKey:TaskID"`

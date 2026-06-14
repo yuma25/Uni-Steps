@@ -62,8 +62,7 @@ func (uc *GroupUsecase) CreateGroup(ctx context.Context, name string, ownerID st
 	}
 
 	// 4．保存された部屋に対して，オーナー（ユーザー）を所属させる．
-	group.Users = append(group.Users, user)
-	if err := uc.groupRepo.Save(ctx, group); err != nil {
+	if err := uc.groupRepo.AddUserToGroup(ctx, group.ID, user.ID); err != nil {
 		return nil, fmt.Errorf("メンバーの紐付けに失敗した： %w", err)
 	}
 
@@ -98,8 +97,7 @@ func (uc *GroupUsecase) JoinGroupByInviteCode(ctx context.Context, code string, 
 	}
 
 	// 4．ユーザーをグループに追加して保存する．
-	group.Users = append(group.Users, user)
-	if err := uc.groupRepo.Save(ctx, group); err != nil {
+	if err := uc.groupRepo.AddUserToGroup(ctx, group.ID, user.ID); err != nil {
 		return nil, fmt.Errorf("グループへの参加に失敗した： %w", err)
 	}
 

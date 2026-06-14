@@ -22,17 +22,24 @@ func NewGroupRepository(db *gorm.DB) domain.GroupRepository {
 
 // Save はグループ情報を保存または更新する．
 func (r *groupRepository) Save(ctx context.Context, group *domain.Group) error {
-	// GORM の Save は全てのフィールドを更新するが，many-to-many などの扱いで意図しない挙動を防ぐため，
-	// 明示的に Updates を使用した手法に切り替える（Users は除外）．
-	err := r.db.WithContext(ctx).Model(group).Omit("Users").Updates(group).Error
-	if err != nil {
-		// レコードが存在しない場合は Create を試みる（新規作成時の互換性維持）．
-		if errors.Is(err, gorm.ErrRecordNotFound) || group.ID == "" {
-			return r.db.WithContext(ctx).Create(group).Error
+	var existingGroup domain.Group
+	// Try to find the group first
+	result := r.db.WithContext(ctx).Where("id = ?", group.ID).First(&existingGroup)
+
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			// Record not found, so create it
+			return r.db.WithContext(ctx).Omit("Users").Create(group).Error
 		}
-		return err
+		// Some other error during lookup
+		return result.Error
+	} else {
+		// Record found, so update it
+		// Use Model(group).Updates(group) to update only non-zero fields from the provided group object
+		// Omit("Users") is important to prevent GORM from trying to update the many-to-many relationship directly here,
+		// as user associations are handled separately in the usecase.
+		return r.db.WithContext(ctx).Model(group).Omit("Users").Updates(group).Error
 	}
-	return nil
 }
 
 func (r *groupRepository) FindAllGroups(ctx context.Context) ([]*domain.Group, error) {
@@ -101,4 +108,37 @@ func (r *groupRepository) Delete(ctx context.Context, id string) error {
 		// 2．グループ本体を削除する．
 		return tx.Where("id = ?", id).Delete(&domain.Group{}).Error
 	})
+}
+
+// AddUserToGroup はグループにユーザーを関連付ける．
+func (r *groupRepository) AddUserToGroup(ctx context.Context, groupID string, userID string) error {
+	group := &domain.Group{ID: groupID}
+	user := &domain.User{ID: userID}
+
+	// GroupモデルをDBから取得し、Associationをロードする
+	if err := r.db.WithContext(ctx).Preload("Users").First(group, "id = ?", groupID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("指定されたグループが見つかりません")
+		}
+		return err
+	}
+
+	// ユーザーモデルをDBから取得する（または必要な情報のみを持つ構造体を準備する）
+	// Association.Append は、既存の主キーを持つモデルオブジェクトを渡す必要がある
+	if err := r.db.WithContext(ctx).First(user, "id = ?", userID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("指定されたユーザーが見つかりません")
+		}
+		return err
+	}
+
+	// 既に紐付けられているかを確認
+	for _, u := range group.Users {
+		if u.ID == userID {
+			return nil // 既に紐付けられている場合は何もしない
+		}
+	}
+
+	// GORMのAssociation機能を使ってユーザーをグループに追加する
+	return r.db.WithContext(ctx).Model(group).Association("Users").Append(user)
 }

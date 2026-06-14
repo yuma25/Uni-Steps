@@ -27,13 +27,16 @@ func (r *taskRepository) Save(ctx context.Context, task *domain.Task) error {
 		}
 
 		// 2. UserProgress（該当者リスト）を同期する．
-		// 以前の Upsert 方式では削除に対応できなかったため，一度全削除してから再登録する方式を採用する．
-		// Usecase 側で既存の完了状態を保持したオブジェクトを作成しているため，この方式で安全に同期できる．
 		if err := tx.Where("task_id = ?", task.ID).Delete(&domain.TaskUserProgress{}).Error; err != nil {
 			return err
 		}
 
 		if len(task.UserProgress) > 0 {
+			// 親 Task の ID を確実に各 UserProgress レコードにセットする．
+			for i := range task.UserProgress {
+				task.UserProgress[i].TaskID = task.ID
+			}
+
 			if err := tx.Create(task.UserProgress).Error; err != nil {
 				return err
 			}

@@ -62,7 +62,16 @@ func (uc *SyncUsecase) SyncTasks(ctx context.Context, userID string, groupID str
 	}
 
 	savedTasks := []*domain.Task{}
+	processedExternalIDs := make(map[string]bool) // 同期セッション内での重複排除用
+
 	for _, task := range tasks {
+		if task.ExternalID != "" {
+			if processedExternalIDs[task.ExternalID] {
+				continue // 今回のループで既に処理済みの外部 ID はスキップする
+			}
+			processedExternalIDs[task.ExternalID] = true
+		}
+
 		task.GroupID = groupID
 		task.Source = uc.lmsService.GetProviderName()
 

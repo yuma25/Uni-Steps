@@ -424,6 +424,9 @@ const DashboardPage: React.FC = () => {
           group={group} userId={userId}
           onBack={() => navigate(`/select-group?user_id=${userId}`)}
           onEnableNotifications={onEnableNotif}
+          onSync={() => handleSync(false)}
+          isSyncing={isProcessing}
+          lastSyncedAt={group?.last_synced_at}
           onAddTask={() => { setEditingTask(null); setTaskFormData({ title: '', deadline: '', recurrence_type: 'none', assignees: [userId] }); setShowTaskModal(true); }}
           notifPermission={notifPermission}
           serverTokenMissing={serverTokenMissing}
@@ -622,3 +625,4 @@ const DashboardPage: React.FC = () => {
 };
 
 export default DashboardPage;
+

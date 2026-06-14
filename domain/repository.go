@@ -29,11 +29,12 @@ type UserRepository interface {
 type GroupRepository interface {
 	Save(ctx context.Context, group *Group) error
 	FindByID(ctx context.Context, id string) (*Group, error)
-	FindAllGroups(ctx context.Context) ([]*Group, error)                 // 全てのグループを取得する．
-	FindByInviteCode(ctx context.Context, code string) (*Group, error)   // 招待コードでグループを検索する．
-	FindByUserID(ctx context.Context, userID string) ([]*Group, error)   // ユーザー ID に紐づくグループ一覧を取得する．
-	RemoveUser(ctx context.Context, groupID string, userID string) error // 部屋から特定のユーザーを削除する（退出）．
-	Delete(ctx context.Context, id string) error                         // グループ（部屋）を完全に削除する．
+	FindAllGroups(ctx context.Context) ([]*Group, error)                     // 全てのグループを取得する．
+	FindByInviteCode(ctx context.Context, code string) (*Group, error)       // 招待コードでグループを検索する．
+	FindByUserID(ctx context.Context, userID string) ([]*Group, error)       // ユーザー ID に紐づくグループ一覧を取得する．
+	AddUserToGroup(ctx context.Context, groupID string, userID string) error // グループにユーザーを紐づける．
+	RemoveUser(ctx context.Context, groupID string, userID string) error     // 部屋から特定のユーザーを削除する（退出）．
+	Delete(ctx context.Context, id string) error                             // グループ（部屋）を完全に削除する．
 }
 
 // WakeupRepository は起床確認データの永続化に関する約束事である．

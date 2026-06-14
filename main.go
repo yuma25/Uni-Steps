@@ -80,6 +80,9 @@ func main() {
 		log.Fatalf("データベースへの Ping に失敗した: %v", err)
 	}
 
+	// 古い単一ユニークインデックスを削除し，新しい複合インデックスが適用されるようにする．
+	_ = gormDB.Exec("DROP INDEX IF EXISTS idx_tasks_external_id").Error
+
 	err = gormDB.AutoMigrate(
 		&domain.User{},
 		&domain.Group{},

@@ -243,6 +243,8 @@ LINE や Web Push などの通知手段を抽象化する．
 
 ### 🔹 `type GroupRepository interface`
 *   🔧 `func FindAllGroups(ctx context.Context) ([]*Group, error)`: 全てのグループを取得する（定期サマリー用）．
+*   🔧 `func AddUserToGroup(ctx, groupID, userID) error`: 指定したユーザーをグループに関連付け，中間テーブルへ保存する．
+*   🔧 `func FindByUserID(ctx, userID) ([]*Group, error)`: ユーザーが所属しているグループ一覧を取得する．
 
 ### 🔹 `type NotificationLogRepository interface`
 *   🔧 `func Save(ctx context.Context, log *NotificationLog) error`: 通知ログを保存する．

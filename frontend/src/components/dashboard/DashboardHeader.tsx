@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Users, Share2, BellRing, Plus } from 'lucide-react';
+import { ArrowLeft, Users, Share2, BellRing, Plus, RefreshCw } from 'lucide-react';
 import type { Group } from '../../types';
 
 interface DashboardHeaderProps {
@@ -8,19 +8,26 @@ interface DashboardHeaderProps {
   onBack: () => void;
   onEnableNotifications: () => void;
   onAddTask: () => void;
+  onSync: () => void;
   notifPermission: NotificationPermission;
   serverTokenMissing: boolean;
   loading: boolean;
+  isSyncing?: boolean;
+  lastSyncedAt?: string;
 }
 
 const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   group,
+  userId,
   onBack,
   onEnableNotifications,
   onAddTask,
+  onSync,
   notifPermission,
   serverTokenMissing,
-  loading
+  loading,
+  isSyncing = false,
+  lastSyncedAt
 }) => {
   const copyInviteCode = () => {
     if (group?.invite_code) {
@@ -61,6 +68,17 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       <div className="header-actions">
         {!loading && (
           <>
+            <button onClick={onSync} className="btn btn-ghost" disabled={isSyncing} title="Google Classroom から課題を同期" style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', padding: '8px 12px', minWidth: '80px'}}>
+              <div style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
+                <RefreshCw size={18} className={isSyncing ? "animate-spin" : ""} />
+                <span className="hide-mobile" style={{fontWeight: 800}}>{isSyncing ? "同期中..." : "同期"}</span>
+              </div>
+              {lastSyncedAt && !isSyncing && (
+                <span style={{fontSize: '0.6rem', color: 'var(--text-tertiary)', fontWeight: 700, whiteSpace: 'nowrap'}}>
+                  最終 {new Date(lastSyncedAt).toLocaleTimeString('ja-JP', {hour: '2-digit', minute: '2-digit'})}
+                </span>
+              )}
+            </button>
             {(notifPermission !== 'granted' || serverTokenMissing) && (
               <button onClick={onEnableNotifications} className="btn btn-primary" style={{background: 'var(--warning)'}} title="通知を有効化">
                 <BellRing size={20} />
