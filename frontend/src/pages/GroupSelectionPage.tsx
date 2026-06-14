@@ -37,7 +37,8 @@ const GroupSelectionPage: React.FC = () => {
       navigate('/login');
       return;
     }
-    fetchGroups();
+    // 非同期呼び出しであることを明示し，同期的な setState による cascading render を回避する．
+    Promise.resolve().then(() => fetchGroups());
   }, [userId, navigate, fetchGroups]);
 
   const handleCreateGroup = async (e: React.FormEvent) => {

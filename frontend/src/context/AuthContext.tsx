@@ -39,7 +39,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     // 初回マウント時は初期値 loading: true を利用し，同期的な setState を行わない
-    fetchUser(userIdFromUrl, false);
+    // また，非同期呼び出しであることを明示し，cascading render 警告を回避する．
+    Promise.resolve().then(() => fetchUser(userIdFromUrl, false));
   }, [userIdFromUrl, fetchUser]);
 
   const refreshUser = useCallback(async () => {

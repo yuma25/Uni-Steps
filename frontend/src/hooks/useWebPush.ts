@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { notificationApi } from '../api/notifications';
 import { urlBase64ToUint8Array, handle } from '../utils/helpers';
+import { AxiosError } from 'axios';
 
 /**
  * Web Push 通知の購読と状態管理を行うカスタムフックである．
@@ -102,7 +103,7 @@ export const useWebPush = (userId: string, groupId: string) => {
   const handleSendTestNotification = useCallback(async (aiCharacter: string, onTokenMissing: () => void) => {
     const [, err] = await handle(notificationApi.sendTestNotification(userId, aiCharacter, groupId));
     if (err) {
-      const axiosErr = err as any; 
+      const axiosErr = err as AxiosError<{error: string}>; 
       if (axiosErr.response?.data?.error?.includes("トークンが存在しない")) {
         onTokenMissing();
       }

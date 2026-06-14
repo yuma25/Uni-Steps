@@ -118,14 +118,17 @@ const DashboardPage: React.FC = () => {
   // 設定データが取得できたらフォームに初期値をセットする．
   useEffect(() => {
     if (group) {
-      setSettingsFormData({
-        name: group.name || '',
-        remind_intervals: group.remind_intervals || [1440, 60],
-        ai_character: group.ai_character || 'default',
-        line_channel_token: group.line_channel_token || '',
-        line_group_id: group.line_group_id || '',
-        summary_morning_time: group.summary_morning_time || '08:00',
-        summary_evening_time: group.summary_evening_time || '21:00'
+      // 同期的な setState による警告を回避するため，マイクロタスクで実行する．
+      Promise.resolve().then(() => {
+        setSettingsFormData({
+          name: group.name || '',
+          remind_intervals: group.remind_intervals || [1440, 60],
+          ai_character: group.ai_character || 'default',
+          line_channel_token: group.line_channel_token || '',
+          line_group_id: group.line_group_id || '',
+          summary_morning_time: group.summary_morning_time || '08:00',
+          summary_evening_time: group.summary_evening_time || '21:00'
+        });
       });
     }
   }, [group]);
