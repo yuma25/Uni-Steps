@@ -32,9 +32,15 @@ export function formatDate(isoString: string): string {
 }
 
 /**
- * datetime-local インプット用の文字列を生成する．
+ * 非同期処理を Go 言語風の [結果, エラー] 形式で処理するためのラッパーである．
+ * try-catch のネストを深くせずに，エラーを「値」として扱うことができる．
  */
-export function toLocalISOString(date: Date): string {
-  if (date.getFullYear() <= 1) return "";
-  return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+export async function handle<T>(promise: Promise<T>): Promise<[T, null] | [null, Error]> {
+  try {
+    const data = await promise;
+    return [data, null];
+  } catch (err: unknown) {
+    if (err instanceof Error) return [null, err];
+    return [null, new Error(String(err))];
+  }
 }

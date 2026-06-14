@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { userApi } from '../api/user';
 import type { User } from '../types';
 import { AuthContext } from './AuthContextInstance';
+import { handle } from '../utils/helpers';
 
 /**
  * 認証情報を提供するプロバイダーコンポーネントである．
@@ -20,21 +21,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return;
     }
     
-    try {
-      // リフレッシュ時のみ，非同期の隙間を作ってから loading をセットして警告を回避する
-      if (isRefresh) {
-        setLoading(true);
-      }
-
-      const userData = await userApi.getMe(id);
-      setUser(userData);
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        console.error("AuthContext: Failed to fetch user", err.message);
-      }
-    } finally {
-      setLoading(false);
+    // リフレッシュ時のみ，非同期の隙間を作ってから loading をセットして警告を回避する
+    if (isRefresh) {
+      setLoading(true);
     }
+
+    const [userData, err] = await handle(userApi.getMe(id));
+    if (err) {
+      console.error("AuthContext: Failed to fetch user", err.message);
+      setLoading(false);
+      return;
+    }
+
+    setUser(userData);
+    setLoading(false);
   }, []);
 
   useEffect(() => {

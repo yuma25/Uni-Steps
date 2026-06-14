@@ -5,6 +5,7 @@ import type { Group } from '../types';
 import { Plus, Layout, UserPlus, LogOut, Hash, X, ArrowRight, Sparkles } from 'lucide-react';
 import { AxiosError } from 'axios';
 import { useAuth } from '../hooks/useAuth';
+import { handle } from '../utils/helpers';
 
 /**
  * グループ（部屋）選択画面（ポータル）のコンポーネントである．
@@ -21,16 +22,14 @@ const GroupSelectionPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   const fetchGroups = useCallback(async () => {
-    try {
-      const data = await groupApi.listMyGroups(userId);
-      setGroups(data || []);
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        console.error("GroupSelectionPage: fetchGroups failed", err.message);
-      }
-    } finally {
+    const [data, err] = await handle(groupApi.listMyGroups(userId));
+    if (err) {
+      console.error("GroupSelectionPage: fetchGroups failed", err.message);
       setLoading(false);
+      return;
     }
+    setGroups(data || []);
+    setLoading(false);
   }, [userId]);
 
   useEffect(() => {
@@ -44,38 +43,34 @@ const GroupSelectionPage: React.FC = () => {
   const handleCreateGroup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newGroupName.trim()) return;
-    try {
-      setLoading(true);
-      const newGroup = await groupApi.createGroup(newGroupName, userId);
-      setGroups([...groups, newGroup]);
-      setShowCreateModal(false);
-      navigate(`/dashboard?user_id=${userId}&group_id=${newGroup.id}`);
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        const axiosErr = err as AxiosError<{error: string}>;
-        alert(`エラー：${axiosErr.response?.data?.error || "部屋の作成に失敗した．"}`);
-      }
-    } finally {
+    setLoading(true);
+    const [newGroup, err] = await handle(groupApi.createGroup(newGroupName, userId));
+    if (err) {
+      const axiosErr = err as AxiosError<{error: string}>;
+      alert(`エラー：${axiosErr.response?.data?.error || "部屋の作成に失敗した．"}`);
       setLoading(false);
+      return;
     }
+    setGroups([...groups, newGroup]);
+    setShowCreateModal(false);
+    setLoading(false);
+    navigate(`/dashboard?user_id=${userId}&group_id=${newGroup.id}`);
   };
 
   const handleJoinGroup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inviteCode.trim()) return;
-    try {
-      setLoading(true);
-      const joinedGroup = await groupApi.joinGroup(inviteCode, userId);
-      setShowJoinModal(false);
-      navigate(`/dashboard?user_id=${userId}&group_id=${joinedGroup.id}`);
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        const axiosErr = err as AxiosError<{error: string}>;
-        alert(`エラー：${axiosErr.response?.data?.error || "部屋への参加に失敗した．招待コードを確認してほしい．"}`);
-      }
-    } finally {
+    setLoading(true);
+    const [joinedGroup, err] = await handle(groupApi.joinGroup(inviteCode, userId));
+    if (err) {
+      const axiosErr = err as AxiosError<{error: string}>;
+      alert(`エラー：${axiosErr.response?.data?.error || "部屋への参加に失敗した．招待コードを確認してほしい．"}`);
       setLoading(false);
+      return;
     }
+    setShowJoinModal(false);
+    setLoading(false);
+    navigate(`/dashboard?user_id=${userId}&group_id=${joinedGroup.id}`);
   };
 
   const selectGroup = (groupId: string) => {

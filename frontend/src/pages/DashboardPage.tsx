@@ -5,7 +5,7 @@ import { groupApi } from '../api/groups';
 import { wakeupApi } from '../api/wakeup';
 import type { Task, TaskUserProgress } from '../types';
 import { AxiosError } from 'axios';
-import { toLocalISOString } from '../utils/helpers';
+import { toLocalISOString, handle } from '../utils/helpers';
 
 // Hooks & Context
 import { useAuth } from '../hooks/useAuth';
@@ -84,22 +84,23 @@ const DashboardPage: React.FC = () => {
   const [newInterval, setNewInterval] = useState<string>('');
 
   const handleSync = useCallback(async (silent: boolean = false) => {
-    try {
-      if (!silent) setIsProcessing(true);
-      const result = await taskApi.syncTasks(userId, groupId);
-      if (result && result.tasks && result.tasks.length > 0) {
-        await fetchData();
-        if (!silent) alert(`同期が完了した．${result.tasks.length} 件の課題を更新した．`);
-      }
-    } catch (err: unknown) {
-      if (!silent && err instanceof Error) {
+    if (!silent) setIsProcessing(true);
+    const [result, err] = await handle(taskApi.syncTasks(userId, groupId));
+    if (err) {
+      if (!silent) {
         const axiosErr = err as AxiosError<{error: string}>;
         alert(axiosErr.response?.data?.error || "同期に失敗した．");
       }
-      console.error("Auto-sync error:", err);
-    } finally {
+      console.error("Auto-sync error:", err.message);
       if (!silent) setIsProcessing(false);
+      return;
     }
+
+    if (result && result.tasks && result.tasks.length > 0) {
+      await fetchData();
+      if (!silent) alert(`同期が完了した．${result.tasks.length} 件の課題を更新した．`);
+    }
+    if (!silent) setIsProcessing(false);
   }, [userId, groupId, fetchData]);
 
   useEffect(() => {
@@ -144,64 +145,62 @@ const DashboardPage: React.FC = () => {
 
   const handleSaveTask = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      setIsProcessing(true);
-      const deadline = taskFormData.deadline ? new Date(taskFormData.deadline).toISOString() : "0001-01-01T00:00:00Z";
-      const userProgress: TaskUserProgress[] = taskFormData.assignees.map(id => {
-        const member = group?.users?.find(u => u.id === id);
-        const existingProgress = editingTask?.user_progress?.find(p => p.user_id === id);
-        return {
-          task_id: editingTask?.id || "",
-          user_id: id,
-          user_name: member?.name || existingProgress?.user_name || "Unknown",
-          is_completed: existingProgress?.is_completed || false,
-          updated_at: existingProgress?.updated_at || new Date().toISOString()
-        };
-      });
-      const taskData = { 
-        title: taskFormData.title, 
-        deadline: deadline, 
-        creator_id: editingTask?.creator_id || userId,
-        recurrence: { type: taskFormData.recurrence_type, custom_dates: [] }, 
-        user_progress: userProgress 
+    setIsProcessing(true);
+    const deadline = taskFormData.deadline ? new Date(taskFormData.deadline).toISOString() : "0001-01-01T00:00:00Z";
+    const userProgress: TaskUserProgress[] = taskFormData.assignees.map(id => {
+      const member = group?.users?.find(u => u.id === id);
+      const existingProgress = editingTask?.user_progress?.find(p => p.user_id === id);
+      return {
+        task_id: editingTask?.id || "",
+        user_id: id,
+        user_name: member?.name || existingProgress?.user_name || "Unknown",
+        is_completed: existingProgress?.is_completed || false,
+        updated_at: existingProgress?.updated_at || new Date().toISOString()
       };
-      
-      if (editingTask) {
-        await taskApi.updateTask(editingTask.id, taskData, userId);
-      } else {
-        await taskApi.createManualTask({ ...taskData, group_id: groupId });
-      }
-      setShowTaskModal(false);
-      await fetchData();
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        const axiosErr = err as AxiosError<{error: string}>;
-        alert(`課題の保存に失敗した：${axiosErr.response?.data?.error || axiosErr.message}`);
-      }
-    } finally {
+    });
+    const taskData = { 
+      title: taskFormData.title, 
+      deadline: deadline, 
+      creator_id: editingTask?.creator_id || userId,
+      recurrence: { type: taskFormData.recurrence_type, custom_dates: [] }, 
+      user_progress: userProgress 
+    };
+    
+    const [, err] = editingTask 
+      ? await handle(taskApi.updateTask(editingTask.id, taskData, userId))
+      : await handle(taskApi.createManualTask({ ...taskData, group_id: groupId }));
+
+    if (err) {
+      const axiosErr = err as AxiosError<{error: string}>;
+      alert(`課題の保存に失敗した：${axiosErr.response?.data?.error || axiosErr.message}`);
       setIsProcessing(false);
+      return;
     }
+
+    setShowTaskModal(false);
+    await fetchData();
+    setIsProcessing(false);
   };
 
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      setIsProcessing(true);
-      await groupApi.updateSettings(
-        groupId, settingsFormData.name, settingsFormData.remind_intervals, userId, 
-        settingsFormData.ai_character, settingsFormData.line_channel_token, settingsFormData.line_group_id,
-        settingsFormData.summary_morning_time, settingsFormData.summary_evening_time
-      );
-      await fetchData();
-      alert("設定を保存しました．");
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        const axiosErr = err as AxiosError<{error: string}>;
-        alert(axiosErr.response?.data?.error || "設定の保存に失敗しました．");
-      }
-    } finally {
+    setIsProcessing(true);
+    const [, err] = await handle(groupApi.updateSettings(
+      groupId, settingsFormData.name, settingsFormData.remind_intervals, userId, 
+      settingsFormData.ai_character, settingsFormData.line_channel_token, settingsFormData.line_group_id,
+      settingsFormData.summary_morning_time, settingsFormData.summary_evening_time
+    ));
+
+    if (err) {
+      const axiosErr = err as AxiosError<{error: string}>;
+      alert(axiosErr.response?.data?.error || "設定の保存に失敗しました．");
       setIsProcessing(false);
+      return;
     }
+
+    await fetchData();
+    alert("設定を保存しました．");
+    setIsProcessing(false);
   };
 
   const handleLeaveGroup = async () => {
@@ -228,64 +227,58 @@ const DashboardPage: React.FC = () => {
       const successor = otherMembers[idx];
       if (!window.confirm(`${successor.name} さんを次のオーナーに指名して退出しますか？`)) return;
 
-      try {
-        setIsProcessing(true);
-        await groupApi.transferOwnership(groupId, userId, successor.id);
-        await groupApi.leaveGroup(groupId, userId);
-        navigate(`/select-group?user_id=${userId}`);
-        return;
-      } catch (err: unknown) {
-        if (err instanceof Error) {
-          alert("権限譲渡または退出に失敗しました．" + err.message);
-        }
+      setIsProcessing(true);
+      const [, tErr] = await handle(groupApi.transferOwnership(groupId, userId, successor.id));
+      if (tErr) {
+        alert("権限譲渡に失敗しました．" + tErr.message);
         setIsProcessing(false);
         return;
       }
+      const [, lErr] = await handle(groupApi.leaveGroup(groupId, userId));
+      if (lErr) {
+        alert("退出に失敗しました．" + lErr.message);
+        setIsProcessing(false);
+        return;
+      }
+      navigate(`/select-group?user_id=${userId}`);
+      return;
     }
 
     if (!window.confirm("この部屋から退出しますか？一度退出すると，再度招待コードが必要になります．")) return;
-    try {
-      setIsProcessing(true);
-      await groupApi.leaveGroup(groupId, userId);
-      navigate(`/select-group?user_id=${userId}`);
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        alert("部屋の退出に失敗しました．" + err.message);
-      }
-    } finally {
+    setIsProcessing(true);
+    const [, err] = await handle(groupApi.leaveGroup(groupId, userId));
+    if (err) {
+      alert("部屋の退出に失敗しました．" + err.message);
       setIsProcessing(false);
+      return;
     }
+    navigate(`/select-group?user_id=${userId}`);
   };
 
   const handleDeleteGroup = async () => {
     if (!window.confirm("【警告】この部屋を完全に削除しますか？この操作は取り消せません．メンバー全員のデータが消去されます．")) return;
-    try {
-      setIsProcessing(true);
-      await groupApi.deleteGroup(groupId, userId);
-      navigate(`/select-group?user_id=${userId}`);
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        const axiosErr = err as AxiosError<{error: string}>;
-        alert(axiosErr.response?.data?.error || "部屋の削除に失敗しました．");
-      }
-    } finally {
+    setIsProcessing(true);
+    const [, err] = await handle(groupApi.deleteGroup(groupId, userId));
+    if (err) {
+      const axiosErr = err as AxiosError<{error: string}>;
+      alert(axiosErr.response?.data?.error || "部屋の削除に失敗しました．");
       setIsProcessing(false);
+      return;
     }
+    navigate(`/select-group?user_id=${userId}`);
   };
 
   const handleDeleteTask = async (taskId: string) => {
     if (!window.confirm("この課題を完全に削除しますか？")) return;
-    try {
-      setIsProcessing(true);
-      await taskApi.deleteTask(taskId, userId);
-      await fetchData();
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        alert("課題の削除に失敗しました．" + err.message);
-      }
-    } finally {
+    setIsProcessing(true);
+    const [, err] = await handle(taskApi.deleteTask(taskId, userId));
+    if (err) {
+      alert("課題の削除に失敗しました．" + err.message);
       setIsProcessing(false);
+      return;
     }
+    await fetchData();
+    setIsProcessing(false);
   };
 
   const addInterval = (e: React.MouseEvent) => {
@@ -313,54 +306,48 @@ const DashboardPage: React.FC = () => {
 
   const handleRequestWakeup = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      setIsProcessing(true);
-      await wakeupApi.request({
-        user_id: userId, group_id: groupId,
-        target_time: new Date(wakeupFormData.target_time).toISOString(),
-        grace_minutes: wakeupFormData.grace_minutes
-      });
-      setShowWakeupModal(false);
-      await fetchData();
-      alert("起床見守りを開始しました．明日の朝，忘れずにチェックインしてください！");
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        alert("見守り予約に失敗しました．" + err.message);
-      }
-    } finally {
+    setIsProcessing(true);
+    const [, err] = await handle(wakeupApi.request({
+      user_id: userId, group_id: groupId,
+      target_time: new Date(wakeupFormData.target_time).toISOString(),
+      grace_minutes: wakeupFormData.grace_minutes
+    }));
+    if (err) {
+      alert("見守り予約に失敗しました．" + err.message);
       setIsProcessing(false);
+      return;
     }
+    setShowWakeupModal(false);
+    await fetchData();
+    alert("起床見守りを開始しました．明日の朝，忘れずにチェックインしてください！");
+    setIsProcessing(false);
   };
 
   const handleCheckIn = async () => {
-    try {
-      setIsProcessing(true);
-      await wakeupApi.checkin(userId);
-      await fetchData();
-      alert("おはようございます！起床を確認しました．SOS 通知を解除しました．");
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        alert("チェックインに失敗しました．" + err.message);
-      }
-    } finally {
+    setIsProcessing(true);
+    const [, err] = await handle(wakeupApi.checkin(userId));
+    if (err) {
+      alert("チェックインに失敗しました．" + err.message);
       setIsProcessing(false);
+      return;
     }
+    await fetchData();
+    alert("おはようございます！起床を確認しました．SOS 通知を解除しました．");
+    setIsProcessing(false);
   };
 
   const handleCancelWakeup = async () => {
     if (!window.confirm("見守りをキャンセルしますか？")) return;
-    try {
-      setIsProcessing(true);
-      await wakeupApi.cancel(userId);
-      await fetchData();
-      alert("見守りをキャンセルしました．");
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        alert("キャンセルの実行に失敗しました．" + err.message);
-      }
-    } finally {
+    setIsProcessing(true);
+    const [, err] = await handle(wakeupApi.cancel(userId));
+    if (err) {
+      alert("キャンセルの実行に失敗しました．" + err.message);
       setIsProcessing(false);
+      return;
     }
+    await fetchData();
+    alert("見守りをキャンセルしました．");
+    setIsProcessing(false);
   };
 
   const handleEditWakeup = () => {
@@ -385,14 +372,12 @@ const DashboardPage: React.FC = () => {
   }, []);
 
   const toggleTaskCompletion = async (taskId: string) => {
-    try {
-      await taskApi.toggleTaskCompletion(taskId, userId);
-      await fetchData();
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        alert("進捗の更新に失敗しました．" + err.message);
-      }
+    const [, err] = await handle(taskApi.toggleTaskCompletion(taskId, userId));
+    if (err) {
+      alert("進捗の更新に失敗しました．" + err.message);
+      return;
     }
+    await fetchData();
   };
 
   // 課題の分類ロジックである．
