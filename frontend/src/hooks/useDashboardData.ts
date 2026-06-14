@@ -60,7 +60,9 @@ export const useDashboardData = (userId: string, groupId: string) => {
         setNotificationLogs(logsRes.value || []);
       }
     } catch (err: unknown) {
-      console.error("useDashboardData: Fetch error:", err);
+      if (err instanceof Error) {
+        console.error("useDashboardData: Fetch error:", err.message);
+      }
       setError("データの取得中に予期せぬエラーが発生した．");
     } finally {
       setLoading(false);

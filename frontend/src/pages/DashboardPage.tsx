@@ -92,7 +92,7 @@ const DashboardPage: React.FC = () => {
         if (!silent) alert(`同期が完了した．${result.tasks.length} 件の課題を更新した．`);
       }
     } catch (err: unknown) {
-      if (!silent) {
+      if (!silent && err instanceof Error) {
         const axiosErr = err as AxiosError<{error: string}>;
         alert(axiosErr.response?.data?.error || "同期に失敗した．");
       }
@@ -174,8 +174,10 @@ const DashboardPage: React.FC = () => {
       setShowTaskModal(false);
       await fetchData();
     } catch (err: unknown) {
-      const axiosErr = err as AxiosError<{error: string}>;
-      alert(`課題の保存に失敗した：${axiosErr.response?.data?.error || axiosErr.message}`);
+      if (err instanceof Error) {
+        const axiosErr = err as AxiosError<{error: string}>;
+        alert(`課題の保存に失敗した：${axiosErr.response?.data?.error || axiosErr.message}`);
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -193,8 +195,10 @@ const DashboardPage: React.FC = () => {
       await fetchData();
       alert("設定を保存しました．");
     } catch (err: unknown) {
-      const axiosErr = err as AxiosError<{error: string}>;
-      alert(axiosErr.response?.data?.error || "設定の保存に失敗しました．");
+      if (err instanceof Error) {
+        const axiosErr = err as AxiosError<{error: string}>;
+        alert(axiosErr.response?.data?.error || "設定の保存に失敗しました．");
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -230,8 +234,10 @@ const DashboardPage: React.FC = () => {
         await groupApi.leaveGroup(groupId, userId);
         navigate(`/select-group?user_id=${userId}`);
         return;
-      } catch (err) {
-        alert("権限譲渡または退出に失敗しました．");
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          alert("権限譲渡または退出に失敗しました．" + err.message);
+        }
         setIsProcessing(false);
         return;
       }
@@ -242,8 +248,10 @@ const DashboardPage: React.FC = () => {
       setIsProcessing(true);
       await groupApi.leaveGroup(groupId, userId);
       navigate(`/select-group?user_id=${userId}`);
-    } catch (err) {
-      alert("部屋の退出に失敗しました．");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        alert("部屋の退出に失敗しました．" + err.message);
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -256,8 +264,10 @@ const DashboardPage: React.FC = () => {
       await groupApi.deleteGroup(groupId, userId);
       navigate(`/select-group?user_id=${userId}`);
     } catch (err: unknown) {
-      const axiosErr = err as AxiosError<{error: string}>;
-      alert(axiosErr.response?.data?.error || "部屋の削除に失敗しました．");
+      if (err instanceof Error) {
+        const axiosErr = err as AxiosError<{error: string}>;
+        alert(axiosErr.response?.data?.error || "部屋の削除に失敗しました．");
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -269,8 +279,10 @@ const DashboardPage: React.FC = () => {
       setIsProcessing(true);
       await taskApi.deleteTask(taskId, userId);
       await fetchData();
-    } catch (err) {
-      alert("課題の削除に失敗しました．");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        alert("課題の削除に失敗しました．" + err.message);
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -311,8 +323,10 @@ const DashboardPage: React.FC = () => {
       setShowWakeupModal(false);
       await fetchData();
       alert("起床見守りを開始しました．明日の朝，忘れずにチェックインしてください！");
-    } catch (err) {
-      alert("見守り予約に失敗しました．");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        alert("見守り予約に失敗しました．" + err.message);
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -324,8 +338,10 @@ const DashboardPage: React.FC = () => {
       await wakeupApi.checkin(userId);
       await fetchData();
       alert("おはようございます！起床を確認しました．SOS 通知を解除しました．");
-    } catch (err) {
-      alert("チェックインに失敗しました．");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        alert("チェックインに失敗しました．" + err.message);
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -338,8 +354,10 @@ const DashboardPage: React.FC = () => {
       await wakeupApi.cancel(userId);
       await fetchData();
       alert("見守りをキャンセルしました．");
-    } catch (err) {
-      alert("キャンセルの実行に失敗しました．");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        alert("キャンセルの実行に失敗しました．" + err.message);
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -370,8 +388,10 @@ const DashboardPage: React.FC = () => {
     try {
       await taskApi.toggleTaskCompletion(taskId, userId);
       await fetchData();
-    } catch (err) {
-      alert("進捗の更新に失敗しました．");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        alert("進捗の更新に失敗しました．" + err.message);
+      }
     }
   };
 

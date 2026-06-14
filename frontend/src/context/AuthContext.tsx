@@ -28,8 +28,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       const userData = await userApi.getMe(id);
       setUser(userData);
-    } catch (err) {
-      console.error("AuthContext: Failed to fetch user", err);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        console.error("AuthContext: Failed to fetch user", err.message);
+      }
     } finally {
       setLoading(false);
     }

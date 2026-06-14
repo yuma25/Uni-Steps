@@ -36,8 +36,10 @@ export const useWebPush = (userId: string, groupId: string) => {
         onSuccess();
         alert("通知が有効になりました！AI からのリマインドが届くようになります．");
       }
-    } catch (err) {
-      console.error("useWebPush: Notification error:", err);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        console.error("useWebPush: Notification error:", err.message);
+      }
       alert("通知の設定に失敗しました．");
     }
   }, [userId]);
@@ -63,8 +65,10 @@ export const useWebPush = (userId: string, groupId: string) => {
       await notificationApi.subscribe(userId, subscription);
       onSuccess();
       console.log("useWebPush: Silent resubscribe successful.");
-    } catch (err) {
-      console.error("useWebPush: Silent resubscribe failed:", err);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        console.error("useWebPush: Silent resubscribe failed:", err.message);
+      }
     }
   }, [userId]);
 
@@ -72,11 +76,14 @@ export const useWebPush = (userId: string, groupId: string) => {
     try {
       await notificationApi.sendTestNotification(userId, aiCharacter, groupId);
       alert("テスト通知を送信しました．数秒以内に届くはずです．");
-    } catch (err: any) {
-      if (err.response?.data?.error?.includes("トークンが存在しない")) {
-        onTokenMissing();
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        const axiosErr = err as any; // Cast for accessing response
+        if (axiosErr.response?.data?.error?.includes("トークンが存在しない")) {
+          onTokenMissing();
+        }
+        alert(`テスト通知の送信に失敗しました：${axiosErr.response?.data?.error || err.message}`);
       }
-      alert(`テスト通知の送信に失敗しました：${err.response?.data?.error || err.message}`);
     }
   }, [userId, groupId]);
 

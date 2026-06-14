@@ -24,8 +24,10 @@ const GroupSelectionPage: React.FC = () => {
     try {
       const data = await groupApi.listMyGroups(userId);
       setGroups(data || []);
-    } catch (err) {
-      console.error("GroupSelectionPage: fetchGroups failed", err);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        console.error("GroupSelectionPage: fetchGroups failed", err.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -49,8 +51,10 @@ const GroupSelectionPage: React.FC = () => {
       setShowCreateModal(false);
       navigate(`/dashboard?user_id=${userId}&group_id=${newGroup.id}`);
     } catch (err: unknown) {
-      const axiosErr = err as AxiosError<{error: string}>;
-      alert(`エラー：${axiosErr.response?.data?.error || "部屋の作成に失敗した．"}`);
+      if (err instanceof Error) {
+        const axiosErr = err as AxiosError<{error: string}>;
+        alert(`エラー：${axiosErr.response?.data?.error || "部屋の作成に失敗した．"}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -65,8 +69,10 @@ const GroupSelectionPage: React.FC = () => {
       setShowJoinModal(false);
       navigate(`/dashboard?user_id=${userId}&group_id=${joinedGroup.id}`);
     } catch (err: unknown) {
-      const axiosErr = err as AxiosError<{error: string}>;
-      alert(`エラー：${axiosErr.response?.data?.error || "部屋への参加に失敗した．招待コードを確認してほしい．"}`);
+      if (err instanceof Error) {
+        const axiosErr = err as AxiosError<{error: string}>;
+        alert(`エラー：${axiosErr.response?.data?.error || "部屋への参加に失敗した．招待コードを確認してほしい．"}`);
+      }
     } finally {
       setLoading(false);
     }
