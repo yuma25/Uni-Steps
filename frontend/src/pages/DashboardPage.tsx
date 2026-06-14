@@ -40,7 +40,7 @@ const DashboardPage: React.FC = () => {
   } = useDashboardData(userId, groupId);
 
   const { 
-    notifPermission, handleEnableNotifications, handleSilentResubscribe, handleSendTestNotification 
+    notifPermission, handleEnableNotifications, handleSilentResubscribe 
   } = useWebPush(userId, groupId);
 
   // 通知の自動復旧ロジック：許可済みだがサーバーにトークンがない場合，サイレントに再登録する．
@@ -141,7 +141,6 @@ const DashboardPage: React.FC = () => {
   }, [showTaskModal, showWakeupModal]);
 
   const onEnableNotif = () => handleEnableNotifications(() => setServerTokenMissing(false));
-  const onTestNotif = () => handleSendTestNotification(settingsFormData.ai_character, () => setServerTokenMissing(true));
 
   const handleSaveTask = async (e: React.FormEvent) => {
     e.preventDefault();

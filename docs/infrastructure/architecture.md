@@ -1,111 +1,112 @@
-# インフラ・システム構成図 (Cloud Architecture)
+# Uni-Steps ｜ 技術アーキテクチャ & インフラ構成
 
-本ドキュメントは，Uni-Steps の全体的なインフラ構成，ネットワーク経路，および主要なデータフローを定義したものである．無料枠を最大限に活用しつつ，堅牢なセキュリティとスケーラビリティを両立した設計を採用している．
+本ドキュメントは，ハッカソンや技術プレゼンテーション向けの，Uni-Steps のシステム全容を俯瞰するリファレンスである．「コストゼロ」で「プロフェッショナル品質」のサービスを実現するための，緻密な技術選定とデータフローを記述している．
 
 ---
 
-## 1. システム全体俯瞰図 (Architecture Overview)
+## 1. テックスタック・マトリクス (The Tech Stack)
 
-Uni-Steps は，フロントエンド（Vercel）とバックエンド（Render）を分離したモダンなデカップルド・アーキテクチャを採用している．
+Uni-Steps は，最新のモダン技術を適材適所で組み合わせた，フルスタック・アーキテクチャを採用している．
+
+| カテゴリ | 採用技術 | 選定の決め手 |
+| :--- | :--- | :--- |
+| **Frontend** | **React 19 + TypeScript** | 高速な SPA 開発，型安全なコンポーネント設計，モダンな Hooks 活用． |
+| **Backend** | **Go 1.22 + Echo v4** | 超軽量・高速な API サーバー，並列処理（Goroutine）による高いスループット． |
+| **Database** | **Supabase (PostgreSQL)** | GORM との親和性，JSONB サポート，Supabase Auth 連携の将来性． |
+| **AI Intelligence**| **Google Gemini API** | Flash モデルによる爆速推論，無料枠での高いレート制限（15 RPM）． |
+| **Infrastructure** | **Vercel & Render** | デプロイの自動化，エッジ配信，無料枠での Docker 運用． |
+| **Messaging** | **LINE + Web Push** | 日本国内のリーチ力と，ブラウザネイティブの即時性のハイブリッド． |
+
+---
+
+## 2. システム構成図 (Visual Architecture)
 
 ```mermaid
 graph TB
-    subgraph Client ["1. クライアント (Client Side)"]
+    subgraph Client ["<b>1. Client Experience</b>"]
+        direction LR
         User((ユーザー))
-        Browser["ブラウザ (React SPA)"]
-        SW["Service Worker<br/>(Web Push)"]
+        Browser["<b>Vite + React SPA</b><br/>(Tailwind-free Custom CSS)"]
+        SW["<b>Service Worker</b><br/>(Push Auto-Healing)"]
     end
 
-    subgraph Hosting ["2. パブリッククラウド (Hosting)"]
+    subgraph Hosting ["<b>2. Secure Cloud Hosting</b>"]
         direction TB
-        Vercel["<b>Vercel</b><br/>Frontend: React / TS"]
-        Render["<b>Render</b><br/>Backend: Go (Echo)"]
+        Vercel["<b>Vercel Edge</b><br/>静的アセット配信"]
+        Render["<b>Render (Go Runtime)</b><br/>高性能 API エンジン"]
     end
 
-    subgraph Data ["3. 永続化・外部連携 (Data & External)"]
-        Supabase[("<b>Supabase</b><br/>PostgreSQL (GORM)")]
-        GoogleClassroom["<b>Google Cloud</b><br/>OAuth 2.0 / Classroom API"]
+    subgraph Logic ["<b>3. Distributed Logic</b>"]
+        direction TB
+        Scheduler["<b>In-Mem Scheduler</b><br/>(精緻な単発予約)"]
+        Worker["<b>Recurring Worker</b><br/>(定刻監視型ループ)"]
     end
 
-    subgraph Intelligence ["4. インテリジェンス・通知 (AI & Messaging)"]
-        Gemini["<b>Gemini API</b><br/>GenAI (Flash/Lite)"]
-        LINE["<b>LINE Developers</b><br/>Messaging API (BYOT)"]
+    subgraph Data ["<b>4. Data & External ecosystem</b>"]
+        Supabase[("<b>Supabase DB</b><br/>PostgreSQL / GORM")]
+        GoogleCloud["<b>Google Cloud</b><br/>OAuth 2.0 / Classroom"]
+        Gemini["<b>Gemini AI</b><br/>GenAI (Flash/Lite)"]
+        LINE["<b>LINE Developers</b><br/>Messaging API"]
     end
 
-    subgraph External ["5. 運用監視 (Monitoring)"]
-        CronJob["<b>Cron-job.org</b><br/>スリープ回避 (Keep-alive)"]
-    end
-
-    %% --- ネットワーク経路 ---
+    %% --- ネットワーク & データ通信 ---
     User <--> Browser
-    Browser -- "HTTPS / REST" --> Render
-    Vercel -- "静的配信" --> Browser
+    Browser -- "API Request (Axios)" --> Render
+    Vercel -- "Deploy / Serve" --> Browser
+    Render <--> Logic
     Render <--> Supabase
     
-    %% 認証・同期フロー
-    Browser -- "OAuth リダイレクト" --> GoogleClassroom
-    GoogleClassroom -- "Callback" --> Render
-    Render -- "Sync Tasks" --> GoogleClassroom
-    
-    %% 知能・通知
-    Render -- "Prompt / Result" --> Gemini
-    Render -- "Push Message" --> LINE
-    Render -- "Web Push" --> Browser
+    %% 外部連携
+    Render -- "Parallel Fetch (Goroutine)" --> GoogleCloud
+    Logic -- "Contextual Prompt" --> Gemini
+    Logic -- "Broadcast" --> LINE
+    Logic -- "Personal Push" --> Browser
     Browser -.-> SW
 
     %% 監視
-    CronJob -- "5分毎 Ping (/health)" --> Render
+    Cron["Cron-job.org"] -- "Keep-alive Ping" --> Render
 
     %% --- スタイリング ---
-    classDef client fill:#f9f,stroke:#333,stroke-width:2px;
-    classDef hosting fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
-    classDef data fill:#fff3e0,stroke:#e65100,stroke-width:2px;
-    classDef intel fill:#f3e5f5,stroke:#4a148c,stroke-width:2px;
-    classDef ext fill:#fafafa,stroke:#616161,stroke-dasharray: 5 5;
+    classDef client fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
+    classDef hosting fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+    classDef logic fill:#fff3e0,stroke:#ef6c00,stroke-width:2px;
+    classDef data fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
 
-    class Client,User,Browser,SW client;
-    class Vercel,Render hosting;
-    class Supabase,GoogleClassroom data;
-    class Gemini,LINE intel;
-    class CronJob ext;
+    class Client,Browser,SW client;
+    class Hosting,Vercel,Render hosting;
+    class Logic,Scheduler,Worker logic;
+    class Data,Supabase,GoogleCloud,Gemini,LINE data;
 ```
 
 ---
 
-## 2. 主要なデータフロー (Critical Sequences)
+## 3. 処理のライフサイクル (Critical Pipelines)
 
-### 2.1 認証と同期の連鎖 (Auth & Sync Flow)
-1.  **ユーザー**がブラウザから「Google ログイン」を実行．
-2.  **Google Cloud** で承認後，**Render** へ認可コードが返る．
-3.  **Render** がアクセストークンを取得し，**Supabase** へユーザー情報を保存．
-4.  初回ログイン時，**Render** が **Google Classroom** から課題を並列取得（Goroutine）．
-5.  取得した課題を **Gemini** で解析（必要時）し，**Supabase** へ永続化．
+### 🚀 01. パフォーマンス特化の同期処理 (Parallel Sync)
+Google Classroom からの課題取得は，Go の **Goroutine** を用いて全コースを**完全並列**でスキャンする．さらに，DB 書き込み前にメモリ上で全件照合を行うことで **N+1 問題を解消**．数秒で全課題の同期が完了する．
 
-### 2.2 起床見守りと SOS 発信 (Wakeup & SOS Flow)
-1.  **ユーザー**が起床時間を予約．
-2.  **Render (Scheduler)** がメモリ上にタイマーをセット．
-3.  予定時刻 ＋ 猶予時間を過ぎてもチェックインがない場合，タイマーが発火．
-4.  **Render** が **Gemini** に「寝坊した仲間を呼ぶ緊急メッセージ」の生成を依頼．
-5.  生成された文章を **LINE (グループ)** と **Web Push (個人)** へ同時多発的に配信．
+### ⏰ 02. 二段構えのスケジュール管理 (Dual Timing)
+*   **単発予約 (Scheduler)**: 起床 SOS やリマインドなど，ミリ秒単位の精度が求められるイベントは，Go の `time.AfterFunc` による精密タイマーで制御．
+*   **定刻監視 (Worker)**: 朝夕のサマリー配信は，設定変更に強い 1分間隔の常駐監視ワーカーが担当．負荷を最小限に抑えつつ，柔軟な運用を可能にしている．
 
-### 2.3 定期サマリーの自動配信 (Automatic Summary)
-1.  **Cron-job.org** が 5分おきに **Render** を叩き，冬眠を防止．
-2.  **Render** 内のバックグラウンドワーカーが 1分おきに全グループの配信設定を確認．
-3.  設定時刻に達したグループの課題状況を **Supabase** から集計．
-4.  **Gemini** が状況を要約し，チーム全体へ「朝刊/夕刊」として報告．
+### 🛡️ 03. 自律的な自己修復通知 (Self-healing Notification)
+Web Push トークンが失効（410 Gone）した場合，サーバー側で即座に無効化．次にユーザーがアプリを開いた際，フロントエンドが権限を確認して**サイレントに再登録**を実行．ユーザーに意識させない「切れない通知」を実現．
 
 ---
 
-## 3. インフラ採用技術と選定理由
+## 4. プロフェッショナル・エラーハンドリング
 
-| レイヤー | サービス名 | 選定理由 |
-| :--- | :--- | :--- |
-| **Frontend** | Vercel | 高速な CDN 配信，GitHub 連携による自動ビルド，および SPA との親和性． |
-| **Backend** | Render | Go 言語のネイティブサポート，無料枠での Docker / Web Service 運用が可能． |
-| **Database** | Supabase | PostgreSQL をマネージドで提供．JSONB 検索や外部連携に強い． |
-| **AI Engine** | Gemini API | 無料枠での高いレート制限（15 RPM）と，Flash モデルによる超高速推論． |
-| **Messaging** | LINE API | 日本国内で最もリーチ力の高いインフラを活用し，緊急時の気付きを最大化． |
-| **Reliability** | Cron-job.org | Render のスリープ特性を補完し，24時間稼働の「見守り」を低コストで実現． |
+フロントエンド（TypeScript）において，バックエンド（Go）の哲学を継承した **[結果, エラー] タプル形式** を全面的に採用．
+```ts
+// Go言語の if err != nil { ... } と同じ直感的なコーディング
+const [data, err] = await handle(apiCall());
+if (err) {
+  // 型安全なエラー処理
+  return handleError(err);
+}
+```
+これにより，ネストの浅い，保守性に極めて優れたコードベースを維持している．
 
 ---
 *最終更新日: 2026年6月14日*
+*Uni-Steps: Your life rhythm partner.*

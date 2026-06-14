@@ -295,7 +295,7 @@ Google Classroom API を使用して，ドメイン層の `LMSService` インタ
     *   **引数**: `ur`, `gr`, `ai`, `ns`, `lr`．
     *   **戻り値**: 生成された `*InMemScheduler`．
 *   🔧 **メソッド: `ScheduleTaskRemind(ctx, task, userID, interval, style, runAt) error`**
-    *   **概要**: 未来の時刻にリマインドを実行するタイマーをセットする．実行時に AI で文面を生成し送信する．
+    *   **概要**: 未来の単発イベント（締切前リマインド）を実行するタイマーをセットする．実行時に AI で文面を生成し送信する．
     *   **引数**: `ctx`, `task` (`*domain.Task`), `userID` (`string`), `interval` (`int`), `style` (`string`), `runAt` (`time.Time`)．
     *   **戻り値**: 成功時は nil，失敗時はエラー．
 *   🔧 **メソッド: `CancelTaskReminds(ctx, taskID, userID) error`**
@@ -310,6 +310,11 @@ Google Classroom API を使用して，ドメイン層の `LMSService` インタ
     *   **概要**: SOS 予約を取り消す．
     *   **引数**: `ctx`, `wakeupID` (`string`)．
     *   **戻り値**: 成功時は nil，失敗時はエラー．
+
+### ⚙️ バックグラウンド・ワーカー (Recurring Worker)
+サマリー通知など，毎日特定の時刻に繰り返される処理は，`main.go` 内で起動される Goroutine が担当する．
+*   **動作原理**: 1分おきに全グループの `summary_morning_time` および `summary_evening_time` をスキャンし，現在時刻と一致した場合に `SummaryUsecase.SendAllSummaries` を呼び出す．
+*   **利点**: 毎日の予約の入れ直しが不要で，ユーザーの設定変更が即座に反映される．
 
 ---
 
