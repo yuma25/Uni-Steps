@@ -44,3 +44,11 @@ export async function handle<T>(promise: Promise<T>): Promise<[T, null] | [null,
     return [null, new Error(String(err))];
   }
 }
+
+/**
+ * datetime-local インプット用の文字列を生成する．
+ */
+export function toLocalISOString(date: Date): string {
+  if (date.getFullYear() <= 1) return "";
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+}
