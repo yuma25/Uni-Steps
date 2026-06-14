@@ -4,7 +4,6 @@ import type { Group } from '../../types';
 
 interface DashboardHeaderProps {
   group: Group | null;
-  userId: string;
   onBack: () => void;
   onEnableNotifications: () => void;
   onAddTask: () => void;
@@ -18,7 +17,6 @@ interface DashboardHeaderProps {
 
 const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   group,
-  userId,
   onBack,
   onEnableNotifications,
   onAddTask,
