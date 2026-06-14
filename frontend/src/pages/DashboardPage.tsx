@@ -424,7 +424,6 @@ const DashboardPage: React.FC = () => {
         <DashboardHeader 
           group={group} userId={userId}
           onBack={() => navigate(`/select-group?user_id=${userId}`)}
-          onSendTestNotification={onTestNotif}
           onEnableNotifications={onEnableNotif}
           onAddTask={() => { setEditingTask(null); setTaskFormData({ title: '', deadline: '', recurrence_type: 'none', assignees: [userId] }); setShowTaskModal(true); }}
           notifPermission={notifPermission}

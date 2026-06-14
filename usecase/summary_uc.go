@@ -88,12 +88,19 @@ func (uc *SummaryUsecase) ProcessSingleGroupSummary(ctx context.Context, groupID
 		for _, task := range tasks {
 			for _, up := range task.UserProgress {
 				if up.UserID == user.ID && !up.IsCompleted {
-					if !task.Deadline.IsZero() && task.Deadline.Before(targetEnd) {
-						// 期限を "15:04" 形式でフォーマット（未定の場合は空）
-						timeStr := ""
-						if !task.Deadline.IsZero() {
-							timeStr = fmt.Sprintf(" (%s)", task.Deadline.Format("15:04"))
-						}
+					// 判定条件の改善
+					isTarget := false
+					if summaryType == domain.SummaryTypeMorning {
+						// 朝：今日が期限のもの（および過去の未完了分）
+						isTarget = !task.Deadline.IsZero() && task.Deadline.Before(targetEnd)
+					} else {
+						// 夜：明日が期限のもの（今日より未来のものに限定）
+						isTarget = !task.Deadline.IsZero() && task.Deadline.After(now) && task.Deadline.Before(targetEnd)
+					}
+
+					if isTarget {
+						// 期限を日本時間でフォーマット
+						timeStr := fmt.Sprintf(" (%s)", task.Deadline.Local().Format("15:04"))
 						userTasks = append(userTasks, fmt.Sprintf("「%s」%s", task.Title, timeStr))
 					}
 				}
@@ -124,6 +131,9 @@ func (uc *SummaryUsecase) ProcessSingleGroupSummary(ctx context.Context, groupID
 	if err != nil {
 		log.Printf("[Summary] AI サマリー生成失敗（固定文へ切替）: %v\n", err)
 		msg = fmt.Sprintf("【%sサマリー】\n%s の状況は以下の通りです．\n\n%s\n\n一歩ずつ進めていきましょう！", summaryType, typeLabel, statusText)
+	} else {
+		// AI 生成文が成功した場合でも，正確なリストを末尾に付け加える
+		msg = fmt.Sprintf("%s\n\n--- 課題詳細 ---\n%s", msg, statusText)
 	}
 
 	// 4．LINE グループへ送信（設定されている場合）

@@ -1,12 +1,11 @@
 import React from 'react';
-import { ArrowLeft, Users, Share2, Send, BellRing, Plus } from 'lucide-react';
+import { ArrowLeft, Users, Share2, BellRing, Plus } from 'lucide-react';
 import type { Group } from '../../types';
 
 interface DashboardHeaderProps {
   group: Group | null;
   userId: string;
   onBack: () => void;
-  onSendTestNotification: () => void;
   onEnableNotifications: () => void;
   onAddTask: () => void;
   notifPermission: NotificationPermission;
@@ -17,7 +16,6 @@ interface DashboardHeaderProps {
 const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   group,
   onBack,
-  onSendTestNotification,
   onEnableNotifications,
   onAddTask,
   notifPermission,
