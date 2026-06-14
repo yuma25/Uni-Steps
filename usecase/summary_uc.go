@@ -84,18 +84,30 @@ func (uc *SummaryUsecase) ProcessSingleGroupSummary(ctx context.Context, groupID
 
 	summaryItems := []string{}
 	for _, user := range group.Users {
-		userTaskCount := 0
+		var userTasks []string
 		for _, task := range tasks {
 			for _, up := range task.UserProgress {
 				if up.UserID == user.ID && !up.IsCompleted {
 					if !task.Deadline.IsZero() && task.Deadline.Before(targetEnd) {
-						userTaskCount++
+						// 期限を "15:04" 形式でフォーマット（未定の場合は空）
+						timeStr := ""
+						if !task.Deadline.IsZero() {
+							timeStr = fmt.Sprintf(" (%s)", task.Deadline.Format("15:04"))
+						}
+						userTasks = append(userTasks, fmt.Sprintf("「%s」%s", task.Title, timeStr))
 					}
 				}
 			}
 		}
-		if userTaskCount > 0 {
-			summaryItems = append(summaryItems, fmt.Sprintf("- %s: 残り %d 件", user.Name, userTaskCount))
+
+		if len(userTasks) > 0 {
+			// 例: "- 増田: 「卒論」 (15:00) など計 2 件"
+			firstTask := userTasks[0]
+			item := fmt.Sprintf("- %s: %s", user.Name, firstTask)
+			if len(userTasks) > 1 {
+				item += fmt.Sprintf(" など計 %d 件", len(userTasks))
+			}
+			summaryItems = append(summaryItems, item)
 		}
 	}
 
@@ -110,8 +122,8 @@ func (uc *SummaryUsecase) ProcessSingleGroupSummary(ctx context.Context, groupID
 
 	msg, err := uc.aiService.GenerateGroupSummaryMessage(ctx, content, group.AICharacter)
 	if err != nil {
-		log.Printf("[Summary] AI サマリー生成失敗: %v\n", err)
-		msg = fmt.Sprintf("【%sサマリー】\n%s\n頑張りましょう！", summaryType, statusText)
+		log.Printf("[Summary] AI サマリー生成失敗（固定文へ切替）: %v\n", err)
+		msg = fmt.Sprintf("【%sサマリー】\n%s の状況は以下の通りです．\n\n%s\n\n一歩ずつ進めていきましょう！", summaryType, typeLabel, statusText)
 	}
 
 	// 4．LINE グループへ送信（設定されている場合）
