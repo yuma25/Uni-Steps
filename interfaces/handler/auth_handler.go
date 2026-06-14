@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/google/uuid"
@@ -121,7 +122,10 @@ func (h *AuthHandler) GoogleCallback(c echo.Context) error {
 	}
 
 	// 5．ダッシュボードへリダイレクトする．
-	// フロントエンドの URL へリダイレクト（暫定的に localhost:5173 を使用）
-	frontendUrl := "http://localhost:5173/select-group?user_id=" + user.ID
-	return c.Redirect(http.StatusTemporaryRedirect, frontendUrl)
+	frontendUrl := os.Getenv("FRONTEND_URL")
+	if frontendUrl == "" {
+		frontendUrl = "http://localhost:5173"
+	}
+	redirectUrl := frontendUrl + "/select-group?user_id=" + user.ID
+	return c.Redirect(http.StatusTemporaryRedirect, redirectUrl)
 }

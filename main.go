@@ -105,7 +105,7 @@ func main() {
 	}
 	modelName := os.Getenv("GEMINI_MODEL")
 	if modelName == "" {
-		modelName = "gemini-1.5-flash" // 無料枠で最も安定しているモデル
+		modelName = "models/gemini-2.5-flash" // 無料枠で最も安定しているモデル
 	}
 	aiService := ai.NewGeminiService(genaiClient, modelName)
 
@@ -166,7 +166,10 @@ func main() {
 	}))
 
 	e.Use(middleware.Recover())
-	e.Use(middleware.CORS())
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{"http://localhost:5173", "https://uni-steps.vercel.app"},
+		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
+	}))
 
 	e.GET("/health", func(c echo.Context) error {
 		return c.String(http.StatusOK, "Uni-Steps API is running")
