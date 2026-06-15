@@ -36,6 +36,11 @@ func (uc *TaskUsecase) RegisterManualTask(ctx context.Context, task *domain.Task
 	if task.ID == "" {
 		task.ID = uuid.New().String()
 	}
+	// 手動登録の場合、ExternalID が空だとユニーク制約（group_id, external_id）に
+	// 引っかかるため、内部 ID を ExternalID としても保持する。
+	if task.ExternalID == "" {
+		task.ExternalID = task.ID
+	}
 
 	// 作成者 ID はドメインモデルにセットされた状態で渡される（Handler でセット）．
 
