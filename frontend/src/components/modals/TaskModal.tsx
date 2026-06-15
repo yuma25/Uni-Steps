@@ -44,6 +44,9 @@ const TaskModal: React.FC<TaskModalProps> = ({
   // 権限チェック：作成者 または グループオーナーのみがタイトル・期限・削除の操作が可能
   const isAuthorized = !editingTask || editingTask.creator_id === operatorId || ownerId === operatorId;
   const isLMS = editingTask?.source === 'google_classroom';
+  
+  // 期限の編集制限：LMS課題かつ元々期限が設定されている場合は編集不可とする
+  const isLMSDeadlineLocked = isLMS && editingTask?.is_lms_deadline_set;
 
   // 担当者が一人も選択されていない場合は保存できないようにする．
   const isAssigneeEmpty = formData.assignees.length === 0;
@@ -77,9 +80,11 @@ const TaskModal: React.FC<TaskModalProps> = ({
               type="datetime-local" 
               value={formData.deadline} 
               onChange={e => setFormData({...formData, deadline: e.target.value})} 
-              disabled={isLMS || !isAuthorized}
+              disabled={isLMSDeadlineLocked || !isAuthorized}
             />
             {!isAuthorized && <p style={{fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '0.4rem'}}>※期限の変更は作成者またはオーナーのみ可能です．</p>}
+            {isLMS && !isLMSDeadlineLocked && isAuthorized && <p style={{fontSize: '0.75rem', color: 'var(--brand)', marginTop: '0.4rem'}}>※Google Classroom で期限未定の課題です．Uni-Steps 上で期限を設定・保存できます．</p>}
+            {isLMSDeadlineLocked && isAuthorized && <p style={{fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '0.4rem'}}>※Google Classroom 側で期限が設定されているため，ここでは変更できません．</p>}
           </div>
           
           <div className="form-group">

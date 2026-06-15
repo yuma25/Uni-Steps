@@ -91,8 +91,8 @@ func (uc *SummaryUsecase) ProcessSingleGroupSummary(ctx context.Context, groupID
 					// 判定条件の改善
 					isTarget := false
 					if summaryType == domain.SummaryTypeMorning {
-						// 朝：今日が期限のもの（および過去の未完了分）
-						isTarget = !task.Deadline.IsZero() && task.Deadline.Before(targetEnd)
+						// 朝：今日が期限のもの（現在時刻以降）
+						isTarget = !task.Deadline.IsZero() && task.Deadline.After(now) && task.Deadline.Before(targetEnd)
 					} else {
 						// 夜：明日が期限のもの（今日より未来のものに限定）
 						isTarget = !task.Deadline.IsZero() && task.Deadline.After(now) && task.Deadline.Before(targetEnd)

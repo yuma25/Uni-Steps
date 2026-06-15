@@ -79,9 +79,21 @@ func (uc *SyncUsecase) SyncTasks(ctx context.Context, userID string, groupID str
 		existing := existingMap[task.ExternalID]
 		if existing != nil {
 			task.ID = existing.ID
-			existing.IsLMSDeadlineSet = task.IsLMSDeadlineSet
-			if task.Deadline.IsZero() && !existing.Deadline.IsZero() {
-				task.Deadline = existing.Deadline
+
+			// 既存の課題がローカルで（LMS以外で）設定され、かつゼロ値ではない期限を持つ場合、その期限を優先する。
+			// これにより、ユーザーが手動で設定した期限がLMS同期によって上書きされるのを防ぐ。
+			if !existing.IsLMSDeadlineSet && !existing.Deadline.IsZero() {
+				task.Deadline = existing.Deadline // ローカルで設定された期限を保持
+				task.IsLMSDeadlineSet = false     // これはローカルで管理されている期限であることを示す
+			} else {
+				// それ以外の場合は、LMSが提供する期限を使用する。
+				// 'task'オブジェクトには既にLMSからの値が格納されている。
+				// LMSが期限を提供している場合は 'IsLMSDeadlineSet' を true に設定し、そうでない場合は false に設定する。
+				if !task.Deadline.IsZero() {
+					task.IsLMSDeadlineSet = true // LMSが期限を提供した
+				} else {
+					task.IsLMSDeadlineSet = false // LMSは期限を提供しなかった
+				}
 			}
 			if len(task.UserProgress) > 0 {
 				newProgress := task.UserProgress[0]
