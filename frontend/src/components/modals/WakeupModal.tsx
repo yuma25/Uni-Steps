@@ -38,12 +38,16 @@ const WakeupModal: React.FC<WakeupModalProps> = ({
         <form onSubmit={onSave}>
           <div className="form-group">
             <label><Clock size={14} /> 起床予定時刻</label>
-            <input 
-              type="datetime-local" 
-              required 
-              value={formData.target_time} 
-              onChange={e => setFormData({...formData, target_time: e.target.value})} 
-            />
+            <div style={{display: 'flex', gap: '10px', alignItems: 'center'}}>
+              <input 
+                type="datetime-local" 
+                required 
+                value={formData.target_time} 
+                onChange={e => setFormData({...formData, target_time: e.target.value})} 
+                style={{flex: 1}}
+              />
+              <span style={{fontWeight: 700, color: 'var(--text-secondary)', visibility: 'hidden'}}>分</span>
+            </div>
           </div>
           
           <div className="form-group">

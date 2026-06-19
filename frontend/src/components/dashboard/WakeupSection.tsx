@@ -82,7 +82,9 @@ const WakeupSection: React.FC<WakeupSectionProps> = ({
         <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem'}}>
           {group?.users?.map(member => {
             const isMe = member.id === userId;
-            const wakeup = groupWakeups.find(w => w.user_id === member.id);
+            const memberWakeups = groupWakeups.filter(w => w.user_id === member.id);
+            const wakeup = memberWakeups.find(w => w.status === 'pending') || 
+                           [...memberWakeups].sort((a, b) => new Date(b.target_time).getTime() - new Date(a.target_time).getTime())[0];
             
             return (
               <div key={member.id} style={{

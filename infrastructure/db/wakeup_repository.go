@@ -62,9 +62,10 @@ func (r *wakeupRepository) FindActiveByGroup(ctx context.Context, groupID string
 	checks := []*domain.WakeupCheck{}
 	// グループ一覧用は，「今日」の日付分をすべて取得する（ステータス不問）．
 	// これにより「起きました！」後の表示も維持できる．
-	today := time.Now().Local().Format("2006-01-02")
+	now := time.Now().Local()
+	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 	err := r.db.WithContext(ctx).
-		Where("group_id = ? AND target_time >= ?", groupID, today+" 00:00:00").
+		Where("group_id = ? AND target_time >= ?", groupID, todayStart).
 		Find(&checks).Error
 	return checks, err
 }

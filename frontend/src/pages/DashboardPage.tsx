@@ -309,9 +309,20 @@ const DashboardPage: React.FC = () => {
   const handleRequestWakeup = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsProcessing(true);
+
+    // Safari 等でのタイムゾーン解釈の揺れを防ぐため，明示的に JST タイムゾーンを付与する．
+    let targetTimeStr = wakeupFormData.target_time;
+    if (!targetTimeStr.includes('+') && !targetTimeStr.includes('Z')) {
+      const colons = (targetTimeStr.match(/:/g) || []).length;
+      if (colons === 1) {
+        targetTimeStr += ':00';
+      }
+      targetTimeStr += '+09:00';
+    }
+
     const [, err] = await handle(wakeupApi.request({
       user_id: userId, group_id: groupId,
-      target_time: new Date(wakeupFormData.target_time).toISOString(),
+      target_time: new Date(targetTimeStr).toISOString(),
       grace_minutes: wakeupFormData.grace_minutes
     }));
     if (err) {
