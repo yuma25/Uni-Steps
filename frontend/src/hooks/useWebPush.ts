@@ -7,9 +7,16 @@ import { AxiosError } from 'axios';
  * Web Push 通知の購読と状態管理を行うカスタムフックである．
  */
 export const useWebPush = (userId: string, groupId: string) => {
-  const [notifPermission, setNotifPermission] = useState<NotificationPermission>(Notification.permission);
+  // Notification API に非対応のブラウザ（一部のスマホブラウザなど）でのクラッシュを防ぐガード処理
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission>(
+    typeof Notification !== 'undefined' ? Notification.permission : 'default'
+  );
 
   const handleEnableNotifications = useCallback(async (onSuccess: () => void) => {
+    if (typeof Notification === 'undefined') {
+      alert("お使いのブラウザはプッシュ通知に対応していません．スマホの場合は「ホーム画面に追加」してからお試しください．");
+      return;
+    }
     const [permission, pErr] = await handle(Notification.requestPermission());
     if (pErr) {
       console.error("useWebPush: Permission request failed", pErr.message);
@@ -73,7 +80,7 @@ export const useWebPush = (userId: string, groupId: string) => {
   }, [userId]);
 
   const handleSilentResubscribe = useCallback(async (onSuccess: () => void) => {
-    if (Notification.permission !== 'granted') return;
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
 
     const [reg, rErr] = await handle(navigator.serviceWorker.ready);
     if (rErr) return;
