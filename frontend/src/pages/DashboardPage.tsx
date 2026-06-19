@@ -24,7 +24,7 @@ import AppShell from '../components/layout/AppShell';
 import TaskModal from '../components/modals/TaskModal';
 import WakeupModal from '../components/modals/WakeupModal';
 
-import { ChevronDown, ListTodo, Archive as ArchiveIcon, Sparkles, Hash, Layout, MessageCircle, Clock, Bell, X, Save, Settings, Trash2 } from 'lucide-react';
+import { ChevronDown, ListTodo, Archive as ArchiveIcon, Sparkles, Hash, Layout, MessageCircle, Clock, Bell, BellRing, X, Save, Settings, Trash2 } from 'lucide-react';
 
 const DashboardPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -426,13 +426,10 @@ const DashboardPage: React.FC = () => {
         <DashboardHeader 
           group={group}
           onBack={() => navigate(`/select-group?user_id=${userId}`)}
-          onEnableNotifications={onEnableNotif}
           onSync={() => handleSync(false)}
           isSyncing={isProcessing}
           lastSyncedAt={group?.last_synced_at}
           onAddTask={() => { setEditingTask(null); setTaskFormData({ title: '', deadline: '', recurrence_type: 'none', assignees: [userId] }); setShowTaskModal(true); }}
-          notifPermission={notifPermission}
-          serverTokenMissing={serverTokenMissing}
           loading={loading}
         />
       }
@@ -503,6 +500,38 @@ const DashboardPage: React.FC = () => {
           <section className="animate-pop" style={{maxWidth: '600px', margin: '0 auto'}}>
             <div className="section-header-rich" style={{marginBottom: '3rem'}}>
               <h2><Settings size={22} color="var(--brand)" /> 部屋の設定とカスタマイズ</h2>
+            </div>
+
+            {/* 個人用通知設定セクション */}
+            <div style={{background: 'white', padding: '2.5rem', borderRadius: '24px', border: '1px solid #e5e7eb', boxShadow: 'var(--shadow-sm)', marginBottom: '2rem'}}>
+              <h3 style={{margin: '0 0 1.25rem 0', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.2rem', fontWeight: 800}}>
+                <BellRing size={18} color="var(--brand)" /> 個人用のプッシュ通知設定
+              </h3>
+              <p style={{fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1.5rem', lineHeight: 1.5}}>
+                AI からのリマインドや，起床見守り SOS を受け取るためのブラウザ通知設定です．スマホの場合は「ホーム画面に追加」した状態で設定してください．
+              </p>
+              {notifPermission === 'granted' && !serverTokenMissing ? (
+                <div style={{display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--success)', fontWeight: 800, fontSize: '0.95rem'}}>
+                  <span style={{width: '8px', height: '8px', borderRadius: '50%', background: 'var(--success)'}}></span>
+                  プッシュ通知は有効です．
+                </div>
+              ) : (
+                <div>
+                  <button 
+                    onClick={onEnableNotif} 
+                    className="btn btn-primary" 
+                    style={{background: 'var(--warning)', width: '100%', padding: '14px', borderRadius: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px'}}
+                  >
+                    <BellRing size={18} />
+                    通知を有効化する
+                  </button>
+                  {serverTokenMissing && notifPermission === 'granted' && (
+                    <p style={{fontSize: '0.8rem', color: 'var(--brand)', marginTop: '0.5rem'}}>
+                      ※デバイスの通知許可はオンですが，サーバーへの登録が未完了です．上記ボタンを押して再登録してください．
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
 
             {isOwner ? (

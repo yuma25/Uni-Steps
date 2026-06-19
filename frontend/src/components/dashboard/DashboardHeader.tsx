@@ -1,15 +1,12 @@
 import React from 'react';
-import { ArrowLeft, Users, Share2, BellRing, Plus, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Users, Share2, Plus, RefreshCw } from 'lucide-react';
 import type { Group } from '../../types';
 
 interface DashboardHeaderProps {
   group: Group | null;
   onBack: () => void;
-  onEnableNotifications: () => void;
   onAddTask: () => void;
   onSync: () => void;
-  notifPermission: NotificationPermission;
-  serverTokenMissing: boolean;
   loading: boolean;
   isSyncing?: boolean;
   lastSyncedAt?: string;
@@ -18,11 +15,8 @@ interface DashboardHeaderProps {
 const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   group,
   onBack,
-  onEnableNotifications,
   onAddTask,
   onSync,
-  notifPermission,
-  serverTokenMissing,
   loading,
   isSyncing = false,
   lastSyncedAt
@@ -77,12 +71,6 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                 </span>
               )}
             </button>
-            {(notifPermission !== 'granted' || serverTokenMissing) && (
-              <button onClick={onEnableNotifications} className="btn btn-primary" style={{background: 'var(--warning)'}} title="通知を有効化">
-                <BellRing size={20} />
-                <span className="hide-mobile">通知を有効化</span>
-              </button>
-            )}
             <button onClick={onAddTask} className="btn btn-primary" title="手動で課題を登録">
               <Plus size={22} />
               <span className="hide-mobile">課題登録</span>
