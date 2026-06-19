@@ -374,6 +374,7 @@ body {
 .wakeup-hero::after {
   content: ''; position: absolute; top: -50%; right: -10%; width: 250px; height: 250px;
   background: rgba(255, 255, 255, 0.08); border-radius: 125px;
+  pointer-events: none;
 }
 
 .checkin-btn-modern {
@@ -393,6 +394,8 @@ body {
   padding: 10px !important;
   border-radius: 12px !important;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  position: relative;
+  z-index: 2;
 }
 
 .wakeup-action-btn:hover {
