@@ -28,7 +28,7 @@ const WakeupModal: React.FC<WakeupModalProps> = ({
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content animate-pop">
+      <div className="modal-content wakeup-modal animate-pop">
         <button onClick={onClose} className="btn-ghost" style={{position: 'absolute', top: '1.5rem', right: '1.5rem', padding: '8px', borderRadius: '50%', border: 'none'}}><X size={20} /></button>
         <div style={{marginBottom: '2.5rem'}}>
           <h2 style={{margin: 0, fontWeight: 900}}><Sunrise size={24} style={{verticalAlign: 'bottom', marginRight: '10px', color: 'var(--brand)'}} /> 起床見守りをセット</h2>

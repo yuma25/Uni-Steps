@@ -71,12 +71,12 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, userId, onEdit, onToggleCompl
       <div className="task-footer">
         <span className={`status-badge ${status.className}`}>{status.label}</span>
         <div style={{display: 'flex', gap: '8px'}}>
-          {canEdit && (
+          {canEdit && !(task.source === 'manual' && isPast) && (
             <button onClick={() => onEdit(task)} className="btn btn-ghost" style={{padding: '6px 12px', fontSize: '0.8rem'}}>
               編集
             </button>
           )}
-          {task.source === 'manual' && (
+          {task.source === 'manual' && !isPast && (
             <button 
               onClick={() => onToggleCompletion(task.id)} 
               className={`btn ${status.label === "完了" ? 'btn-ghost' : 'btn-primary'}`}

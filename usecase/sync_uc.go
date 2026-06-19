@@ -142,3 +142,23 @@ func (uc *SyncUsecase) SyncTasks(ctx context.Context, userID string, groupID str
 
 	return savedTasks, nil
 }
+
+// SyncAllGroups はシステム内のすべてのグループに対して，自動で課題の同期を実行する．
+func (uc *SyncUsecase) SyncAllGroups(ctx context.Context) error {
+	groups, err := uc.groupRepo.FindAllGroups(ctx)
+	if err != nil {
+		return fmt.Errorf("全グループの取得に失敗した： %w", err)
+	}
+
+	for _, group := range groups {
+		// グループに所属する全メンバーの Google Classroom 進捗を個別に同期する．
+		for _, user := range group.Users {
+			_, err := uc.SyncTasks(ctx, user.ID, group.ID)
+			if err != nil {
+				// 一部のユーザーで同期エラー（未連携など）が発生しても，他のメンバーの同期を阻害しないようログ出力に留める
+				fmt.Printf("[AutoSync] グループ %s のユーザー %s の同期中にエラーが発生した： %v\n", group.Name, user.Name, err)
+			}
+		}
+	}
+	return nil
+}

@@ -33,13 +33,15 @@ func (h *AuthHandler) GoogleLogin(c echo.Context) error {
 	// CSRF 対策としてランダムな文字列（state）を生成する．
 	state := uuid.New().String()
 
+	isProduction := os.Getenv("GO_ENV") == "production"
+
 	// state を Cookie に保存する（ブラウザ側で保持させ，Callback 時に検証する）．
 	cookie := &http.Cookie{
 		Name:     "oauth_state",
 		Value:    state,
 		Expires:  time.Now().Add(15 * time.Minute), // 15 分間有効
 		HttpOnly: true,                             // JavaScript からアクセス不可
-		Secure:   false,                            // 本番環境（HTTPS）では true にすべきである
+		Secure:   isProduction,                     // 本番環境（HTTPS）のみ true に自動設定する
 		Path:     "/",
 		SameSite: http.SameSiteLaxMode,
 	}

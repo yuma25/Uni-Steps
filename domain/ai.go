@@ -11,6 +11,3 @@ type AIService interface {
 	// GenerateGroupSummaryMessage はグループ全体の状況を要約したメッセージを生成する．
 	GenerateGroupSummaryMessage(ctx context.Context, workloadSummary string, style string) (string, error)
 }
-
-// 「AIエンジンに対して, どんな命令を出してどんな結果を得るか」というインターフェース
-//  具体的な Geminiへの接続方法はここには書かず, あくまで「こういう機能が欲しい」という設計図

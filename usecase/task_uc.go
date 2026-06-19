@@ -85,6 +85,11 @@ func (uc *TaskUsecase) UpdateTask(ctx context.Context, taskID string, input *dom
 		return nil, fmt.Errorf("更新対象の課題が見つからない")
 	}
 
+	// 期限を過ぎた手動課題の編集を禁止する．
+	if existing.Source == domain.SourceManual && !existing.Deadline.IsZero() && existing.Deadline.Before(time.Now()) {
+		return nil, fmt.Errorf("期限を過ぎた手動課題は編集できない")
+	}
+
 	// 部屋の設定を取得
 	group, _ := uc.groupRepo.FindByID(ctx, existing.GroupID)
 	if group == nil {
@@ -195,6 +200,11 @@ func (uc *TaskUsecase) ToggleUserCompletion(ctx context.Context, taskID, userID 
 	}
 	if task == nil {
 		return fmt.Errorf("課題が見つからない")
+	}
+
+	// 期限を過ぎた手動課題の完了トグル操作を禁止する．
+	if task.Source == domain.SourceManual && !task.Deadline.IsZero() && task.Deadline.Before(time.Now()) {
+		return fmt.Errorf("期限を過ぎた手動課題の完了状態は変更できない")
 	}
 
 	group, _ := uc.groupRepo.FindByID(ctx, task.GroupID)

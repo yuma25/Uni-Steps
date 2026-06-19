@@ -160,6 +160,25 @@ func main() {
 		}
 	}()
 
+	// 6時間ごとに全グループの課題を自動同期するバックグラウンド処理
+	go func() {
+		ticker := time.NewTicker(6 * time.Hour)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ticker.C:
+				ctx := context.Background()
+				log.Println("[AutoSync] 自動一括同期処理を開始中...")
+				if err := syncUsecase.SyncAllGroups(ctx); err != nil {
+					log.Printf("[AutoSync] 自動一括同期エラー: %v\n", err)
+				} else {
+					log.Println("[AutoSync] 自動一括同期処理が正常に完了した")
+				}
+			}
+		}
+	}()
+
 	// Echo サーバーの初期化
 	e := echo.New()
 

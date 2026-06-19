@@ -125,7 +125,7 @@ func (h *TaskHandler) SyncTasks(c echo.Context) error {
 
 	// 同期されたタスクのリストを返す．
 	return c.JSON(http.StatusOK, map[string]interface{}{
-		"message": "同期が完了した",
+		"message": "同期完了",
 		"tasks":   syncedTasks,
 	})
 }
