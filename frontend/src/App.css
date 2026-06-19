@@ -200,9 +200,25 @@ body {
   gap: 1rem;
 }
 
+.header-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.header-left > div {
+  min-width: 0;
+  flex: 1;
+}
+
 .header-left h1 { 
   font-size: 2.25rem; font-weight: 900; margin: 0 0 0.5rem 0; 
   letter-spacing: -0.04em; color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .group-info { font-size: 0.95rem; color: var(--text-secondary); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
@@ -282,6 +298,7 @@ body {
   display: inline-flex; align-items: center; padding: 6px 12px; 
   border-radius: 14px; background: #f8fafc; border: 1px solid #f1f5f9;
   color: var(--text-secondary); font-size: 0.8rem; font-weight: 700;
+  white-space: nowrap;
 }
 .member-badge.completed { background: #ecfdf5; color: #059669; border-color: #d1fae5; }
 

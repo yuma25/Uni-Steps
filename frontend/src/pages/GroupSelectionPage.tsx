@@ -143,8 +143,8 @@ const GroupSelectionPage: React.FC = () => {
                   <div className="group-item-icon">
                     <Hash size={24} strokeWidth={2.5} />
                   </div>
-                  <div style={{flex: 1, textAlign: 'left'}}>
-                    <div style={{fontWeight: 900, fontSize: '1.15rem', color: 'var(--text-primary)', marginBottom: '2px'}}>{g.name}</div>
+                  <div style={{flex: 1, textAlign: 'left', minWidth: 0}}>
+                    <div style={{fontWeight: 900, fontSize: '1.15rem', color: 'var(--text-primary)', marginBottom: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>{g.name}</div>
                     {g.owner_id === userId ? (
                       <span style={{fontSize: '0.7rem', fontWeight: 900, color: 'var(--brand)', textTransform: 'uppercase', letterSpacing: '0.05em'}}>Room Owner</span>
                     ) : (
