@@ -1,7 +1,10 @@
 package domain
 
 import (
+	"fmt"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 const (
@@ -42,4 +45,29 @@ type TaskUserProgress struct {
 	UserName    string    `json:"user_name"`    // 画面表示用に保持する．
 	IsCompleted bool      `json:"is_completed"` // そのユーザーが完了したか．
 	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+// SetupManualDefaults は手動登録時の初期値設定を行う．
+func (t *Task) SetupManualDefaults() {
+	t.Source = SourceManual
+	if t.ID == "" {
+		t.ID = uuid.New().String()
+	}
+	if t.ExternalID == "" {
+		t.ExternalID = t.ID
+	}
+	for _, up := range t.UserProgress {
+		up.TaskID = t.ID
+		if up.UpdatedAt.IsZero() {
+			up.UpdatedAt = time.Now()
+		}
+	}
+}
+
+// Validate は課題のドメインルールに基づくバリデーションを行う．
+func (t *Task) Validate() error {
+	if t.Title == "" {
+		return fmt.Errorf("タイトルは必須である")
+	}
+	return nil
 }

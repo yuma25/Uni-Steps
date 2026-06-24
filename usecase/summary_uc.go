@@ -68,18 +68,21 @@ func (uc *SummaryUsecase) ProcessSingleGroupSummary(ctx context.Context, groupID
 
 	// 2．「対象」の課題をメンバーごとに集計
 	now := time.Now()
+	var targetStart time.Time
 	var targetEnd time.Time
 	var typeLabel string
 
 	if summaryType == domain.SummaryTypeMorning {
 		// 朝：今日が期限のものを集計
+		targetStart = now
 		targetEnd = time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 0, time.Local)
-		typeLabel = "今日が期限の課題"
+		typeLabel = fmt.Sprintf("%d/%d (今日) が期限の課題", now.Month(), now.Day())
 	} else {
 		// 夜：明日が期限のものを集計
 		tomorrow := now.Add(24 * time.Hour)
+		targetStart = time.Date(tomorrow.Year(), tomorrow.Month(), tomorrow.Day(), 0, 0, 0, 0, time.Local)
 		targetEnd = time.Date(tomorrow.Year(), tomorrow.Month(), tomorrow.Day(), 23, 59, 59, 0, time.Local)
-		typeLabel = "明日までの課題"
+		typeLabel = fmt.Sprintf("%d/%d (明日) が期限の課題", tomorrow.Month(), tomorrow.Day())
 	}
 
 	summaryItems := []string{}
@@ -88,15 +91,8 @@ func (uc *SummaryUsecase) ProcessSingleGroupSummary(ctx context.Context, groupID
 		for _, task := range tasks {
 			for _, up := range task.UserProgress {
 				if up.UserID == user.ID && !up.IsCompleted {
-					// 判定条件の改善
-					isTarget := false
-					if summaryType == domain.SummaryTypeMorning {
-						// 朝：今日が期限のもの（現在時刻以降）
-						isTarget = !task.Deadline.IsZero() && task.Deadline.After(now) && task.Deadline.Before(targetEnd)
-					} else {
-						// 夜：明日が期限のもの（今日より未来のものに限定）
-						isTarget = !task.Deadline.IsZero() && task.Deadline.After(now) && task.Deadline.Before(targetEnd)
-					}
+					// 設定された開始〜終了の範囲内であるかを判定
+					isTarget := !task.Deadline.IsZero() && task.Deadline.After(targetStart) && task.Deadline.Before(targetEnd)
 
 					if isTarget {
 						// 期限を日本時間でフォーマット
@@ -108,19 +104,18 @@ func (uc *SummaryUsecase) ProcessSingleGroupSummary(ctx context.Context, groupID
 		}
 
 		if len(userTasks) > 0 {
-			// 例: "- 増田: 「卒論」 (15:00) など計 2 件"
-			firstTask := userTasks[0]
-			item := fmt.Sprintf("- %s: %s", user.Name, firstTask)
-			if len(userTasks) > 1 {
-				item += fmt.Sprintf(" など計 %d 件", len(userTasks))
+			var items []string
+			items = append(items, fmt.Sprintf("%s の課題:", user.Name))
+			for _, task := range userTasks {
+				items = append(items, fmt.Sprintf("- %s", task))
 			}
-			summaryItems = append(summaryItems, item)
+			if len(userTasks) > 1 {
+				items[len(items)-1] += fmt.Sprintf(" 計 %d 件", len(userTasks))
+			}
+			summaryItems = append(summaryItems, strings.Join(items, "\n"))
+		} else {
+			summaryItems = append(summaryItems, fmt.Sprintf("%s の課題: \n- 対象課題なし", user.Name))
 		}
-	}
-
-	if len(summaryItems) == 0 {
-		log.Printf("[Summary] グループ %s (%s) は対象課題がないためスキップ\n", group.Name, summaryType)
-		return nil
 	}
 
 	// 3．AI にサマリー文を作らせる

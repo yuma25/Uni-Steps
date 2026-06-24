@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/yuma25/Uni-Steps/domain"
 )
 
@@ -29,28 +28,13 @@ func NewTaskUsecase(tr domain.TaskRepository, gr domain.GroupRepository, ai doma
 
 // RegisterManualTask は UI から直接入力された情報に基づいて課題を登録するユースケースである．
 func (uc *TaskUsecase) RegisterManualTask(ctx context.Context, task *domain.Task) (*domain.Task, error) {
-	task.Source = domain.SourceManual
-	if task.Title == "" {
-		return nil, fmt.Errorf("タイトルは必須である")
-	}
-	if task.ID == "" {
-		task.ID = uuid.New().String()
-	}
-	// 手動登録の場合、ExternalID が空だとユニーク制約（group_id, external_id）に
-	// 引っかかるため、内部 ID を ExternalID としても保持する。
-	if task.ExternalID == "" {
-		task.ExternalID = task.ID
+	// ドメイン層の初期設定とバリデーションを適用する
+	task.SetupManualDefaults()
+	if err := task.Validate(); err != nil {
+		return nil, err
 	}
 
 	// 作成者 ID はドメインモデルにセットされた状態で渡される（Handler でセット）．
-
-	// 新規作成時，各ユーザーの進捗データにも親の課題 ID を確実にセットする．
-	for _, up := range task.UserProgress {
-		up.TaskID = task.ID
-		if up.UpdatedAt.IsZero() {
-			up.UpdatedAt = time.Now()
-		}
-	}
 
 	if err := uc.taskRepo.Save(ctx, task); err != nil {
 		return nil, fmt.Errorf("手動タスクの保存に失敗した： %w", err)
