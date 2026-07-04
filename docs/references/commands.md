@@ -2,12 +2,18 @@
 
 本プロジェクトの開発で使用する主要なコマンドである．品質維持のため，コミット前には必ずこれらのチェックをパスする必要がある．
 
+> [!IMPORTANT]
+> バックエンド（Go）に関するコマンドを実行する際は，必ずプロジェクトのルートから `backend` ディレクトリへ移動（`cd backend`）した上で実行してください．
+
 ---
 
 ## 1. フォーマット (Format)
 コードのスタイルを標準的な形式に整えるコマンドである．
 
 ```bash
+# backend ディレクトリに移動
+cd backend
+
 # プロジェクト全体のコードを整形する
 go fmt ./...
 ```
@@ -16,6 +22,9 @@ go fmt ./...
 コードの不備やバグの可能性を検出するコマンドである．本プロジェクトでは `golangci-lint` の使用を推奨する．
 
 ```bash
+# backend ディレクトリに移動
+cd backend
+
 # golangci-lint を実行する（インストール済みの場合）
 golangci-lint run
 ```
@@ -24,6 +33,9 @@ golangci-lint run
 プログラムが正しくコンパイルできるか確認するコマンドである．
 
 ```bash
+# backend ディレクトリに移動
+cd backend
+
 # メインプログラムをビルドする
 go build -o main .
 ```
@@ -32,6 +44,9 @@ go build -o main .
 サーバーを起動するコマンドである．
 
 ```bash
+# backend ディレクトリに移動
+cd backend
+
 # 開発用（ビルドせずに直接実行）
 go run main.go
 
@@ -43,6 +58,9 @@ go run main.go
 使用していないパッケージの削除や，必要なパッケージの追加を行うコマンドである．
 
 ```bash
+# backend ディレクトリに移動
+cd backend
+
 # 依存関係を最新の状態に整理する
 go mod tidy
 ```

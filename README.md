@@ -50,10 +50,11 @@ Uni-Stepsは，単なるタスク管理ツールではありません．グル�
 
 ## 📂 ディレクトリ構成
 
-*   `domain/`: システムの核となるルールとデータ形状
-*   `usecase/`: 業務フローとシナリオの記述
-*   `interfaces/`: 外部からのリクエスト受付（Handler）
-*   `infrastructure/`: 外部API・DBの具体的な実装
+*   `backend/`: GoによるAPIサーバー
+    *   `domain/`: システムの核となるルールとデータ形状
+    *   `usecase/`: 業務フローとシナリオの記述
+    *   `interfaces/`: 外部からのリクエスト受付（Handler）
+    *   `infrastructure/`: 外部API・DBの具体的な実装
 *   `frontend/`: Reactによるユーザーインターフェース
 *   `docs/`: 技術仕様書，ER図，デプロイガイド等の集約
 

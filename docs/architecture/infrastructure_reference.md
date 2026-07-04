@@ -2,6 +2,9 @@
 
 本ドキュメントは，`infrastructure/` 配下で定義されている各パッケージ・ファイルごとの構造体とメソッドの仕様を網羅したものである．
 
+> [!NOTE]
+> バックエンドコードのディレクトリ再構成に伴い，本ドキュメントに記載されているすべてのバックエンド用ディレクトリ（`domain/`, `usecase/`, `interfaces/`, `infrastructure/` 等）は，プロジェクトルート直下の `backend/` ディレクトリ配下（例：`backend/domain/`）を指します．
+
 ---
 
 ## 1. infrastructure/ai (AI サービス実装)

@@ -2,6 +2,9 @@
 
 本ドキュメントは，`interfaces/handler/` 配下で定義されている各ファイルごとの構造体（ハンドラー）と，外部からの HTTP リクエストを処理する API エンドポイントの仕様を網羅したものである．
 
+> [!NOTE]
+> バックエンドコードのディレクトリ再構成に伴い，本ドキュメントに記載されているすべてのバックエンド用ディレクトリ（`domain/`, `usecase/`, `interfaces/`, `infrastructure/` 等）は，プロジェクトルート直下の `backend/` ディレクトリ配下（例：`backend/domain/`）を指します．
+
 ---
 
 ## 1. interfaces/handler/auth_handler.go (認証管理)

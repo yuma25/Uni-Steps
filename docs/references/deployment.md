@@ -13,6 +13,7 @@
     *   **Name**: `uni-steps-[ユニークな名前]` (例: `uni-steps-yuma25`)
         *   ※ `uni-steps` は既に使用されている可能性があるため，自分だけの名前を付けてください．
     *   **Runtime**: `Go`
+    *   **Root Directory**: `backend` (★重要：backend フォルダをルートとして指定)
     *   **Build Command**: `go build -o main .`
     *   **Start Command**: `./main`
 4.  **"Advanced"** をクリックし，以下の環境変数を設定する：
@@ -24,7 +25,7 @@
     *   `GOOGLE_CLIENT_ID`: Google Cloud Console から取得
     *   `GOOGLE_CLIENT_SECRET`: 同上
     *   `GOOGLE_REDIRECT_URL`: `https://[RenderのURL]/api/auth/google/callback`
-    *   `VAPID_PUBLIC_KEY`: `go run cmd/vapid/main.go` で生成
+    *   `VAPID_PUBLIC_KEY`: `cd backend && go run cmd/vapid/main.go` で生成
     *   `VAPID_PRIVATE_KEY`: 同上
     *   `VAPID_CONTACT`: `mailto:your-email@example.com`
 5.  **"Create Web Service"** をクリックする．
