@@ -96,7 +96,11 @@ func (uc *SummaryUsecase) ProcessSingleGroupSummary(ctx context.Context, groupID
 
 					if isTarget {
 						// 期限を日本時間でフォーマット
-						timeStr := fmt.Sprintf(" (%s)", task.Deadline.Local().Format("15:04"))
+						loc, err := time.LoadLocation("Asia/Tokyo")
+						if err != nil {
+							loc = time.FixedZone("JST", 9*60*60)
+						}
+						timeStr := fmt.Sprintf(" (%s)", task.Deadline.In(loc).Format("15:04"))
 						userTasks = append(userTasks, fmt.Sprintf("「%s」%s", task.Title, timeStr))
 					}
 				}

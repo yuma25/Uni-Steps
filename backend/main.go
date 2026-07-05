@@ -135,7 +135,7 @@ func main() {
 	lmsService := lms.NewGoogleClassroomService(userRepo, oauthCfg)
 
 	// スケジューラー（予約管理）の初期化
-	schService := scheduler.NewInMemScheduler(userRepo, groupRepo, aiService, compositeNotifService, logRepo)
+	schService := scheduler.NewInMemScheduler(taskRepo, userRepo, groupRepo, aiService, compositeNotifService, logRepo)
 
 	// --- ユースケース（現場監督）の初期化 ---
 	taskUsecase := usecase.NewTaskUsecase(taskRepo, groupRepo, aiService, schService)

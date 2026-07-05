@@ -3,6 +3,7 @@ package ai
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/generative-ai-go/genai"
 	"github.com/yuma25/Uni-Steps/domain"
@@ -37,7 +38,14 @@ func (s *GeminiService) GenerateRemindMessage(ctx context.Context, task *domain.
 		characterPrompt = "あなたは親切なアシスタントです．"
 	}
 
-	prompt := fmt.Sprintf(`%s以下の課題について，ユーザーのやる気を引き出すようなリマインドメッセージを作成せよ．　課題名: %s　期限: %s条件:　- 100文字以内で，短く心に刺さる言葉にすること．　- 相手の心拍数が上がるような，切迫感のある表現を含めること．　- キャラクターの設定を徹底すること．`, characterPrompt, task.Title, task.Deadline.Format("1月2日 15時04分"))
+	// 日本時間 (JST) に明示的に変換してフォーマットする
+	loc, err := time.LoadLocation("Asia/Tokyo")
+	if err != nil {
+		loc = time.FixedZone("JST", 9*60*60)
+	}
+	deadlineStr := task.Deadline.In(loc).Format("1月2日 15時04分")
+
+	prompt := fmt.Sprintf(`%s以下の課題について，ユーザーのやる気を引き出すようなリマインドメッセージを作成せよ．　課題名: %s　期限: %s条件:　- 100文字以内で，短く心に刺さる言葉にすること．　- 相手の心拍数が上がるような，切迫感のある表現を含めること．　- キャラクターの設定を徹底すること．`, characterPrompt, task.Title, deadlineStr)
 
 	resp, err := s.model.GenerateContent(ctx, genai.Text(prompt))
 	if err != nil {

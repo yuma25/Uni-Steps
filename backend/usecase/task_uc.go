@@ -43,11 +43,16 @@ func (uc *TaskUsecase) RegisterManualTask(ctx context.Context, task *domain.Task
 	// 部屋の設定を取得してリマインドを予約する．
 	group, _ := uc.groupRepo.FindByID(ctx, task.GroupID)
 	if group != nil && !task.Deadline.IsZero() && task.Deadline.After(time.Now()) {
+		hasPending := false
 		for _, up := range task.UserProgress {
 			if !up.IsCompleted {
-				for _, interval := range group.RemindIntervals {
-					_ = uc.scheduler.ScheduleTaskRemind(ctx, task, up.UserID, interval, group.AICharacter, task.Deadline.Add(-time.Duration(interval)*time.Minute))
-				}
+				hasPending = true
+				break
+			}
+		}
+		if hasPending {
+			for _, interval := range group.RemindIntervals {
+				_ = uc.scheduler.ScheduleTaskRemind(ctx, task, interval, group.AICharacter, task.Deadline.Add(-time.Duration(interval)*time.Minute))
 			}
 		}
 	}
@@ -85,9 +90,15 @@ func (uc *TaskUsecase) UpdateTask(ctx context.Context, taskID string, input *dom
 	isCreator := existing.CreatorID == operatorID
 	isOwner := group.OwnerID == operatorID
 
-	if input.Title != existing.Title || !input.Deadline.Equal(existing.Deadline) {
-		if !isCreator && !isOwner {
-			return nil, fmt.Errorf("タイトルや期限の変更は，作成者またはオーナーのみ可能である")
+	// 秒単位での期限比較（タイムゾーンやミリ秒のズレによる誤判定を防ぐ）
+	isDeadlineChanged := existing.Deadline.Unix() != input.Deadline.Unix()
+
+	if input.Title != existing.Title || isDeadlineChanged {
+		// 手動登録した課題（SourceManual）の場合のみ，作成者またはオーナーに制限する
+		if existing.Source == domain.SourceManual {
+			if !isCreator && !isOwner {
+				return nil, fmt.Errorf("タイトルや期限の変更は，作成者またはオーナーのみ可能である")
+			}
 		}
 		existing.Title = input.Title
 		existing.Deadline = input.Deadline
@@ -104,9 +115,6 @@ func (uc *TaskUsecase) UpdateTask(ctx context.Context, taskID string, input *dom
 			if _, ok := inputUserIDs[ep.UserID]; ok {
 				newProgress = append(newProgress, ep)
 				delete(inputUserIDs, ep.UserID)
-			} else {
-				// 該当者から外れた場合は全ての予約をキャンセル
-				_ = uc.scheduler.CancelTaskReminds(ctx, taskID, ep.UserID)
 			}
 		}
 		for _, up := range inputUserIDs {
@@ -131,19 +139,22 @@ func (uc *TaskUsecase) UpdateTask(ctx context.Context, taskID string, input *dom
 
 	// リマインドの再予約
 	if !existing.Deadline.IsZero() {
+		hasPending := false
 		for _, up := range existing.UserProgress {
 			if !up.IsCompleted {
-				for _, interval := range group.RemindIntervals {
-					_ = uc.scheduler.ScheduleTaskRemind(ctx, existing, up.UserID, interval, group.AICharacter, existing.Deadline.Add(-time.Duration(interval)*time.Minute))
-				}
-			} else {
-				_ = uc.scheduler.CancelTaskReminds(ctx, taskID, up.UserID)
+				hasPending = true
+				break
 			}
 		}
-	} else {
-		for _, up := range existing.UserProgress {
-			_ = uc.scheduler.CancelTaskReminds(ctx, taskID, up.UserID)
+		if hasPending {
+			for _, interval := range group.RemindIntervals {
+				_ = uc.scheduler.ScheduleTaskRemind(ctx, existing, interval, group.AICharacter, existing.Deadline.Add(-time.Duration(interval)*time.Minute))
+			}
+		} else {
+			_ = uc.scheduler.CancelTaskReminds(ctx, taskID)
 		}
+	} else {
+		_ = uc.scheduler.CancelTaskReminds(ctx, taskID)
 	}
 
 	return existing, nil
@@ -169,9 +180,7 @@ func (uc *TaskUsecase) DeleteTask(ctx context.Context, taskID string, operatorID
 	}
 
 	// 全員の通知をキャンセル
-	for _, up := range task.UserProgress {
-		_ = uc.scheduler.CancelTaskReminds(ctx, taskID, up.UserID)
-	}
+	_ = uc.scheduler.CancelTaskReminds(ctx, taskID)
 
 	return uc.taskRepo.Delete(ctx, taskID)
 }
@@ -198,14 +207,6 @@ func (uc *TaskUsecase) ToggleUserCompletion(ctx context.Context, taskID, userID 
 		if up.UserID == userID {
 			task.UserProgress[i].IsCompleted = !task.UserProgress[i].IsCompleted
 			task.UserProgress[i].UpdatedAt = time.Now()
-
-			if task.UserProgress[i].IsCompleted {
-				_ = uc.scheduler.CancelTaskReminds(ctx, taskID, userID)
-			} else if group != nil && !task.Deadline.IsZero() {
-				for _, interval := range group.RemindIntervals {
-					_ = uc.scheduler.ScheduleTaskRemind(ctx, task, userID, interval, group.AICharacter, task.Deadline.Add(-time.Duration(interval)*time.Minute))
-				}
-			}
 			found = true
 			break
 		}
@@ -218,7 +219,25 @@ func (uc *TaskUsecase) ToggleUserCompletion(ctx context.Context, taskID, userID 
 			IsCompleted: true,
 			UpdatedAt:   time.Now(),
 		})
-		_ = uc.scheduler.CancelTaskReminds(ctx, taskID, userID)
+	}
+
+	// 全員が完了したか確認
+	allCompleted := true
+	for _, up := range task.UserProgress {
+		if !up.IsCompleted {
+			allCompleted = false
+			break
+		}
+	}
+
+	if allCompleted {
+		// 全員完了した場合はタイマーをキャンセル
+		_ = uc.scheduler.CancelTaskReminds(ctx, taskID)
+	} else if !allCompleted && group != nil && !task.Deadline.IsZero() {
+		// 未完了者がいる状態で完了状態が外れた（未完了に戻った）場合、リマインドを再設定
+		for _, interval := range group.RemindIntervals {
+			_ = uc.scheduler.ScheduleTaskRemind(ctx, task, interval, group.AICharacter, task.Deadline.Add(-time.Duration(interval)*time.Minute))
+		}
 	}
 
 	return uc.taskRepo.Save(ctx, task)

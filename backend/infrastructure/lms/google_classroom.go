@@ -100,11 +100,20 @@ func (s *GoogleClassroomService) FetchTasks(ctx context.Context, userID string) 
 					}
 					deadlineUTC := time.Date(int(cw.DueDate.Year), time.Month(cw.DueDate.Month), int(cw.DueDate.Day),
 						hour, min, 0, 0, time.UTC)
-					deadline = deadlineUTC.Local()
+
+					loc, err := time.LoadLocation("Asia/Tokyo")
+					if err != nil {
+						loc = time.FixedZone("JST", 9*60*60)
+					}
+					deadline = deadlineUTC.In(loc)
 				}
 
 				lmsUpdateTime, _ := time.Parse(time.RFC3339, cw.UpdateTime)
-				lmsUpdateTime = lmsUpdateTime.Local()
+				loc, err := time.LoadLocation("Asia/Tokyo")
+				if err != nil {
+					loc = time.FixedZone("JST", 9*60*60)
+				}
+				lmsUpdateTime = lmsUpdateTime.In(loc)
 
 				task := &domain.Task{
 					Title:            cw.Title,

@@ -122,14 +122,19 @@ func (uc *SyncUsecase) SyncTasks(ctx context.Context, userID string, groupID str
 		// 【予約方式】同期した課題のリマインドを予約（部屋の設定に基づく）
 		// 期限が未来の場合のみ予約する
 		if !task.Deadline.IsZero() && task.Deadline.After(time.Now()) {
+			hasPending := false
 			for _, up := range task.UserProgress {
 				if !up.IsCompleted {
-					for _, interval := range group.RemindIntervals {
-						_ = uc.scheduler.ScheduleTaskRemind(ctx, task, up.UserID, interval, group.AICharacter, task.Deadline.Add(-time.Duration(interval)*time.Minute))
-					}
-				} else {
-					_ = uc.scheduler.CancelTaskReminds(ctx, task.ID, up.UserID)
+					hasPending = true
+					break
 				}
+			}
+			if hasPending {
+				for _, interval := range group.RemindIntervals {
+					_ = uc.scheduler.ScheduleTaskRemind(ctx, task, interval, group.AICharacter, task.Deadline.Add(-time.Duration(interval)*time.Minute))
+				}
+			} else {
+				_ = uc.scheduler.CancelTaskReminds(ctx, task.ID)
 			}
 		}
 
