@@ -440,9 +440,9 @@ body {
   }
   .modal-content { 
     border-radius: 24px !important; 
-    padding: 2.5rem 1.5rem !important; /* 上下のパディングを広げて縦の窮屈さを解消（元は2rem） */
-    width: 92% !important; 
-    max-width: 360px !important; /* 横幅はスリムな360pxをキープ */
+    padding: 2.5rem 1.25rem !important; /* 左右の余白を少し縮小して有効幅を広げた */
+    width: 94% !important; /* 横幅のフィット率を高めた */
+    max-width: 400px !important; /* 最大幅を360pxから400pxに緩和し、横長画面のスマホにも対応 */
     max-height: 90vh; /* 高さの上限を90vhに広げて余裕を持たせた */
     overflow-y: auto;
     animation: modalPop 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important; 
@@ -465,15 +465,16 @@ body {
     margin-bottom: 0.4rem !important;
   }
   
-  /* 入力欄（テキスト、数値、日付など）のサイズをスマホ用に小さくした */
   .modal-content input[type="text"], 
   .modal-content input[type="number"], 
   .modal-content input[type="time"], 
   .modal-content input[type="datetime-local"], 
   .modal-content select {
-    padding: 12px 16px !important;
-    font-size: 0.95rem !important;
+    padding: 12px 10px !important; /* 左右パディングを10pxに縮小しはみ出しを防止 */
+    font-size: 0.9rem !important; /* 文字サイズを微調整 */
     border-radius: 12px !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
   
   /* 登録・保存などのアクションボタンのサイズをスマホ用に小さくした */
@@ -517,11 +518,23 @@ body {
     margin-bottom: 1.25rem !important; /* 黄色のアラート枠の下部余白を縮小（元は2rem） */
     padding: 0.85rem !important; /* アラート枠自体の縦幅も削った */
   }
+
+  /* サマリ配信時刻のグリッドをスマホで縦並びにする */
+  .summary-time-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+  }
 }
 
 @keyframes modalSlideUp {
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
+}
+
+.summary-time-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
 }
 
 .form-group { margin-bottom: 2rem; }

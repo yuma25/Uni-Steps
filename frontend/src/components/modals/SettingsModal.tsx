@@ -115,7 +115,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
           <div className="form-group">
             <label><Clock size={14} /> サマリー配信時刻</label>
-            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem'}}>
+            <div className="summary-time-grid">
               <div>
                 <span style={{fontSize: '0.75rem', color: 'var(--text-tertiary)', fontWeight: 800}}>朝刊 (今日)</span>
                 <input 
