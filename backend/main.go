@@ -40,12 +40,10 @@ func main() {
 
 	// 1. 環境変数の読み込み（環境に応じてファイルを切り替える）
 	env := os.Getenv("GO_ENV")
-	if env == "production" {
-		_ = godotenv.Load(".env.production")
-	} else if env == "development" {
+	if env == "development" {
 		_ = godotenv.Load(".env.development")
 	}
-	_ = godotenv.Load() // デフォルトの .env も読み込む
+	_ = godotenv.Load() // デフォルトの .env 読み込む
 
 	// 2. データベース接続の確立
 	dbURL := os.Getenv("DATABASE_URL")
@@ -201,7 +199,7 @@ func main() {
 	handler.NewTaskHandler(e, taskUsecase, syncUsecase)
 	handler.NewNotificationHandler(e, userRepo, aiService, compositeNotifService)
 	handler.NewAuthHandler(e, userRepo, oauthCfg)
-	handler.NewGroupHandler(e, groupUsecase, lmsService)
+	handler.NewGroupHandler(e, groupUsecase)
 	handler.NewWakeupHandler(e, wakeupUsecase)
 	handler.NewUserHandler(e, userRepo)
 

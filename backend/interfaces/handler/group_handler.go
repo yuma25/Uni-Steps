@@ -5,21 +5,18 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/yuma25/Uni-Steps/domain"
 	"github.com/yuma25/Uni-Steps/usecase"
 )
 
 // GroupHandler はグループ管理に関する HTTP リクエストを受け付ける窓口である．
 type GroupHandler struct {
 	groupUsecase *usecase.GroupUsecase // グループ管理のビジネスロジックを保持する．
-	lmsService   domain.LMSService     // 外部 LMS 連携用サービスである．
 }
 
 // NewGroupHandler はハンドラーを初期化し，ルーティングを登録する．
-func NewGroupHandler(e *echo.Echo, gu *usecase.GroupUsecase, ls domain.LMSService) {
+func NewGroupHandler(e *echo.Echo, gu *usecase.GroupUsecase) {
 	h := &GroupHandler{
 		groupUsecase: gu,
-		lmsService:   ls,
 	}
 	e.POST("/api/groups", h.CreateGroup)
 	e.POST("/api/groups/join", h.JoinGroupByInviteCode)
